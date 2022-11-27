@@ -99,9 +99,15 @@ func NewChain(filename string, receiver string) error {
 	chain.AddBlock(genesis)
 	return nil
 }
-func GetTokens(receiver string, chain *BlockChain, value uint64) {
+func GetTokens(receiver *User, chain *BlockChain, value uint64) {
 	block := NewBlock(chain.LastHash())
-	block.AddTransaction(chain, NewTransaction(user2, receiver, chain.LastHash(), value))
+	block.AddTransaction(chain, &Transaction{
+		RandBytes: GenerateRandomBytes(RAND_BYTES),
+		PrevBlock: chain.LastHash(),
+		Sender:    STORAGE_CHAIN,
+		Receiver:  receiver.Address(),
+		Value:     value,
+	})
 	block.Accept(chain)
 	chain.AddBlock(block)
 }
@@ -272,18 +278,6 @@ func (user *User) Private(salt []byte) []byte {
 }
 
 func (block *Block) AddTransaction(chain *BlockChain, tran *Transaction) error {
-	// if tran == nil {
-	// 	return errors.New("tran is null")
-	// }
-	// if tran.Value == 0 {
-	// 	return errors.New("tran value = 0")
-	// }
-	// if tran.Sender != STORAGE_CHAIN && len(block.Transactions) == TXS_LIMIT {
-	// 	return errors.New("len tran = limit")
-	// }
-	// if !bytes.Equal(tran.PrevBlock, chain.LastHash()) {
-	// 	return errors.New("prev block in tran /= last hash in chain")
-	// }
 	var balanceInChain uint64
 	balanceInTX := tran.Value
 	if value, ok := block.Mapping[tran.Sender]; ok {
@@ -291,9 +285,6 @@ func (block *Block) AddTransaction(chain *BlockChain, tran *Transaction) error {
 	} else {
 		balanceInChain = chain.Balance(tran.Sender, chain.Size())
 	}
-	// if balanceInTX > balanceInChain {
-	// 	return errors.New("not enought")
-	// }
 	block.Mapping[tran.Sender] = balanceInChain - balanceInTX
 	block.addBalance(chain, tran.Receiver, tran.Value)
 	block.Transactions = append(block.Transactions, *tran)

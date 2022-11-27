@@ -11,10 +11,8 @@ const (
 )
 
 func main() {
-	user1 := bc.NewUser()
-	user2 := bc.NewUser()
-	fmt.Println(user2.Address())
-	fmt.Println(user1.Address())
+	user1 := bc.LoadUser("IHHoAWEGUbjvOI")
+	user2 := bc.LoadUser("EREFoAcwsJHVvs")
 	bc.NewChain(DBNAME, user1.Address())
 	chain := bc.LoadChain(DBNAME)
 
@@ -28,6 +26,7 @@ func main() {
 	// block.AddTransaction(chain, bc.NewTransaction(user1, "a222", chain.LastHash(), 10))
 	// block.Accept(chain, user1, make(chan bool))
 	// chain.AddBlock(block)
+
 	block := bc.NewBlock(chain.LastHash())
 	block.AddTransaction(chain, bc.NewTransaction(user1, user2.Address(), chain.LastHash(), 10))
 	block.Accept(chain, user1)

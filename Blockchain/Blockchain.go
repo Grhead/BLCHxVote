@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"os"
 	"sort"
-	"strconv"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -57,7 +56,17 @@ const (
 	STORAGE_CHAIN = "GRChain"
 	RAND_BYTES    = 32
 	TXS_LIMIT     = 2
+	COLLECTION    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
+
+func RandStringRunes(n int) string {
+	var letterRunes = []rune(COLLECTION)
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
 
 func NewChain(filename string, receiver string) error {
 	file, err := os.Create(filename)
@@ -90,7 +99,12 @@ func NewChain(filename string, receiver string) error {
 	chain.AddBlock(genesis)
 	return nil
 }
-
+func GetTokens(receiver string, chain *BlockChain, value uint64) {
+	block := NewBlock(chain.LastHash())
+	block.AddTransaction(chain, NewTransaction(user2, receiver, chain.LastHash(), value))
+	block.Accept(chain)
+	chain.AddBlock(block)
+}
 func LoadChain(filename string) *BlockChain {
 	db, err := sql.Open("sqlite3", filename)
 	if err != nil {
@@ -246,13 +260,14 @@ func (user *User) Address() string {
 }
 
 func (user *User) Private(salt []byte) []byte {
-	tempPrivate := (bytes.Join(
-		[][]byte{
-			user.PublicKey,
-			salt,
-		},
-		[]byte{},
-	))
+	//tempPrivate := bytes.Join(
+	//	[][]byte{
+	//		user.PublicKey,
+	//		salt,
+	//	},
+	//	[]byte{},
+	//)
+	tempPrivate := user.PublicKey
 	return tempPrivate
 }
 
@@ -317,7 +332,7 @@ func (chain *BlockChain) Balance(address string, size uint64) uint64 {
 	return balance
 }
 
-func (block *Block) Accept(chain *BlockChain, user *User) error {
+func (block *Block) Accept(chain *BlockChain) error {
 	// if !block.transactionsIsValid(chain, chain.Size()) {
 	// 	return errors.New("tran is not valid")
 	// }
@@ -326,14 +341,13 @@ func (block *Block) Accept(chain *BlockChain, user *User) error {
 	return nil
 }
 
-func SerializeTX(tx *Transaction) string {
-	jsonData, err := json.MarshalIndent(*tx, "", "\t")
-	if err != nil {
-		return ""
-	}
-	return string(jsonData)
-}
-
+//	func SerializeTX(tx *Transaction) string {
+//		jsonData, err := json.MarshalIndent(*tx, "", "\t")
+//		if err != nil {
+//			return ""
+//		}
+//		return string(jsonData)
+//	}
 func DeserializeTX(data string) *Transaction {
 	var tx Transaction
 	err := json.Unmarshal([]byte(data), &tx)
@@ -344,21 +358,20 @@ func DeserializeTX(data string) *Transaction {
 }
 
 func NewUser() *User {
+	rand.Seed(time.Now().UnixNano())
 	return &User{
 		PublicKey: GeneratePublic(),
 	}
 }
 func GeneratePublic() []byte {
-	// priv, err := rsa.GenerateKey(rand.Reader, int(bits))
-	rand.Seed(time.Now().UnixNano())
-	priv := bytes.Join(
-		[][]byte{
-			[]byte(strconv.FormatInt(int64(rand.Int63()),
-				rand.Intn(10))),
-		},
-		[]byte{},
-	)
-	return priv
+	//privy := bytes.Join(
+	//	[][]byte{
+	//		[]byte(string(rand.Int63())),
+	//	},
+	//	[]byte{},
+	//)
+	privy := []byte(RandStringRunes(14))
+	return privy
 }
 
 func LoadUser(purse string) *User {
@@ -372,7 +385,7 @@ func LoadUser(purse string) *User {
 }
 
 func (user *User) Purse() string {
-	return string((user.Private([]byte("hello"))))
+	return string(user.Private([]byte("hello")))
 }
 
 func (chain *BlockChain) LastHash() []byte {

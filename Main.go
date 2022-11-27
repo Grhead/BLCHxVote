@@ -41,19 +41,4 @@ func main() {
 		rows.Scan(&bl)
 		fmt.Println(bl)
 	}
-	/*for i := 0; i < 3; i++ {
-		block := bc.NewBlock(chain.LastHash())
-		block.AddTransaction(chain, bc.NewTransaction(user1, "a1", chain.LastHash(), 10))
-		block.Accept(chain, user1, make(chan bool))
-		chain.AddBlock(block)
-	}
-	var bl string
-	rows, err := chain.DB.Query("SELECT Block FROM BlockChain")
-	if err != nil {
-		panic("error: query to db")
-	}
-	for rows.Next() {
-		rows.Scan(&bl)
-		fmt.Println(bl)
-	}*/
 }

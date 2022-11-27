@@ -317,7 +317,7 @@ func addTransaction(pack *nt.Package) string {
 			block := *Block
 			//IsMining = true
 			Mutex.Unlock()
-			res := (&block).Accept(Chain, User, make(chan bool))
+			res := (&block).Accept(Chain, User)
 			Mutex.Lock()
 			//IsMining = false
 			if res == nil && bytes.Equal(block.PrevHash, Block.PrevHash) {
@@ -346,8 +346,7 @@ func pushBlockToNet(block *bc.Block) {
 }
 func selectBlock(chain *bc.BlockChain, i int) string {
 	var block string
-	row := chain.DB.QueryRow("SELECT Block FROM BlockChain WHERE Id=$1",
-		i+1)
+	row := chain.DB.QueryRow("SELECT Block FROM BlockChain WHERE Id=$1", i+1)
 	row.Scan(&block)
 	return block
 }

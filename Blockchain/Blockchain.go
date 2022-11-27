@@ -317,7 +317,7 @@ func (chain *BlockChain) Balance(address string, size uint64) uint64 {
 	return balance
 }
 
-func (block *Block) Accept(chain *BlockChain, user *User, ch chan bool) error {
+func (block *Block) Accept(chain *BlockChain, user *User) error {
 	// if !block.transactionsIsValid(chain, chain.Size()) {
 	// 	return errors.New("tran is not valid")
 	// }

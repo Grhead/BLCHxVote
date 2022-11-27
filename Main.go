@@ -30,7 +30,7 @@ func main() {
 	// chain.AddBlock(block)
 	block := bc.NewBlock(chain.LastHash())
 	block.AddTransaction(chain, bc.NewTransaction(user1, user2.Address(), chain.LastHash(), 10))
-	block.Accept(chain, user1, make(chan bool))
+	block.Accept(chain, user1)
 	chain.AddBlock(block)
 	var bl string
 	rows, err := chain.DB.Query("SELECT Block FROM BlockChain")

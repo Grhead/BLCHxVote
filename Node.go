@@ -2,14 +2,10 @@ package main
 
 import (
 	"bytes"
-	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -71,6 +67,8 @@ func init() {
 		case strings.HasPrefix(arg, "-loaduser:"):
 			userLoadStr = strings.Replace(arg, "-loaduser:", "", 1)
 			userLoadExist = true
+		//case strings.HasPrefix(arg, "-loaduserfile:"):
+		//	userLoadStrFile = strings.Replace(arg, "-loaduserfile:", "", 1)
 		case strings.HasPrefix(arg, "-newchain:"):
 			chainNewStr = strings.Replace(arg, "-newchain:", "", 1)
 			chainNewExist = true
@@ -109,11 +107,11 @@ func init() {
 		panic("failed: load user")
 	}
 	if chainNewExist {
-		Filename = chainNewStr
+		//Filename = chainNewStr
 		Chain = chainNew(chainNewStr)
 	}
 	if chainLoadExist {
-		Filename = chainLoadStr
+		//Filename = chainLoadStr
 		Chain = chainLoad(chainLoadStr)
 	}
 	if Chain == nil {
@@ -131,15 +129,21 @@ var (
 
 func chainNew(filename string) *bc.BlockChain {
 	err := bc.NewChain(filename)
+	if err != nil {
+		return nil
+	}
 	return bc.LoadChain(filename)
 }
 func chainLoad(filename string) *bc.BlockChain {
 	chain := bc.LoadChain(filename)
 	return chain
 }
-func writeFile(filename string, data string) error {
-	return ioutil.WriteFile(filename, []byte(data), 0644)
-}
+
+/*
+	func writeFile(filename string, data string) error {
+		return ioutil.WriteFile(filename, []byte(data), 0644)
+	}
+*/
 func readFile(filename string) string {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -148,27 +152,42 @@ func readFile(filename string) string {
 	return string(data)
 }
 func userNew(filename string) *bc.User {
-	user := bc.NewUser()
+	user := bc.NewUser(filename)
 	if user == nil {
 		return nil
 	}
-	err := writeFile(filename, user.Purse())
-	if err != nil {
+	//err := writeFile(filename, user.Purse())
+	//if err != nil {
+	//	return nil
+	//}
+	return user
+}
+
+/*
+	func userLoad(privateK string, filename string) *bc.User {
+		//priv := readFile(filename)
+		//if priv == "" {
+		//	return nil
+		//}
+		user := bc.LoadUser(privateK, filename)
+		if user == nil {
+			return nil
+		}
+		return user
+	}
+*/
+func userLoad(privateK string) *bc.User {
+	//priv := readFile(filename)
+	//if priv == "" {
+	//	return nil
+	//}
+	user := bc.LoadUser(privateK, "Databases/paredb.db")
+	if user == nil {
 		return nil
 	}
 	return user
 }
-func userLoad(filename string) *bc.User {
-	priv := readFile(filename)
-	if priv == "" {
-		return nil
-	}
-	user := bc.LoadUser(priv)
-	if user == nil {
-		return nil
-	}
-	return user
-}
+
 func main() {
 	nt.Listen(Serve, handleServer)
 	for {
@@ -215,69 +234,72 @@ func getBalance(pack *nt.Package) string {
 func getChainSize(pack *nt.Package) string {
 	return fmt.Sprintf("%d", Chain.Size())
 }
-func compareChains(address string, num uint64) {
-	filename := "temp_" + hex.EncodeToString(bc.GenerateRandomBytes(8))
-	file, err := os.Create(filename)
-	if err != nil {
-		return
-	}
-	file.Close()
-	defer func() {
-		os.Remove(filename)
-	}()
-	res := nt.Send(address, &nt.Package{
-		Option: GET_BLOCK,
-		Data:   fmt.Sprintf("%d", 0),
-	})
-	if res == nil {
-		return
-	}
-	genesis := bc.DeserializeBlock(res.Data)
-	if genesis == nil {
-		return
-	}
-	if !bytes.Equal(genesis.CurrHash, hashBlock(genesis)) {
-		return
-	}
-	db, err := sql.Open("sqlite3", filename)
-	if err != nil {
-		return
-	}
-	defer db.Close()
-	_, err = db.Exec(bc.CREATE_TABLE)
-	chain := &bc.BlockChain{
-		DB: db,
-	}
-	chain.AddBlock(genesis)
-	for i := uint64(1); i < num; i++ {
+
+/*
+	func compareChains(address string, num uint64) {
+		filename := "temp_" + hex.EncodeToString(bc.GenerateRandomBytes(8))
+		file, err := os.Create(filename)
+		if err != nil {
+			return
+		}
+		file.Close()
+		defer func() {
+			os.Remove(filename)
+		}()
 		res := nt.Send(address, &nt.Package{
 			Option: GET_BLOCK,
-			Data:   fmt.Sprintf("%d", i),
+			Data:   fmt.Sprintf("%d", 0),
 		})
 		if res == nil {
 			return
 		}
-		block := bc.DeserializeBlock(res.Data)
-		if block == nil {
+		genesis := bc.DeserializeBlock(res.Data)
+		if genesis == nil {
 			return
 		}
-		//if !block.IsValid(chain, i) {
-		//	return
-		//}
-		chain.AddBlock(block)
+		if !bytes.Equal(genesis.CurrHash, hashBlock(genesis)) {
+			return
+		}
+		db, err := sql.Open("sqlite3", filename)
+		if err != nil {
+			return
+		}
+		defer db.Close()
+		_, err = db.Exec(bc.CREATE_TABLE)
+		chain := &bc.BlockChain{
+			DB: db,
+		}
+		chain.AddBlock(genesis)
+		for i := uint64(1); i < num; i++ {
+			res := nt.Send(address, &nt.Package{
+				Option: GET_BLOCK,
+				Data:   fmt.Sprintf("%d", i),
+			})
+			if res == nil {
+				return
+			}
+			block := bc.DeserializeBlock(res.Data)
+			if block == nil {
+				return
+			}
+			//if !block.IsValid(chain, i) {
+			//	return
+			//}
+			chain.AddBlock(block)
+		}
+		Mutex.Lock()
+		Chain.DB.Close()
+		os.Remove(Filename)
+		copyFile(filename, Filename)
+		Chain = bc.LoadChain(Filename)
+		Block = bc.NewBlock(Chain.LastHash())
+		Mutex.Unlock()
+		// if IsMining {
+		// 	BreakMining <- true
+		// 	IsMining = false
+		// }
 	}
-	Mutex.Lock()
-	Chain.DB.Close()
-	os.Remove(Filename)
-	copyFile(filename, Filename)
-	Chain = bc.LoadChain(Filename)
-	Block = bc.NewBlock(Chain.LastHash())
-	Mutex.Unlock()
-	// if IsMining {
-	// 	BreakMining <- true
-	// 	IsMining = false
-	// }
-}
+*/
 func addTransaction(pack *nt.Package) string {
 	var tx = bc.DeserializeTX(pack.Data)
 	if tx == nil || len(Block.Transactions) == bc.TXS_LIMIT {
@@ -328,7 +350,8 @@ func selectBlock(chain *bc.BlockChain, i int) string {
 	row.Scan(&block)
 	return block
 }
-func hashBlock(block *bc.Block) []byte {
+
+/*func hashBlock(block *bc.Block) []byte {
 	var tempHash []byte
 	for _, tx := range block.Transactions {
 		tempHash = bc.HashSum(bytes.Join(
@@ -379,4 +402,4 @@ func copyFile(src, dst string) error {
 		return err
 	}
 	return out.Close()
-}
+}*/

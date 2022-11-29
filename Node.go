@@ -130,17 +130,11 @@ var (
 )
 
 func chainNew(filename string) *bc.BlockChain {
-	err := bc.NewChain(filename, User.Address())
-	if err != nil {
-		return nil
-	}
+	err := bc.NewChain(filename)
 	return bc.LoadChain(filename)
 }
 func chainLoad(filename string) *bc.BlockChain {
 	chain := bc.LoadChain(filename)
-	if chain == nil {
-		return nil
-	}
 	return chain
 }
 func writeFile(filename string, data string) error {
@@ -195,26 +189,10 @@ func addBlock(pack *nt.Package) string {
 		return "fail"
 	}
 	block := bc.DeserializeBlock(splited[2])
-	//if !block.IsValid(Chain, Chain.Size()) {
-	//	currSize := Chain.Size()
-	//	num, err := strconv.Atoi(splited[1])
-	//	if err != nil {
-	//		return "fail"
-	//	}
-	//	if currSize < uint64(num) {
-	//		go compareChains(splited[0], uint64(num))
-	//		return "ok "
-	//	}
-	//	return "fail"
-	//}
 	Mutex.Lock()
 	Chain.AddBlock(block)
 	Block = bc.NewBlock(Chain.LastHash())
 	Mutex.Unlock()
-	// if IsMining {
-	// 	BreakMining <- true
-	// 	IsMining = false
-	// }
 	return "ok"
 }
 func getBlock(pack *nt.Package) string {
@@ -317,7 +295,7 @@ func addTransaction(pack *nt.Package) string {
 			block := *Block
 			//IsMining = true
 			Mutex.Unlock()
-			res := (&block).Accept(Chain, User)
+			res := (&block).Accept(Chain)
 			Mutex.Lock()
 			//IsMining = false
 			if res == nil && bytes.Equal(block.PrevHash, Block.PrevHash) {

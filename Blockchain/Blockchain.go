@@ -6,13 +6,18 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"fmt"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/valyala/fastjson"
+	"io"
 	"math/rand"
+	"net/http"
 	"os"
 	"sort"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type BlockChain struct {
@@ -39,7 +44,11 @@ type Transaction struct {
 }
 
 type User struct {
-	PublicKey []byte
+	PublicKey string
+}
+type Candidate struct {
+	PublicKey   string
+	Description string
 }
 
 const (
@@ -47,6 +56,20 @@ const (
 	 					Id INTEGER PRIMARY KEY AUTOINCREMENT,
 						Hash VARCHAR(44) UNIQUE,
 	 					Block TEXT
+						);`
+	CREATE_PASSDB = `CREATE TABLE TemplateDB (
+	 					Id INTEGER PRIMARY KEY AUTOINCREMENT,
+						Passport TEXT,
+	 					TemplatePRK TEXT
+						);`
+	CREATE_PAREDB = `CREATE TABLE Pare (
+	 					Id INTEGER PRIMARY KEY AUTOINCREMENT,
+						PrivateK TEXT UNIQUE,
+	 					PublicK TEXT UNIQUE
+						);`
+	CREATE_PUBLICDB = `CREATE TABLE PublicDB (
+	 					Id INTEGER PRIMARY KEY AUTOINCREMENT,
+	 					PublicK TEXT UNIQUE
 						);`
 )
 
@@ -56,19 +79,57 @@ const (
 	STORAGE_CHAIN = "GRChain"
 	RAND_BYTES    = 32
 	TXS_LIMIT     = 2
-	COLLECTION    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	TIME_URL      = "http://worldtimeapi.org/api/ip"
 )
 
-func RandStringRunes(n int) string {
-	var letterRunes = []rune(COLLECTION)
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+var (
+	resp, _ = http.Get(TIME_URL)
+)
+
+func NewVotePass(Pasefile string, Parefile string, Publicfile string) error {
+	file, err := os.Create(Pasefile)
+	if err != nil {
+		return err
 	}
-	return string(b)
+	file.Close()
+
+	dbpass, err := sql.Open("sqlite3", Pasefile)
+	if err != nil {
+		return err
+	}
+	defer dbpass.Close()
+	_, err = dbpass.Exec(CREATE_PASSDB)
+
+	file, err = os.Create(Parefile)
+	if err != nil {
+		return err
+	}
+	file.Close()
+
+	dbpare, err := sql.Open("sqlite3", Parefile)
+	if err != nil {
+		return err
+	}
+	defer dbpare.Close()
+	_, err = dbpare.Exec(CREATE_PAREDB)
+
+	file, err = os.Create(Publicfile)
+	if err != nil {
+		return err
+	}
+	file.Close()
+
+	dbpublic, err := sql.Open("sqlite3", Publicfile)
+	if err != nil {
+		return err
+	}
+	defer dbpublic.Close()
+	_, err = dbpublic.Exec(CREATE_PUBLICDB)
+
+	return nil
 }
 
-func NewChain(filename string, receiver string) error {
+func NewChain(filename string) error {
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -95,7 +156,6 @@ func NewChain(filename string, receiver string) error {
 	}
 	genesis.Mapping[STORAGE_CHAIN] = STORAGE_VALUE
 	genesis.CurrHash = genesis.Hash()
-	genesis.Mapping[receiver] = 50
 	chain.AddBlock(genesis)
 	return nil
 }
@@ -229,18 +289,18 @@ func HashSum(data []byte) []byte {
 	return hash[:]
 }
 
-func NewTransaction(user *User, toUser string, lastHash []byte, value uint64) *Transaction {
-	tran := &Transaction{
-		RandBytes: GenerateRandomBytes(RAND_BYTES),
-		PrevBlock: lastHash,
-		Sender:    user.Address(),
-		Receiver:  toUser,
-		Value:     value,
-	}
-	tran.CurrHash = tran.Hash()
-	tran.Signature = tran.Sign(user.Private([]byte("hello")))
-	return tran
-}
+//func NewTransaction(user *User, toUser string, lastHash []byte, value uint64) *Transaction {
+//	tran := &Transaction{
+//		RandBytes: GenerateRandomBytes(RAND_BYTES),
+//		PrevBlock: lastHash,
+//		Sender:    user.Address(),
+//		Receiver:  toUser,
+//		Value:     value,
+//	}
+//	tran.CurrHash = tran.Hash()
+//	tran.Signature = tran.Sign(user.Private())
+//	return tran
+//}
 
 func GenerateRandomBytes(max uint64) []byte {
 	var slice = make([]byte, max)
@@ -261,22 +321,6 @@ func Sign(privk []byte, data []byte) []byte {
 	return signature
 }
 
-func (user *User) Address() string {
-	return string(user.PublicKey[:])
-}
-
-func (user *User) Private(salt []byte) []byte {
-	//tempPrivate := bytes.Join(
-	//	[][]byte{
-	//		user.PublicKey,
-	//		salt,
-	//	},
-	//	[]byte{},
-	//)
-	tempPrivate := user.PublicKey
-	return tempPrivate
-}
-
 func (block *Block) AddTransaction(chain *BlockChain, tran *Transaction) error {
 	var balanceInChain uint64
 	balanceInTX := tran.Value
@@ -285,10 +329,12 @@ func (block *Block) AddTransaction(chain *BlockChain, tran *Transaction) error {
 	} else {
 		balanceInChain = chain.Balance(tran.Sender, chain.Size())
 	}
+	if balanceInTX > balanceInChain {
+		return errors.New("insufficient funds")
+	}
 	block.Mapping[tran.Sender] = balanceInChain - balanceInTX
 	block.addBalance(chain, tran.Receiver, tran.Value)
 	block.Transactions = append(block.Transactions, *tran)
-
 	return nil
 }
 
@@ -306,8 +352,7 @@ func (chain *BlockChain) Balance(address string, size uint64) uint64 {
 	var balance uint64
 	var sblock string
 	var block *Block
-	rows, err := chain.DB.Query("SELECT Block FROM BlockChain WHERE Id <= $1 ORDER BY ID DESC",
-		chain.index)
+	rows, err := chain.DB.Query("SELECT Block FROM BlockChain WHERE Id <= $1 ORDER BY ID DESC", size)
 	if err != nil {
 		return balance
 	}
@@ -324,21 +369,11 @@ func (chain *BlockChain) Balance(address string, size uint64) uint64 {
 }
 
 func (block *Block) Accept(chain *BlockChain) error {
-	// if !block.transactionsIsValid(chain, chain.Size()) {
-	// 	return errors.New("tran is not valid")
-	// }
 	block.TimeStamp = time.Now().Format(time.RFC3339)
 	block.CurrHash = block.Hash()
 	return nil
 }
 
-//	func SerializeTX(tx *Transaction) string {
-//		jsonData, err := json.MarshalIndent(*tx, "", "\t")
-//		if err != nil {
-//			return ""
-//		}
-//		return string(jsonData)
-//	}
 func DeserializeTX(data string) *Transaction {
 	var tx Transaction
 	err := json.Unmarshal([]byte(data), &tx)
@@ -347,38 +382,6 @@ func DeserializeTX(data string) *Transaction {
 	}
 	return &tx
 }
-
-func NewUser() *User {
-	rand.Seed(time.Now().UnixNano())
-	return &User{
-		PublicKey: GeneratePublic(),
-	}
-}
-func GeneratePublic() []byte {
-	//privy := bytes.Join(
-	//	[][]byte{
-	//		[]byte(string(rand.Int63())),
-	//	},
-	//	[]byte{},
-	//)
-	privy := []byte(RandStringRunes(14))
-	return privy
-}
-
-func LoadUser(purse string) *User {
-	priv := []byte(purse)
-	if priv == nil {
-		return nil
-	}
-	return &User{
-		PublicKey: priv,
-	}
-}
-
-func (user *User) Purse() string {
-	return string(user.Private([]byte("hello")))
-}
-
 func (chain *BlockChain) LastHash() []byte {
 	var hash string
 	row := chain.DB.QueryRow("SELECT Hash FROM BlockChain ORDER BY Id DESC")
@@ -392,4 +395,87 @@ func Base64Decode(data string) []byte {
 		return nil
 	}
 	return result
+}
+
+func NewUser(filename string) *User {
+	var temp string = GenerateKey()
+	db, _ := sql.Open("sqlite3", filename)
+	db.Exec("INSERT INTO PublicDB (PublicK) VALUES ($1)", temp)
+	return &User{
+		PublicKey: temp,
+	}
+}
+
+func LoadUser(privateK string, filename string) *User {
+	db, _ := sql.Open("sqlite3", filename)
+	var result string
+	db.QueryRow("SELECT PublicK FROM Pare WHERE PrivateK = $1", privateK).Scan(&result)
+	defer db.Close()
+	if result == "" {
+		return nil
+	}
+	return &User{
+		PublicKey: result,
+	}
+}
+
+func Purse(passport string, filename string) error {
+	db, _ := sql.Open("sqlite3", filename)
+	var result string
+	db.QueryRow("SELECT TemplatePRK FROM TemplateDB WHERE Passport = $1", passport).Scan(&result)
+	defer db.Close()
+	if result == "" {
+		return errors.New("Empty select")
+	}
+	return nil
+}
+
+func AddPass(passport string, filename string) error {
+	db, err := sql.Open("sqlite3", filename)
+	if err != nil {
+		return err
+	}
+	db.Exec("INSERT INTO TemplateDB (Passport, TemplatePRK) VALUES ($1, $2)",
+		passport,
+		GenerateKey(),
+	)
+	defer db.Close()
+	return nil
+}
+func Private(passport string, salt string, TemplateDBFile string, PareDBFile string, PKey string) string {
+	templateDB, _ := sql.Open("sqlite3", TemplateDBFile)
+	var template string
+	templateDB.QueryRow("SELECT TemplatePRK FROM TemplateDB WHERE Passport = $1", passport).Scan(&template)
+	defer templateDB.Close()
+	if template == "" {
+		//return errors.New("empty pass cell")
+		return "Empty"
+	}
+	hash := sha256.New()
+	hash.Write([]byte(template + salt))
+	result := hex.EncodeToString(hash.Sum(nil))
+	fmt.Println("resylt %1", result)
+	ImportToDB(PareDBFile, result, PKey)
+	return result
+}
+func ImportToDB(PareDBFile string, PrKResult string, PKey string) error {
+	PareDB, _ := sql.Open("sqlite3", PareDBFile)
+	PareDB.Exec("INSERT INTO Pare (PrivateK, PublicK) VALUES ($1, $2)", PrKResult, PKey)
+	defer PareDB.Close()
+	return nil
+}
+func (user *User) Address() string {
+	return user.PublicKey
+}
+
+func GenerateKey() string {
+	//defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	var p fastjson.Parser
+	v, _ := p.Parse(string(body))
+	hash := sha256.New()
+	hash.Write(v.GetStringBytes("datetime"))
+	priv := hex.EncodeToString(hash.Sum(nil))
+	//t, _ := hex.DecodeString(priv)
+	return priv
 }

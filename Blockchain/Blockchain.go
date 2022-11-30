@@ -78,7 +78,7 @@ const (
 	STORAGE_VALUE = 100
 	STORAGE_CHAIN = "GRChain"
 	RAND_BYTES    = 32
-	TXS_LIMIT     = 2
+	TXS_LIMIT     = 1
 	TIME_URL      = "http://worldtimeapi.org/api/ip"
 )
 
@@ -168,7 +168,7 @@ func GetTokens(receiver *User, chain *BlockChain, value uint64) {
 		Receiver:  receiver.Address(),
 		Value:     value,
 	})
-	block.Accept(chain)
+	block.Accept()
 	chain.AddBlock(block)
 }
 func LoadChain(filename string) *BlockChain {
@@ -289,18 +289,18 @@ func HashSum(data []byte) []byte {
 	return hash[:]
 }
 
-//func NewTransaction(user *User, toUser string, lastHash []byte, value uint64) *Transaction {
-//	tran := &Transaction{
-//		RandBytes: GenerateRandomBytes(RAND_BYTES),
-//		PrevBlock: lastHash,
-//		Sender:    user.Address(),
-//		Receiver:  toUser,
-//		Value:     value,
-//	}
-//	tran.CurrHash = tran.Hash()
-//	tran.Signature = tran.Sign(user.Private())
-//	return tran
-//}
+func NewTransaction(user *User, toUser string, lastHash []byte, value uint64, passdata string, file string) *Transaction {
+	tran := &Transaction{
+		RandBytes: GenerateRandomBytes(RAND_BYTES),
+		PrevBlock: lastHash,
+		Sender:    user.Address(),
+		Receiver:  toUser,
+		Value:     value,
+	}
+	tran.CurrHash = tran.Hash()
+	tran.Signature = tran.Sign([]byte(Purse(passdata, file)))
+	return tran
+}
 
 func GenerateRandomBytes(max uint64) []byte {
 	var slice = make([]byte, max)
@@ -322,6 +322,9 @@ func Sign(privk []byte, data []byte) []byte {
 }
 
 func (block *Block) AddTransaction(chain *BlockChain, tran *Transaction) error {
+	if tran.Sender != STORAGE_CHAIN && len(block.Transactions) == TXS_LIMIT {
+		return errors.New("len tx = limit")
+	}
 	var balanceInChain uint64
 	balanceInTX := tran.Value
 	if value, ok := block.Mapping[tran.Sender]; ok {
@@ -368,12 +371,18 @@ func (chain *BlockChain) Balance(address string, size uint64) uint64 {
 	return balance
 }
 
-func (block *Block) Accept(chain *BlockChain) error {
+func (block *Block) Accept() error {
 	block.TimeStamp = time.Now().Format(time.RFC3339)
 	block.CurrHash = block.Hash()
 	return nil
 }
-
+func SerializeTX(tx *Transaction) string {
+	jsonData, err := json.MarshalIndent(*tx, "", "\t")
+	if err != nil {
+		return ""
+	}
+	return string(jsonData)
+}
 func DeserializeTX(data string) *Transaction {
 	var tx Transaction
 	err := json.Unmarshal([]byte(data), &tx)
@@ -419,15 +428,15 @@ func LoadUser(privateK string, filename string) *User {
 	}
 }
 
-func Purse(passport string, filename string) error {
+func Purse(passport string, filename string) string {
 	db, _ := sql.Open("sqlite3", filename)
 	var result string
 	db.QueryRow("SELECT TemplatePRK FROM TemplateDB WHERE Passport = $1", passport).Scan(&result)
 	defer db.Close()
 	if result == "" {
-		return errors.New("Empty select")
+		return ""
 	}
-	return nil
+	return result
 }
 
 func AddPass(passport string, filename string) error {
@@ -478,4 +487,21 @@ func GenerateKey() string {
 	priv := hex.EncodeToString(hash.Sum(nil))
 	//t, _ := hex.DecodeString(priv)
 	return priv
+}
+func (block *Block) IsValid(chain *BlockChain, size uint64) bool {
+	//switch {
+	//case block == nil:
+	//	return false
+	//case !block.hashIsValid(chain, size):
+	//	return false
+	//case !block.signIsValid():
+	//	return false
+	//case !block.mappingIsValid():
+	//	return false;
+	//case !block.timeIsValid(chain):
+	//	return false
+	//case !block.transactionsIsValid(chain, size):
+	//	return false
+	//}
+	return true
 }

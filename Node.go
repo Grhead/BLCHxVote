@@ -30,18 +30,18 @@ func init() {
 		panic("failed: len(os.Args) < 2")
 	}
 	var (
-		serveStr     = ""
-		addrStr      = ""
-		userNewStr   = ""
-		userLoadStr  = ""
+		serveStr = ""
+		addrStr  = ""
+		//userNewStr   = ""
+		//userLoadStr  = ""
 		chainNewStr  = ""
 		chainLoadStr = ""
 	)
 	var (
-		serveExist     = false
-		addrExist      = false
-		userNewExist   = false
-		userLoadExist  = false
+		//serveExist     = false
+		//addrExist      = false
+		//userNewExist   = false
+		//userLoadExist  = false
 		chainNewExist  = false
 		chainLoadExist = false
 	)
@@ -50,18 +50,18 @@ func init() {
 		switch {
 		case strings.HasPrefix(arg, "-serve:"):
 			serveStr = strings.Replace(arg, "-serve:", "", 1)
-			serveExist = true
+			//serveExist = true
 		case strings.HasPrefix(arg, "-loadaddr:"):
 			addrStr = strings.Replace(arg, "-loadaddr:", "", 1)
-			addrExist = true
-		case strings.HasPrefix(arg, "-newuser:"):
-			userNewStr = strings.Replace(arg, "-newuser:", "", 1)
-			userNewExist = true
-		case strings.HasPrefix(arg, "-loaduser:"):
-			userLoadStr = strings.Replace(arg, "-loaduser:", "", 1)
-			userLoadExist = true
-		//case strings.HasPrefix(arg, "-loaduserfile:"):
-		//	userLoadStrFile = strings.Replace(arg, "-loaduserfile:", "", 1)
+			//addrExist = true
+		/*case strings.HasPrefix(arg, "-newuser:"):
+		userNewStr = strings.Replace(arg, "-newuser:", "", 1)
+		userNewExist = true*/
+		/*case strings.HasPrefix(arg, "-loaduser:"):
+		userLoadStr = strings.Replace(arg, "-loaduser:", "", 1)
+		userLoadExist = true*/
+		/*case strings.HasPrefix(arg, "-loaduserfile:"):
+		userLoadStrFile = strings.Replace(arg, "-loaduserfile:", "", 1)*/
 		case strings.HasPrefix(arg, "-newchain:"):
 			chainNewStr = strings.Replace(arg, "-newchain:", "", 1)
 			chainNewExist = true
@@ -70,9 +70,9 @@ func init() {
 			chainLoadExist = true
 		}
 	}
-	if !(userNewExist || userLoadExist) || !(chainNewExist || chainLoadExist) || !serveExist || !addrExist {
-		panic("failed: !(userNewExist || userLoadExist)" + "|| !(chainNewExist || chainLoadExist) || !serveExist || !addrExist")
-	}
+	//if !(userNewExist || userLoadExist) || !(chainNewExist || chainLoadExist) || !serveExist || !addrExist {
+	//	panic("failed: !(userNewExist || userLoadExist)" + "|| !(chainNewExist || chainLoadExist) || !serveExist || !addrExist")
+	//}
 	Serve = serveStr
 	var addresses []string
 	err := json.Unmarshal([]byte(readFile(addrStr)), &addresses)
@@ -90,15 +90,15 @@ func init() {
 		mapaddr[addr] = true
 		Addresses = append(Addresses, addr)
 	}
-	if userNewExist {
+	/*if userNewExist {
 		User = userNew(userNewStr)
-	}
-	if userLoadExist {
+	}*/
+	/*if userLoadExist {
 		User = userLoad(userLoadStr)
-	}
-	if User == nil {
+	}*/
+	/*if User == nil {
 		panic("failed: load user")
-	}
+	}*/
 	if chainNewExist {
 		//Filename = chainNewStr
 		Chain = chainNew(chainNewStr)
@@ -192,13 +192,14 @@ func handleServer(conn nt.Conn, pack *nt.Package) {
 	nt.Handle(GET_CSIZE, conn, pack, getChainSize)
 }
 func addBlock(pack *nt.Package) string {
-	fmt.Println("Here 1")
 	splited := strings.Split(pack.Data, SEPARATOR)
+
 	if len(splited) != 3 {
 		return "fail"
 	}
 	block := bc.DeserializeBlock(splited[2])
-	/*if !block.IsValid(Chain, Chain.Size()) {
+	fmt.Println("qweqwe")
+	if !block.IsValid(Chain, Chain.Size()) {
 		currSize := Chain.Size()
 		num, err := strconv.Atoi(splited[1])
 		if err != nil {
@@ -209,7 +210,7 @@ func addBlock(pack *nt.Package) string {
 			return "ok1"
 		}
 		return "fail"
-	}*/
+	}
 	Mutex.Lock()
 	Chain.AddBlock(block)
 	Block = bc.NewBlock(Chain.LastHash())
@@ -238,6 +239,7 @@ func getChainSize(pack *nt.Package) string {
 }
 
 func compareChains(address string, num uint64) {
+	fmt.Println("Here1")
 	filename := "temp_" + hex.EncodeToString(bc.GenerateRandomBytes(8))
 	file, err := os.Create(filename)
 	if err != nil {

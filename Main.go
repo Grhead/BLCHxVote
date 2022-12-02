@@ -1,6 +1,9 @@
 package main
 
-import bc "BLCHxVote/Blockchain"
+import (
+	bc "BLCHxVote/Blockchain"
+	"fmt"
+)
 
 const (
 	DBNAME       = "Databases/bloch.db"
@@ -10,14 +13,16 @@ const (
 )
 
 func main() {
-	bc.NewChain(DBNAME)
+	//bc.NewChain(DBNAME)
 	chain := bc.LoadChain(DBNAME)
 	//bc.NewVotePass(PASSBDNAME, PAREBDNAME, PUBLICBDNAME)
 	//user1 := bc.NewUser(PUBLICBDNAME)
-	user2 := bc.LoadUser("47ad6449aa0885d4598ac42129d1ae789e453aef6ba39cee12c0fd9ee6c0cdc8", PAREBDNAME)
+	//user2 := bc.LoadUser("47ad6449aa0885d4598ac42129d1ae789e453aef6ba39cee12c0fd9ee6c0cdc8", PAREBDNAME)
+	fmt.Println(chain.Balance("GRChain", chain.Size()))
+
 	//fmt.Println(user1.Address())
 	//fmt.Println(user2.Address())
-	bc.GetTokens(user2, chain, 50)
+	//bc.GetTokens(user2, chain, 50)
 	//bc.Purse("ASD", PASSBDNAME)
 	//bc.Private("ASD", "Hello", PASSBDNAME, PAREBDNAME, user1.Address())
 

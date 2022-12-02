@@ -159,18 +159,21 @@ func NewChain(filename string) error {
 	chain.AddBlock(genesis)
 	return nil
 }
-func GetTokens(receiver *User, chain *BlockChain, value uint64) {
-	block := NewBlock(chain.LastHash())
-	block.AddTransaction(chain, &Transaction{
-		RandBytes: GenerateRandomBytes(RAND_BYTES),
-		PrevBlock: chain.LastHash(),
-		Sender:    STORAGE_CHAIN,
-		Receiver:  receiver.Address(),
-		Value:     value,
-	})
-	block.Accept()
-	chain.AddBlock(block)
-}
+
+/*
+	func GetTokens(receiver *User, chain *BlockChain, value uint64) {
+		block := NewBlock(chain.LastHash())
+		block.AddTransaction(chain, &Transaction{
+			RandBytes: GenerateRandomBytes(RAND_BYTES),
+			PrevBlock: chain.LastHash(),
+			Sender:    STORAGE_CHAIN,
+			Receiver:  receiver.Address(),
+			Value:     value,
+		})
+		block.Accept()
+		chain.AddBlock(block)
+	}
+*/
 func LoadChain(filename string) *BlockChain {
 	db, err := sql.Open("sqlite3", filename)
 	if err != nil {
@@ -294,6 +297,18 @@ func NewTransaction(user *User, toUser string, lastHash []byte, value uint64, pa
 		RandBytes: GenerateRandomBytes(RAND_BYTES),
 		PrevBlock: lastHash,
 		Sender:    user.Address(),
+		Receiver:  toUser,
+		Value:     value,
+	}
+	tran.CurrHash = tran.Hash()
+	tran.Signature = tran.Sign([]byte(Purse(passdata, file)))
+	return tran
+}
+func NewTransactionBlock(toUser string, lastHash []byte, value uint64, passdata string, file string) *Transaction {
+	tran := &Transaction{
+		RandBytes: GenerateRandomBytes(RAND_BYTES),
+		PrevBlock: lastHash,
+		Sender:    STORAGE_CHAIN,
 		Receiver:  toUser,
 		Value:     value,
 	}

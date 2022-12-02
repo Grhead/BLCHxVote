@@ -10,12 +10,13 @@ import (
 
 func main() {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
-	printBalance("c470ba4dbd73f5378988f2e89d02449c39aa6be6b26cc3ae7f01b6fe6c9c76bf")
-	//chainSize()
+	printBalance("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c")
+	chainSize()
 	User = bc.LoadUser("47ad6449aa0885d4598ac42129d1ae789e453aef6ba39cee12c0fd9ee6c0cdc8", "Databases/paredb.db")
-	chainTX("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c", 1, "ASD", "Databases/passdb.db")
-	printBalance("c470ba4dbd73f5378988f2e89d02449c39aa6be6b26cc3ae7f01b6fe6c9c76bf")
-	//chainSize()
+	chainTXBlock("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c", 1, "ASD", "Databases/passdb.db")
+	//chainTX("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c", 1, "ASD", "Databases/passdb.db")
+	printBalance("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c")
+	chainSize()
 }
 func printBalance(useraddr string) {
 	for _, addr := range Addresses {
@@ -89,6 +90,30 @@ func chainTX(candidate string, num uint64, datapass string, filename string) {
 			continue
 		}
 		tx := bc.NewTransaction(User, candidate, bc.Base64Decode(res.Data), num, datapass, filename)
+		res = nt.Send(addr, &nt.Package{
+			Option: ADD_TRNSX,
+			Data:   bc.SerializeTX(tx),
+		})
+		if res == nil {
+			continue
+		}
+		if res.Data == "ok" {
+			fmt.Printf("ok: (%s)\n", addr)
+		} else {
+			fmt.Printf("fail: (%s)\n", addr)
+		}
+	}
+	fmt.Println()
+}
+func chainTXBlock(john string, num uint64, datapass string, filename string) {
+	for _, addr := range Addresses {
+		res := nt.Send(addr, &nt.Package{
+			Option: GET_LHASH,
+		})
+		if res == nil {
+			continue
+		}
+		tx := bc.NewTransactionBlock(john, bc.Base64Decode(res.Data), num, datapass, filename)
 		res = nt.Send(addr, &nt.Package{
 			Option: ADD_TRNSX,
 			Data:   bc.SerializeTX(tx),

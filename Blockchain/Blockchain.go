@@ -500,23 +500,5 @@ func GenerateKey() string {
 	hash := sha256.New()
 	hash.Write(v.GetStringBytes("datetime"))
 	priv := hex.EncodeToString(hash.Sum(nil))
-	//t, _ := hex.DecodeString(priv)
 	return priv
-}
-func (block *Block) IsValid(chain *BlockChain, size uint64) bool {
-	//switch {
-	//case block == nil:
-	//	return false
-	//case !block.hashIsValid(chain, size):
-	//	return false
-	//case !block.signIsValid():
-	//	return false
-	//case !block.mappingIsValid():
-	//	return false;
-	//case !block.timeIsValid(chain):
-	//	return false
-	//case !block.transactionsIsValid(chain, size):
-	//	return false
-	//}
-	return true
 }

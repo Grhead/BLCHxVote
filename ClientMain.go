@@ -10,12 +10,12 @@ import (
 
 func main() {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
-	printBalance("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c")
+	printBalance("17f30ab09a5ff197c1c0b381f7b6412ff4048520f3a949e2774ae2fe97019266")
 	chainSize()
+	//chainTXBlock("c470ba4dbd73f5378988f2e89d02449c39aa6be6b26cc3ae7f01b6fe6c9c76bf", 1, "ASD", "Databases/passdb.db")
 	User = bc.LoadUser("47ad6449aa0885d4598ac42129d1ae789e453aef6ba39cee12c0fd9ee6c0cdc8", "Databases/paredb.db")
-	chainTXBlock("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c", 1, "ASD", "Databases/passdb.db")
-	//chainTX("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c", 1, "ASD", "Databases/passdb.db")
-	printBalance("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c")
+	chainTX("17f30ab09a5ff197c1c0b381f7b6412ff4048520f3a949e2774ae2fe97019266", 1, "ASD", "Databases/passdb.db")
+	printBalance("17f30ab09a5ff197c1c0b381f7b6412ff4048520f3a949e2774ae2fe97019266")
 	chainSize()
 }
 func printBalance(useraddr string) {

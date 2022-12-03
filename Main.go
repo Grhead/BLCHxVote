@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	DBNAME       = "Databases/bloch.db"
+	DBNAME       = "bloch1.db"
 	PASSBDNAME   = "Databases/passdb.db"
 	PAREBDNAME   = "Databases/paredb.db"
 	PUBLICBDNAME = "Databases/pubdb.db"
@@ -18,7 +18,8 @@ func main() {
 	//bc.NewVotePass(PASSBDNAME, PAREBDNAME, PUBLICBDNAME)
 	//user1 := bc.NewUser(PUBLICBDNAME)
 	//user2 := bc.LoadUser("47ad6449aa0885d4598ac42129d1ae789e453aef6ba39cee12c0fd9ee6c0cdc8", PAREBDNAME)
-	fmt.Println(chain.Balance("GRChain", chain.Size()))
+	fmt.Println(chain.Balance("47ad6449aa0885d4598ac42129d1ae789e453aef6ba39cee12c0fd9ee6c0cdc8", chain.Size()))
+	fmt.Println(chain.Balance("17f30ab09a5ff197c1c0b381f7b6412ff4048520f3a949e2774ae2fe97019266", chain.Size()))
 
 	//fmt.Println(user1.Address())
 	//fmt.Println(user2.Address())

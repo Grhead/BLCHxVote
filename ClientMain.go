@@ -5,17 +5,16 @@ import (
 	nt "BLCHxVote/Network"
 	"encoding/json"
 	"fmt"
-	"strconv"
 )
 
 func main() {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
-	printBalance("17f30ab09a5ff197c1c0b381f7b6412ff4048520f3a949e2774ae2fe97019266")
+	printBalance("c470ba4dbd73f5378988f2e89d02449c39aa6be6b26cc3ae7f01b6fe6c9c76bf")
 	chainSize()
-	//chainTXBlock("c470ba4dbd73f5378988f2e89d02449c39aa6be6b26cc3ae7f01b6fe6c9c76bf", 1, "ASD", "Databases/passdb.db")
-	User = bc.LoadUser("47ad6449aa0885d4598ac42129d1ae789e453aef6ba39cee12c0fd9ee6c0cdc8", "Databases/paredb.db")
-	chainTX("17f30ab09a5ff197c1c0b381f7b6412ff4048520f3a949e2774ae2fe97019266", 1, "ASD", "Databases/passdb.db")
-	printBalance("17f30ab09a5ff197c1c0b381f7b6412ff4048520f3a949e2774ae2fe97019266")
+	chainTXBlock("c470ba4dbd73f5378988f2e89d02449c39aa6be6b26cc3ae7f01b6fe6c9c76bf", 1, "ASD", "Databases/passdb.db")
+	//User = bc.LoadUser("47ad6449aa0885d4598ac42129d1ae789e453aef6ba39cee12c0fd9ee6c0cdc8", "Databases/paredb.db")
+	//chainTX("17f30ab09a5ff197c1c0b381f7b6412ff4048520f3a949e2774ae2fe97019266", 1, "ASD", "Databases/passdb.db")
+	printBalance("c470ba4dbd73f5378988f2e89d02449c39aa6be6b26cc3ae7f01b6fe6c9c76bf")
 	chainSize()
 }
 func printBalance(useraddr string) {
@@ -41,7 +40,8 @@ func chainSize() {
 	}
 	fmt.Printf("Size: %s blocks\n\n", res.Data)
 }
-func chainBlock(splited string) {
+
+/*func chainBlock(splited string) {
 	num, err := strconv.Atoi(splited)
 	if err != nil {
 		fmt.Println("failed: strconv.Atoi(num)\n")
@@ -57,7 +57,7 @@ func chainBlock(splited string) {
 	}
 	fmt.Printf("[%d] => %s\n", num, res.Data)
 }
-
+*/
 /*
 	func chainBalance(splited []string) {
 		if len(splited) != 2 {

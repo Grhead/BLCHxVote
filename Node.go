@@ -6,23 +6,24 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	_ "github.com/mattn/go-sqlite3"
 	"io"
-	"math/rand"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 
 	bc "BLCHxVote/Blockchain"
 	nt "BLCHxVote/Network"
 )
 
 var (
-	Mutex sync.Mutex
+	Mutex    sync.Mutex
+	Filename string
+	Serve    string
+	Chain    *bc.BlockChain
+	Block    *bc.Block
 )
 
 func init() {
@@ -30,18 +31,12 @@ func init() {
 		panic("failed: len(os.Args) < 2")
 	}
 	var (
-		serveStr = ""
-		addrStr  = ""
-		//userNewStr   = ""
-		//userLoadStr  = ""
+		serveStr     = ""
+		addrStr      = ""
 		chainNewStr  = ""
 		chainLoadStr = ""
 	)
 	var (
-		//serveExist     = false
-		//addrExist      = false
-		//userNewExist   = false
-		//userLoadExist  = false
 		chainNewExist  = false
 		chainLoadExist = false
 	)
@@ -54,14 +49,6 @@ func init() {
 		case strings.HasPrefix(arg, "-loadaddr:"):
 			addrStr = strings.Replace(arg, "-loadaddr:", "", 1)
 			//addrExist = true
-		/*case strings.HasPrefix(arg, "-newuser:"):
-		userNewStr = strings.Replace(arg, "-newuser:", "", 1)
-		userNewExist = true*/
-		/*case strings.HasPrefix(arg, "-loaduser:"):
-		userLoadStr = strings.Replace(arg, "-loaduser:", "", 1)
-		userLoadExist = true*/
-		/*case strings.HasPrefix(arg, "-loaduserfile:"):
-		userLoadStrFile = strings.Replace(arg, "-loaduserfile:", "", 1)*/
 		case strings.HasPrefix(arg, "-newchain:"):
 			chainNewStr = strings.Replace(arg, "-newchain:", "", 1)
 			chainNewExist = true
@@ -70,9 +57,6 @@ func init() {
 			chainLoadExist = true
 		}
 	}
-	//if !(userNewExist || userLoadExist) || !(chainNewExist || chainLoadExist) || !serveExist || !addrExist {
-	//	panic("failed: !(userNewExist || userLoadExist)" + "|| !(chainNewExist || chainLoadExist) || !serveExist || !addrExist")
-	//}
 	Serve = serveStr
 	var addresses []string
 	err := json.Unmarshal([]byte(readFile(addrStr)), &addresses)
@@ -90,21 +74,12 @@ func init() {
 		mapaddr[addr] = true
 		Addresses = append(Addresses, addr)
 	}
-	/*if userNewExist {
-		User = userNew(userNewStr)
-	}*/
-	/*if userLoadExist {
-		User = userLoad(userLoadStr)
-	}*/
-	/*if User == nil {
-		panic("failed: load user")
-	}*/
 	if chainNewExist {
-		//Filename = chainNewStr
+		Filename = chainNewStr
 		Chain = chainNew(chainNewStr)
 	}
 	if chainLoadExist {
-		//Filename = chainLoadStr
+		Filename = chainLoadStr
 		Chain = chainLoad(chainLoadStr)
 	}
 	if Chain == nil {
@@ -113,12 +88,12 @@ func init() {
 	Block = bc.NewBlock(Chain.LastHash())
 }
 
-var (
-	Filename string
-	Serve    string
-	Chain    *bc.BlockChain
-	Block    *bc.Block
-)
+func main() {
+	nt.Listen(Serve, handleServer)
+	for {
+		fmt.Scanln()
+	}
+}
 
 func chainNew(filename string) *bc.BlockChain {
 	err := bc.NewChain(filename)
@@ -131,44 +106,13 @@ func chainLoad(filename string) *bc.BlockChain {
 	chain := bc.LoadChain(filename)
 	return chain
 }
-
-/*
-	func writeFile(filename string, data string) error {
-		return ioutil.WriteFile(filename, []byte(data), 0644)
-	}
-*/
-/*func readFile(filename string) string {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return ""
-	}
-	return string(data)
-}*/
 func userNew(filename string) *bc.User {
 	user := bc.NewUser(filename)
 	if user == nil {
 		return nil
 	}
-	//err := writeFile(filename, user.Purse())
-	//if err != nil {
-	//	return nil
-	//}
 	return user
 }
-
-/*
-	func userLoad(privateK string, filename string) *bc.User {
-		//priv := readFile(filename)
-		//if priv == "" {
-		//	return nil
-		//}
-		user := bc.LoadUser(privateK, filename)
-		if user == nil {
-			return nil
-		}
-		return user
-	}
-*/
 func userLoad(privateK string) *bc.User {
 	user := bc.LoadUser(privateK, "Databases/paredb.db")
 	if user == nil {
@@ -177,12 +121,6 @@ func userLoad(privateK string) *bc.User {
 	return user
 }
 
-func main() {
-	nt.Listen(Serve, handleServer)
-	for {
-		fmt.Scanln()
-	}
-}
 func handleServer(conn nt.Conn, pack *nt.Package) {
 	nt.Handle(ADD_BLOCK, conn, pack, addBlock)
 	nt.Handle(ADD_TRNSX, conn, pack, addTransaction)
@@ -191,60 +129,11 @@ func handleServer(conn nt.Conn, pack *nt.Package) {
 	nt.Handle(GET_BLNCE, conn, pack, getBalance)
 	nt.Handle(GET_CSIZE, conn, pack, getChainSize)
 }
-func addBlock(pack *nt.Package) string {
-	splited := strings.Split(pack.Data, SEPARATOR)
-
-	if len(splited) != 3 {
-		return "fail"
-	}
-	block := bc.DeserializeBlock(splited[2])
-	fmt.Println("qweqwe")
-	if !block.IsValid(Chain, Chain.Size()) {
-		currSize := Chain.Size()
-		num, err := strconv.Atoi(splited[1])
-		if err != nil {
-			return "fail"
-		}
-		if currSize < uint64(num) {
-			go compareChains(splited[0], uint64(num))
-			return "ok1"
-		}
-		return "fail"
-	}
-	Mutex.Lock()
-	Chain.AddBlock(block)
-	Block = bc.NewBlock(Chain.LastHash())
-	Mutex.Unlock()
-	return "ok"
-}
-func getBlock(pack *nt.Package) string {
-	num, err := strconv.Atoi(pack.Data)
-	if err != nil {
-		return ""
-	}
-	size := Chain.Size()
-	if uint64(num) < size {
-		return selectBlock(Chain, num)
-	}
-	return ""
-}
-func getLastHash(pack *nt.Package) string {
-	return bc.Base64Encode(Chain.LastHash())
-}
-func getBalance(pack *nt.Package) string {
-	return fmt.Sprintf("%d", Chain.Balance(pack.Data, Chain.Size()))
-}
-func getChainSize(pack *nt.Package) string {
-	return fmt.Sprintf("%d", Chain.Size())
-}
 
 func compareChains(address string, num uint64) {
-	fmt.Println("Here1")
-	filename := "temp_" + hex.EncodeToString(bc.GenerateRandomBytes(8))
-	file, err := os.Create(filename)
-	if err != nil {
-		return
-	}
+	fmt.Println("Compare")
+	filename := "temp_" + hex.EncodeToString(bc.GenerateRandomBytes(32))
+	file, _ := os.Create(filename)
 	file.Close()
 	defer func() {
 		os.Remove(filename)
@@ -253,13 +142,7 @@ func compareChains(address string, num uint64) {
 		Option: GET_BLOCK,
 		Data:   fmt.Sprintf("%d", 0),
 	})
-	if res == nil {
-		return
-	}
 	genesis := bc.DeserializeBlock(res.Data)
-	if genesis == nil {
-		return
-	}
 	if !bytes.Equal(genesis.CurrHash, hashBlock(genesis)) {
 		return
 	}
@@ -278,63 +161,22 @@ func compareChains(address string, num uint64) {
 			Option: GET_BLOCK,
 			Data:   fmt.Sprintf("%d", i),
 		})
-		if res == nil {
-			return
-		}
 		block := bc.DeserializeBlock(res.Data)
-		if block == nil {
-			return
-		}
-		//if !block.IsValid(chain, i) {
-		//	return
-		//}
 		chain.AddBlock(block)
 	}
-	Mutex.Lock()
+	//Mutex.Lock()
 	Chain.DB.Close()
 	os.Remove(Filename)
 	copyFile(filename, Filename)
 	Chain = bc.LoadChain(Filename)
 	Block = bc.NewBlock(Chain.LastHash())
-	Mutex.Unlock()
-}
-
-func addTransaction(pack *nt.Package) string {
-	temp := rand.Intn(2-1) + 1
-	time.Sleep(time.Duration(temp))
-	var tx = bc.DeserializeTX(pack.Data)
-	if tx == nil || len(Block.Transactions) == bc.TXS_LIMIT {
-		return "fail"
-	}
-	Mutex.Lock()
-	err := Block.AddTransaction(Chain, tx)
-	Mutex.Unlock()
-	if err != nil {
-		return "fail"
-	}
-	if len(Block.Transactions) == bc.TXS_LIMIT {
-		go func() {
-			Mutex.Lock()
-			block := *Block
-			Mutex.Unlock()
-			res := (&block).Accept()
-			Mutex.Lock()
-			if res == nil && bytes.Equal(block.PrevHash, Block.PrevHash) {
-				Chain.AddBlock(&block)
-				pushBlockToNet(&block)
-			}
-			Block = bc.NewBlock(Chain.LastHash())
-			Mutex.Unlock()
-		}()
-	}
-	return "ok"
+	//Mutex.Unlock()
+	return
 }
 
 func pushBlockToNet(block *bc.Block) {
-	var (
-		sblock = bc.SerializeBlock(block)
-		msg    = Serve + SEPARATOR + fmt.Sprintf("%d", Chain.Size()) + SEPARATOR + sblock
-	)
+	var sblock = bc.SerializeBlock(block)
+	var msg = Serve + SEPARATOR + fmt.Sprintf("%d", Chain.Size()) + SEPARATOR + sblock
 	for _, addr := range Addresses {
 		go nt.Send(addr, &nt.Package{
 			Option: ADD_BLOCK,
@@ -342,13 +184,73 @@ func pushBlockToNet(block *bc.Block) {
 		})
 	}
 }
+
+func addBlock(pack *nt.Package) string {
+	splited := strings.Split(pack.Data, SEPARATOR)
+	block := bc.DeserializeBlock(splited[2])
+	currSize := Chain.Size()
+	num, _ := strconv.Atoi(splited[1])
+	if currSize < uint64(num) {
+		compareChains(splited[0], uint64(num))
+		return "ok "
+	}
+	//Mutex.Lock()
+	Chain.AddBlock(block)
+	Block = bc.NewBlock(Chain.LastHash())
+	//Mutex.Unlock()
+	return "ok"
+}
+
+func addTransaction(pack *nt.Package) string {
+	var tx = bc.DeserializeTX(pack.Data)
+	//Mutex.Lock()
+	Block.AddTransaction(Chain, tx)
+	//Mutex.Unlock()
+
+	go func() {
+		//Mutex.Lock()
+		block := *Block
+		//Mutex.Unlock()
+		res := (&block).Accept()
+		//Mutex.Lock()
+		if res == nil && bytes.Equal(block.PrevHash, Block.PrevHash) {
+			Chain.AddBlock(&block)
+			pushBlockToNet(&block)
+		}
+		Block = bc.NewBlock(Chain.LastHash())
+		//Mutex.Unlock()
+	}()
+	return "ok"
+}
+
+func getBlock(pack *nt.Package) string {
+	num, err := strconv.Atoi(pack.Data)
+	if err != nil {
+		return ""
+	}
+	size := Chain.Size()
+	if uint64(num) < size {
+		return selectBlock(Chain, num)
+	}
+	return ""
+}
+func getLastHash(pack *nt.Package) string {
+	fmt.Println("getLH")
+	return bc.Base64Encode(Chain.LastHash())
+}
+func getBalance(pack *nt.Package) string {
+	return fmt.Sprintf("%d", Chain.Balance(pack.Data, Chain.Size()))
+}
+func getChainSize(pack *nt.Package) string {
+	return fmt.Sprintf("%d", Chain.Size())
+}
 func selectBlock(chain *bc.BlockChain, i int) string {
+	fmt.Println("SelectBL")
 	var block string
 	row := chain.DB.QueryRow("SELECT Block FROM BlockChain WHERE Id=$1", i+1)
 	row.Scan(&block)
 	return block
 }
-
 func hashBlock(block *bc.Block) []byte {
 	var tempHash []byte
 	for _, tx := range block.Transactions {
@@ -385,6 +287,7 @@ func hashBlock(block *bc.Block) []byte {
 	))
 }
 func copyFile(src, dst string) error {
+	fmt.Println("copy")
 	in, err := os.Open(src)
 	if err != nil {
 		return err

@@ -69,13 +69,18 @@ const (
 						);`
 	CREATE_PUBLICDB = `CREATE TABLE PublicDB (
 	 					Id INTEGER PRIMARY KEY AUTOINCREMENT,
-	 					PublicK TEXT UNIQUE
+	 					PublicK TEXT UNIQUE,
+	 					IsUsed INTEGER
+						);`
+	CREATE_CANDIDATEDB = `CREATE TABLE CandidateDB (
+	 					Id INTEGER PRIMARY KEY AUTOINCREMENT,
+	 					PublicK TEXT UNIQUE,
+	 					Description TEXT
 						);`
 )
 
 const (
 	GENESIS_BLOCK = "Grenka"
-	STORAGE_VALUE = 100
 	STORAGE_CHAIN = "GRChain"
 	RAND_BYTES    = 32
 	TXS_LIMIT     = 1
@@ -86,7 +91,7 @@ var (
 	resp, _ = http.Get(TIME_URL)
 )
 
-func NewVotePass(Pasefile string, Parefile string, Publicfile string) error {
+func NewVotePass(Pasefile string, Parefile string, Publicfile string, Candidatefile string) error {
 	file, err := os.Create(Pasefile)
 	if err != nil {
 		return err
@@ -126,10 +131,23 @@ func NewVotePass(Pasefile string, Parefile string, Publicfile string) error {
 	defer dbpublic.Close()
 	_, err = dbpublic.Exec(CREATE_PUBLICDB)
 
+	file, err = os.Create(Publicfile)
+	if err != nil {
+		return err
+	}
+	file.Close()
+
+	dbcandidate, err := sql.Open("sqlite3", Candidatefile)
+	if err != nil {
+		return err
+	}
+	defer dbcandidate.Close()
+	_, err = dbcandidate.Exec(CREATE_CANDIDATEDB)
+
 	return nil
 }
 
-func NewChain(filename string) error {
+func NewChain(filename string, VotesCount uint64) error {
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -154,7 +172,7 @@ func NewChain(filename string) error {
 		Mapping:   make(map[string]uint64),
 		TimeStamp: time.Now().Format(time.RFC3339),
 	}
-	genesis.Mapping[STORAGE_CHAIN] = STORAGE_VALUE
+	genesis.Mapping[STORAGE_CHAIN] = VotesCount
 	genesis.CurrHash = genesis.Hash()
 	chain.AddBlock(genesis)
 	return nil
@@ -430,6 +448,15 @@ func NewUser(filename string) *User {
 	}
 }
 
+func NewCandidate(filename string) *User {
+	var temp string = GenerateKey()
+	db, _ := sql.Open("sqlite3", filename)
+	db.Exec("INSERT INTO PublicDB (PublicK) VALUES ($1)", temp)
+	return &User{
+		PublicKey: temp,
+	}
+}
+
 func LoadUser(privateK string, filename string) *User {
 	db, _ := sql.Open("sqlite3", filename)
 	var result string
@@ -442,7 +469,6 @@ func LoadUser(privateK string, filename string) *User {
 		PublicKey: result,
 	}
 }
-
 func Purse(passport string, filename string) string {
 	db, _ := sql.Open("sqlite3", filename)
 	var result string
@@ -493,30 +519,15 @@ func (user *User) Address() string {
 }
 
 func GenerateKey() string {
-	//defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	var p fastjson.Parser
 	v, _ := p.Parse(string(body))
 	hash := sha256.New()
 	hash.Write(v.GetStringBytes("datetime"))
 	priv := hex.EncodeToString(hash.Sum(nil))
-	//t, _ := hex.DecodeString(priv)
 	return priv
 }
+
 func (block *Block) IsValid(chain *BlockChain, size uint64) bool {
-	//switch {
-	//case block == nil:
-	//	return false
-	//case !block.hashIsValid(chain, size):
-	//	return false
-	//case !block.signIsValid():
-	//	return false
-	//case !block.mappingIsValid():
-	//	return false;
-	//case !block.timeIsValid(chain):
-	//	return false
-	//case !block.transactionsIsValid(chain, size):
-	//	return false
-	//}
 	return true
 }

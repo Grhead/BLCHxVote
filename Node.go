@@ -66,6 +66,7 @@ func init() {
 	}
 	Serve = serveStr
 	var addresses []string
+	//json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	err := json.Unmarshal([]byte(readFile(addrStr)), &addresses)
 	if err != nil {
 		panic("failed: load addresses")

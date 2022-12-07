@@ -1,0 +1,11 @@
+syntax = "proto3";
+package Contract;
+option go_package = "./API/Proto/";
+
+service BLCH_Contract {
+  rpc ChainSize(Wpar) returns (ResponseSize);
+}
+message ResponseSize{
+  string size = 1;
+}
+message Wpar {}

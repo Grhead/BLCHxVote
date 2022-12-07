@@ -31,10 +31,12 @@ func init() {
 		panic("failed: len(os.Args) < 2")
 	}
 	var (
-		serveStr     = ""
-		addrStr      = ""
-		chainNewStr  = ""
-		chainLoadStr = ""
+		serveStr       = ""
+		addrStr        = ""
+		chainNewStr    = ""
+		chainLoadStr   = ""
+		chainNewNumStr = ""
+		nums           uint64
 	)
 	var (
 		chainNewExist  = false
@@ -51,6 +53,11 @@ func init() {
 			//addrExist = true
 		case strings.HasPrefix(arg, "-newchain:"):
 			chainNewStr = strings.Replace(arg, "-newchain:", "", 1)
+			chainNewExist = true
+		case strings.HasPrefix(arg, "-count:"):
+			chainNewNumStr = strings.Replace(arg, "-count:", "", 1)
+			temp, _ := strconv.Atoi(chainNewNumStr)
+			nums = uint64(temp)
 			chainNewExist = true
 		case strings.HasPrefix(arg, "-loadchain:"):
 			chainLoadStr = strings.Replace(arg, "-loadchain:", "", 1)
@@ -76,7 +83,7 @@ func init() {
 	}
 	if chainNewExist {
 		Filename = chainNewStr
-		Chain = chainNew(chainNewStr)
+		Chain = chainNew(chainNewStr, nums)
 	}
 	if chainLoadExist {
 		Filename = chainLoadStr
@@ -95,8 +102,8 @@ func main() {
 	}
 }
 
-func chainNew(filename string) *bc.BlockChain {
-	err := bc.NewChain(filename)
+func chainNew(filename string, num uint64) *bc.BlockChain {
+	err := bc.NewChain(filename, num)
 	if err != nil {
 		return nil
 	}

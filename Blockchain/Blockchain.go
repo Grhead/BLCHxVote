@@ -60,21 +60,21 @@ const (
 	CREATE_PASSDB = `CREATE TABLE TemplateDB (
 	 					Id INTEGER PRIMARY KEY AUTOINCREMENT,
 						Passport TEXT,
-	 					TemplatePRK TEXT
+	 					TemplatePRK VARCHAR(64) UNIQUE
 						);`
 	CREATE_PAREDB = `CREATE TABLE Pare (
 	 					Id INTEGER PRIMARY KEY AUTOINCREMENT,
-						PrivateK TEXT UNIQUE,
-	 					PublicK TEXT UNIQUE
+						PrivateK VARCHAR(64) UNIQUE,
+	 					PublicK VARCHAR(64) UNIQUE
 						);`
 	CREATE_PUBLICDB = `CREATE TABLE PublicDB (
 	 					Id INTEGER PRIMARY KEY AUTOINCREMENT,
-	 					PublicK TEXT UNIQUE,
+	 					PublicK VARCHAR(64) UNIQUE,
 	 					IsUsed INTEGER
 						);`
 	CREATE_CANDIDATEDB = `CREATE TABLE CandidateDB (
 	 					Id INTEGER PRIMARY KEY AUTOINCREMENT,
-	 					PublicK TEXT UNIQUE,
+	 					PublicK VARCHAR(64) UNIQUE,
 	 					Description TEXT
 						);`
 )

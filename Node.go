@@ -12,14 +12,12 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 
 	bc "BLCHxVote/Blockchain"
 	nt "BLCHxVote/Network"
 )
 
 var (
-	Mutex    sync.Mutex
 	Filename string
 	Serve    string
 	Chain    *bc.BlockChain

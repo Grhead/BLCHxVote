@@ -45,10 +45,8 @@ func init() {
 		switch {
 		case strings.HasPrefix(arg, "-serve:"):
 			serveStr = strings.Replace(arg, "-serve:", "", 1)
-			//serveExist = true
 		case strings.HasPrefix(arg, "-loadaddr:"):
 			addrStr = strings.Replace(arg, "-loadaddr:", "", 1)
-			//addrExist = true
 		case strings.HasPrefix(arg, "-newchain:"):
 			chainNewStr = strings.Replace(arg, "-newchain:", "", 1)
 			chainNewExist = true
@@ -64,7 +62,6 @@ func init() {
 	}
 	Serve = serveStr
 	var addresses []string
-	//json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	err := json.Unmarshal([]byte(readFile(addrStr)), &addresses)
 	if err != nil {
 		panic("failed: load addresses")
@@ -82,11 +79,11 @@ func init() {
 	}
 	if chainNewExist {
 		Filename = chainNewStr
-		Chain = chainNew(chainNewStr, nums)
+		Chain = ChainNew(chainNewStr, nums)
 	}
 	if chainLoadExist {
 		Filename = chainLoadStr
-		Chain = chainLoad(chainLoadStr)
+		Chain = ChainLoad(chainLoadStr)
 	}
 	if Chain == nil {
 		panic("failed: load chain")
@@ -95,48 +92,38 @@ func init() {
 }
 
 func main() {
-	nt.Listen(Serve, handleServer)
+	fmt.Println("Node-Started")
+	nt.Listen(Serve, HandleServer)
 	for {
 		fmt.Scanln()
 	}
 }
 
-func chainNew(filename string, num uint64) *bc.BlockChain {
+func ChainNew(filename string, num uint64) *bc.BlockChain {
+	fmt.Println("ChainNew-Completed")
 	err := bc.NewChain(filename, num)
 	if err != nil {
 		return nil
 	}
 	return bc.LoadChain(filename)
 }
-func chainLoad(filename string) *bc.BlockChain {
+func ChainLoad(filename string) *bc.BlockChain {
+	fmt.Println("ChainLoad-Completed")
 	chain := bc.LoadChain(filename)
 	return chain
 }
-func userNew(filename string) *bc.User {
-	user := bc.NewUser(filename)
-	if user == nil {
-		return nil
-	}
-	return user
-}
-func userLoad(privateK string) *bc.User {
-	user := bc.LoadUser(privateK, "Databases/paredb.db")
-	if user == nil {
-		return nil
-	}
-	return user
+
+func HandleServer(conn nt.Conn, pack *nt.Package) {
+	nt.Handle(ADD_BLOCK, conn, pack, AddBlock)
+	nt.Handle(ADD_TRNSX, conn, pack, AddTransaction)
+	nt.Handle(GET_BLOCK, conn, pack, GetBlock)
+	nt.Handle(GET_LHASH, conn, pack, GetLastHash)
+	nt.Handle(GET_BLNCE, conn, pack, GetBalance)
+	nt.Handle(GET_CSIZE, conn, pack, GetChainSize)
 }
 
-func handleServer(conn nt.Conn, pack *nt.Package) {
-	nt.Handle(ADD_BLOCK, conn, pack, addBlock)
-	nt.Handle(ADD_TRNSX, conn, pack, addTransaction)
-	nt.Handle(GET_BLOCK, conn, pack, getBlock)
-	nt.Handle(GET_LHASH, conn, pack, getLastHash)
-	nt.Handle(GET_BLNCE, conn, pack, getBalance)
-	nt.Handle(GET_CSIZE, conn, pack, getChainSize)
-}
-
-func compareChains(address string, num uint64) {
+func CompareChains(address string, num uint64) {
+	fmt.Println("CompareChains-Completed")
 	fmt.Println("Compare")
 	filename := "temp_" + hex.EncodeToString(bc.GenerateRandomBytes(32))
 	file, _ := os.Create(filename)
@@ -149,7 +136,7 @@ func compareChains(address string, num uint64) {
 		Data:   fmt.Sprintf("%d", 0),
 	})
 	genesis := bc.DeserializeBlock(res.Data)
-	if !bytes.Equal(genesis.CurrHash, hashBlock(genesis)) {
+	if !bytes.Equal(genesis.CurrHash, HashBlock(genesis)) {
 		return
 	}
 	db, err := sql.Open("sqlite3", filename)
@@ -170,17 +157,16 @@ func compareChains(address string, num uint64) {
 		block := bc.DeserializeBlock(res.Data)
 		chain.AddBlock(block)
 	}
-	//Mutex.Lock()
 	Chain.DB.Close()
 	os.Remove(Filename)
-	copyFile(filename, Filename)
+	CopyFile(filename, Filename)
 	Chain = bc.LoadChain(Filename)
 	Block = bc.NewBlock(Chain.LastHash())
-	//Mutex.Unlock()
 	return
 }
 
-func pushBlockToNet(block *bc.Block) {
+func PushBlockToNet(block *bc.Block) {
+	fmt.Println("PushBlockToNet-Completed")
 	var sblock = bc.SerializeBlock(block)
 	var msg = Serve + SEPARATOR + fmt.Sprintf("%d", Chain.Size()) + SEPARATOR + sblock
 	for _, addr := range Addresses {
@@ -191,73 +177,70 @@ func pushBlockToNet(block *bc.Block) {
 	}
 }
 
-func addBlock(pack *nt.Package) string {
+func AddBlock(pack *nt.Package) string {
+	fmt.Println("AddBlock-Completed")
 	splited := strings.Split(pack.Data, SEPARATOR)
 	block := bc.DeserializeBlock(splited[2])
 	currSize := Chain.Size()
 	num, _ := strconv.Atoi(splited[1])
 	if currSize < uint64(num) {
-		compareChains(splited[0], uint64(num))
+		CompareChains(splited[0], uint64(num))
 		return "ok "
 	}
-	//Mutex.Lock()
 	Chain.AddBlock(block)
 	Block = bc.NewBlock(Chain.LastHash())
-	//Mutex.Unlock()
 	return "ok"
 }
 
-func addTransaction(pack *nt.Package) string {
+func AddTransaction(pack *nt.Package) string {
+	fmt.Println("AddTransaction-Completed")
 	var tx = bc.DeserializeTX(pack.Data)
-	//Mutex.Lock()
 	Block.AddTransaction(Chain, tx)
-	//Mutex.Unlock()
-
 	go func() {
-		//Mutex.Lock()
 		block := *Block
-		//Mutex.Unlock()
 		res := (&block).Accept()
-		//Mutex.Lock()
 		if res == nil && bytes.Equal(block.PrevHash, Block.PrevHash) {
 			Chain.AddBlock(&block)
-			pushBlockToNet(&block)
+			PushBlockToNet(&block)
 		}
 		Block = bc.NewBlock(Chain.LastHash())
-		//Mutex.Unlock()
 	}()
 	return "ok"
 }
 
-func getBlock(pack *nt.Package) string {
+func GetBlock(pack *nt.Package) string {
+	fmt.Println("GetBlock-Completed")
 	num, err := strconv.Atoi(pack.Data)
 	if err != nil {
 		return ""
 	}
 	size := Chain.Size()
 	if uint64(num) < size {
-		return selectBlock(Chain, num)
+		return SelectBlock(Chain, num)
 	}
 	return ""
 }
-func getLastHash(pack *nt.Package) string {
-	fmt.Println("getLH")
+func GetLastHash(pack *nt.Package) string {
+	fmt.Println("GetLastHash-Completed")
 	return bc.Base64Encode(Chain.LastHash())
 }
-func getBalance(pack *nt.Package) string {
+func GetBalance(pack *nt.Package) string {
+	fmt.Println("GetBalance-Completed")
 	return fmt.Sprintf("%d", Chain.Balance(pack.Data, Chain.Size()))
 }
-func getChainSize(pack *nt.Package) string {
+func GetChainSize(pack *nt.Package) string {
+	fmt.Println("GetChainSize-Completed")
 	return fmt.Sprintf("%d", Chain.Size())
 }
-func selectBlock(chain *bc.BlockChain, i int) string {
-	fmt.Println("SelectBL")
+func SelectBlock(chain *bc.BlockChain, i int) string {
+	fmt.Println("SelectBlock-Completed")
 	var block string
 	row := chain.DB.QueryRow("SELECT Block FROM BlockChain WHERE Id=$1", i+1)
 	row.Scan(&block)
 	return block
 }
-func hashBlock(block *bc.Block) []byte {
+func HashBlock(block *bc.Block) []byte {
+	fmt.Println("HashBlock-Completed")
 	var tempHash []byte
 	for _, tx := range block.Transactions {
 		tempHash = bc.HashSum(bytes.Join(
@@ -292,8 +275,8 @@ func hashBlock(block *bc.Block) []byte {
 		[]byte{},
 	))
 }
-func copyFile(src, dst string) error {
-	fmt.Println("copy")
+func CopyFile(src, dst string) error {
+	fmt.Println("CopyFile-Completed")
 	in, err := os.Open(src)
 	if err != nil {
 		return err

@@ -3,9 +3,46 @@ package Contract;
 option go_package = "./API/Proto/";
 
 service BLCH_Contract {
-  rpc ChainSize(Wpar) returns (ResponseSize);
+  rpc ChainSize(Wpar) returns (ResponseSize); //размер цепи
+  rpc Balance(Address) returns (Lanb); //баланс на счете
+  rpc ViewCandidates(Wpar) returns (CandidateList); // вывод кандидатов
+  rpc Transfer(LowDataChain) returns (IsComplited); // раздача токенов
+  rpc Vote(LowData) returns (IsComplited); // голосование
+  rpc TimeBlock(BlockData) returns (BlockData); //время начала голосования
+  rpc ChainPrint(Wpar) returns (Chain);
 }
-message ResponseSize{
+message Wpar {
+
+}
+message ResponseSize {
   string size = 1;
 }
-message Wpar {}
+message Address {
+  string useradrr = 1;
+}
+message Lanb {
+  string balance = 1;
+}
+message Chain {
+  repeated string InBlock = 1;
+}
+message CandidateList {
+  repeated string candidate = 1;
+}
+message LowData {
+  string UserCandidate = 1;
+  uint64 num = 2;
+  string passport = 3;
+  string private = 4;
+}
+message LowDataChain {
+  string UserCandidate = 1;
+  uint64 num = 2;
+}
+message IsComplited {
+  bool ic = 1;
+}
+message BlockData {
+  string BlockNum = 1;
+}
+

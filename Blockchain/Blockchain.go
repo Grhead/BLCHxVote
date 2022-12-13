@@ -87,10 +87,6 @@ const (
 	TIME_URL      = "http://worldtimeapi.org/api/ip"
 )
 
-var (
-	resp, _ = http.Get(TIME_URL)
-)
-
 func NewVotePass(Pasefile string, Parefile string, Publicfile string, Candidatefile string) error {
 	file, err := os.Create(Pasefile)
 	if err != nil {
@@ -131,7 +127,7 @@ func NewVotePass(Pasefile string, Parefile string, Publicfile string, Candidatef
 	defer dbpublic.Close()
 	_, err = dbpublic.Exec(CREATE_PUBLICDB)
 
-	file, err = os.Create(Publicfile)
+	file, err = os.Create(Candidatefile)
 	if err != nil {
 		return err
 	}
@@ -146,7 +142,6 @@ func NewVotePass(Pasefile string, Parefile string, Publicfile string, Candidatef
 
 	return nil
 }
-
 func NewChain(filename string, VotesCount uint64) error {
 	file, err := os.Create(filename)
 	if err != nil {
@@ -322,7 +317,7 @@ func NewTransaction(user *User, toUser string, lastHash []byte, value uint64, pa
 	tran.Signature = tran.Sign([]byte(Purse(passdata, file)))
 	return tran
 }
-func NewTransactionBlock(toUser string, lastHash []byte, value uint64, passdata string, file string) *Transaction {
+func NewTransactionBlock(toUser string, lastHash []byte, value uint64) *Transaction {
 	tran := &Transaction{
 		RandBytes: GenerateRandomBytes(RAND_BYTES),
 		PrevBlock: lastHash,
@@ -331,7 +326,7 @@ func NewTransactionBlock(toUser string, lastHash []byte, value uint64, passdata 
 		Value:     value,
 	}
 	tran.CurrHash = tran.Hash()
-	tran.Signature = tran.Sign([]byte(Purse(passdata, file)))
+	tran.Signature = tran.Sign([]byte(toUser))
 	return tran
 }
 
@@ -448,13 +443,10 @@ func NewUser(filename string) *User {
 	}
 }
 
-func NewCandidate(filename string) *User {
+func NewCandidate(desc string, filename string) {
 	var temp string = GenerateKey()
 	db, _ := sql.Open("sqlite3", filename)
-	db.Exec("INSERT INTO PublicDB (PublicK) VALUES ($1)", temp)
-	return &User{
-		PublicKey: temp,
-	}
+	db.Exec("INSERT INTO CandidateDB (PublicK, Description) VALUES ($1, $2)", temp, desc)
 }
 
 func LoadUser(privateK string, filename string) *User {
@@ -481,14 +473,12 @@ func Purse(passport string, filename string) string {
 }
 
 func AddPass(passport string, filename string) error {
+	var template string = GenerateKey()
 	db, err := sql.Open("sqlite3", filename)
 	if err != nil {
 		return err
 	}
-	db.Exec("INSERT INTO TemplateDB (Passport, TemplatePRK) VALUES ($1, $2)",
-		passport,
-		GenerateKey(),
-	)
+	db.Exec("INSERT INTO TemplateDB (Passport, TemplatePRK) VALUES ($1, $2)", passport, template)
 	defer db.Close()
 	return nil
 }
@@ -519,12 +509,15 @@ func (user *User) Address() string {
 }
 
 func GenerateKey() string {
+	resp, _ := http.Get(TIME_URL)
+	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	var p fastjson.Parser
 	v, _ := p.Parse(string(body))
 	hash := sha256.New()
 	hash.Write(v.GetStringBytes("datetime"))
 	priv := hex.EncodeToString(hash.Sum(nil))
+	//t, _ := hex.DecodeString(priv)
 	return priv
 }
 

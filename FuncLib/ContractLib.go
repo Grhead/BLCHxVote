@@ -1,0 +1,228 @@
+package qwe
+
+//
+//import (
+//	bc "BLCHxVote/Blockchain"
+//	nt "BLCHxVote/Network"
+//	"database/sql"
+//	"encoding/json"
+//	"fmt"
+//	_ "google.golang.org/protobuf/types/known/wrapperspb"
+//	"io/ioutil"
+//	"os"
+//	"strconv"
+//)
+//
+//var (
+//	Addresses []string
+//	User      *bc.User
+//)
+//
+//const (
+//	//ADD_BLOCK = iota + 1
+//	ADD_TRNSX = iota + 1
+//	GET_BLOCK
+//	GET_LHASH
+//	GET_BLNCE
+//	GET_CSIZE
+//	PASSDBNAME      = "Databases/passdb.db"
+//	PAREDBNAME      = "Databases/paredb.db"
+//	PUBLICDBNAME    = "Databases/pubdb.db"
+//	CANDIDATEDBNAME = "Databases/candidate.db"
+//)
+//
+//func main() {
+//	err := bc.NewVotePass(PASSDBNAME, PAREDBNAME, PUBLICDBNAME, CANDIDATEDBNAME)
+//	if err != nil {
+//		return
+//	}
+//
+//	file, err := os.Create("hello.txt")
+//	file.Close()
+//
+//	user := bc.NewUser("Databases/pubdb.db")
+//	bc.NewCandidate("Володя", "Databases/candidate.db")
+//	bc.AddPass("test", "Databases/passdb.db")
+//	bc.Private("test", "hello2", "Databases/passdb.db", "Databases/paredb.db", user.Address())
+//	ChainTXBlock(user.Address(), 1)
+//}
+//
+//func readFile(filename string) string {
+//	data, err := ioutil.ReadFile(filename)
+//	if err != nil {
+//		return ""
+//	}
+//	return string(data)
+//}
+//
+//func GenerateDBs() string {
+//	ChainSize()
+//	bc.NewVotePass(PASSDBNAME, PAREDBNAME, PUBLICDBNAME, CANDIDATEDBNAME)
+//	return "ok"
+//}
+//func CreatePublic(count int) {
+//	fmt.Println("1")
+//	for i := 0; i < count; i++ {
+//		fmt.Println("2")
+//		User1 := bc.NewUser(PUBLICDBNAME)
+//		fmt.Println("3")
+//		ChainTXBlock(User1.Address(), 1)
+//		fmt.Println("4")
+//	}
+//}
+//func PrintBalance(useraddr string) string {
+//	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
+//	var srr string
+//	for _, addr := range Addresses {
+//		res := nt.Send(addr, &nt.Package{
+//			Option: GET_BLNCE,
+//			Data:   useraddr,
+//		})
+//		if res == nil {
+//			continue
+//		}
+//		srr = fmt.Sprintf("%s, %s", addr, res.Data)
+//	}
+//	return srr
+//}
+//func ChainSize() string {
+//	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
+//	res := nt.Send(Addresses[0], &nt.Package{
+//		Option: GET_CSIZE,
+//	})
+//	fmt.Println(res.Data)
+//	if res == nil || res.Data == "" {
+//		return "fail7"
+//	}
+//	srr := fmt.Sprintf("%s", res.Data)
+//	return srr
+//}
+//
+//func ChainPrint() []string {
+//	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
+//	var allChain []string
+//	for i := 0; ; i++ {
+//		res := nt.Send(Addresses[0], &nt.Package{
+//			Option: GET_BLOCK,
+//			Data:   fmt.Sprintf("%d", i),
+//		})
+//		if res == nil || res.Data == "" {
+//			break
+//		}
+//		fmt.Printf("[%d] => %s\n", i+1, res.Data)
+//		allChain = append(allChain, fmt.Sprintf("[%d] => %s\n", i+1, res.Data))
+//	}
+//	return allChain
+//}
+//
+//func ViewCandidates() []string {
+//	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
+//	db, _ := sql.Open("sqlite3", CANDIDATEDBNAME)
+//	rows, _ := db.Query("SELECT * FROM CandidateDB")
+//	defer db.Close()
+//	var temp string
+//	var results []string
+//	for rows.Next() {
+//		rows.Scan(&temp)
+//		results = append(results, temp)
+//	}
+//	return results
+//}
+//
+//func ChainTX(candidate string, num uint64, datapass string, PrivateK string) bool {
+//	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
+//	User = bc.LoadUser(PrivateK, PAREDBNAME)
+//	for _, addr := range Addresses {
+//		res := nt.Send(addr, &nt.Package{
+//			Option: GET_LHASH,
+//		})
+//		if res == nil {
+//			continue
+//		}
+//		tx := bc.NewTransaction(User, candidate, bc.Base64Decode(res.Data), num, datapass, PASSDBNAME)
+//		res = nt.Send(addr, &nt.Package{
+//			Option: ADD_TRNSX,
+//			Data:   bc.SerializeTX(tx),
+//		})
+//		if res == nil {
+//			continue
+//		}
+//		if res.Data == "ok" {
+//			return true
+//		} else {
+//			return false
+//		}
+//	}
+//	return false
+//}
+//func ChainTXBlock(john string, num uint64) bool {
+//	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
+//	for _, addr := range Addresses {
+//		res := nt.Send(addr, &nt.Package{
+//			Option: GET_LHASH,
+//		})
+//		fmt.Println("YES")
+//		if res == nil {
+//			continue
+//		}
+//		fmt.Println("YES1")
+//		tx := bc.NewTransactionBlock(john, bc.Base64Decode(res.Data), num)
+//		fmt.Println("YES2")
+//		res = nt.Send(addr, &nt.Package{
+//			Option: ADD_TRNSX,
+//			Data:   bc.SerializeTX(tx),
+//		})
+//		fmt.Println("YES3")
+//		if res == nil {
+//			continue
+//		}
+//		fmt.Println("YES4")
+//		if res.Data == "ok" {
+//			return true
+//		} else {
+//			return false
+//		}
+//	}
+//
+//	return false
+//}
+//
+//func ChainBlock(splited string) string {
+//	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
+//	num, err := strconv.Atoi(splited)
+//	if err != nil {
+//		return "fail3"
+//	}
+//	res := nt.Send(Addresses[0], &nt.Package{
+//		Option: GET_BLOCK,
+//		Data:   fmt.Sprintf("%d", num-1),
+//	})
+//	if res == nil || res.Data == "" {
+//		return "fail1111"
+//	}
+//	//fmt.Printf("[%d] => %s\n", num, res.Data)
+//	srr := fmt.Sprintf("[%d] => %s\n", num, res.Data)
+//	return srr
+//}
+//
+//func ChainBalance(splited []string) string {
+//	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
+//	if len(splited) != 2 {
+//		//fmt.Println("fail: len(splited) != 2\n")
+//		return "fail9"
+//	}
+//	PrintBalance(splited[1])
+//	return PrintBalance(splited[1])
+//}
+//
+//	func main() {
+//		json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
+//		//printBalance("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c")
+//		//chainSize()
+//		User = bc.LoadUser("47ad6449aa0885d4598ac42129d1ae789e453aef6ba39cee12c0fd9ee6c0cdc8", PAREDBNAME)
+//		//chainTXBlock("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c", 1, "ASD", PASSDBNAME)
+//		////chainTX("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c", 1, "ASD", PASSDBNAME)
+//		//printBalance("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c")
+//		//chainSize()
+//		chainPrint()
+//	}

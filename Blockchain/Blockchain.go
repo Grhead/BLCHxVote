@@ -363,6 +363,7 @@ func (block *Block) AddTransaction(chain *BlockChain, tran *Transaction) error {
 	if balanceInTX > balanceInChain {
 		return errors.New("insufficient funds")
 	}
+
 	block.Mapping[tran.Sender] = balanceInChain - balanceInTX
 	block.addBalance(chain, tran.Receiver, tran.Value)
 	block.Transactions = append(block.Transactions, *tran)

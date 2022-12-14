@@ -124,7 +124,6 @@ func HandleServer(conn nt.Conn, pack *nt.Package) {
 
 func CompareChains(address string, num uint64) {
 	fmt.Println("CompareChains-Completed")
-	fmt.Println("Compare")
 	filename := "temp_" + hex.EncodeToString(bc.GenerateRandomBytes(32))
 	file, _ := os.Create(filename)
 	file.Close()
@@ -196,15 +195,15 @@ func AddTransaction(pack *nt.Package) string {
 	fmt.Println("AddTransaction-Completed")
 	var tx = bc.DeserializeTX(pack.Data)
 	Block.AddTransaction(Chain, tx)
-	go func() {
-		block := *Block
-		res := (&block).Accept()
-		if res == nil && bytes.Equal(block.PrevHash, Block.PrevHash) {
-			Chain.AddBlock(&block)
-			PushBlockToNet(&block)
-		}
-		Block = bc.NewBlock(Chain.LastHash())
-	}()
+	//go func() {
+	block := *Block
+	res := (&block).Accept()
+	if res == nil && bytes.Equal(block.PrevHash, Block.PrevHash) {
+		Chain.AddBlock(&block)
+		PushBlockToNet(&block)
+	}
+	Block = bc.NewBlock(Chain.LastHash())
+	//}()
 	return "ok"
 }
 

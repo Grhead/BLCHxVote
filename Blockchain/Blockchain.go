@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/valyala/fastjson"
 	"io"
@@ -483,7 +482,7 @@ func AddPass(passport string, filename string) error {
 	defer db.Close()
 	return nil
 }
-func Private(passport string, salt string, TemplateDBFile string, PareDBFile string, PKey string) string {
+func Private(passport string, salt string, TemplateDBFile string, PareDBFile string, PKey string, publicDBFile string) string {
 	templateDB, _ := sql.Open("sqlite3", TemplateDBFile)
 	var template string
 	templateDB.QueryRow("SELECT TemplatePRK FROM TemplateDB WHERE Passport = $1", passport).Scan(&template)
@@ -492,10 +491,19 @@ func Private(passport string, salt string, TemplateDBFile string, PareDBFile str
 		//return errors.New("empty pass cell")
 		return "Empty"
 	}
+
+	publicDB, _ := sql.Open("sqlite3", publicDBFile)
+	var pub string
+	publicDB.QueryRow("SELECT PublicK FROM PublicDB WHERE PublicK = $1", PKey).Scan(&pub)
+	defer templateDB.Close()
+	if pub == "" {
+		//return errors.New("empty pass cell")
+		return "Empty"
+	}
+
 	hash := sha256.New()
 	hash.Write([]byte(template + salt))
 	result := hex.EncodeToString(hash.Sum(nil))
-	fmt.Println("resylt %1", result)
 	ImportToDB(PareDBFile, result, PKey)
 	return result
 }

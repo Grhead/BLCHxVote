@@ -6,6 +6,7 @@ import (
 	cl "BLCHxVote/FuncLib"
 	"context"
 	"encoding/json"
+	"fmt"
 	_ "google.golang.org/protobuf/types/known/wrapperspb"
 	"io/ioutil"
 )
@@ -33,6 +34,17 @@ type GRserver struct {
 func (s *GRserver) mustEmbedUnimplementedBLCH_ContractServer() {
 	panic("implement me")
 }
+
+func (s *GRserver) AuthRegister(ctx context.Context, ld *pr.RegData) (*pr.AuthRegResult, error) {
+	out := cl.AcceprNewUser(ld.Passport, ld.PublicK, ld.Salt)
+	return &pr.AuthRegResult{Distortion: out}, nil
+}
+
+func (s *GRserver) AuthLogin(ctx context.Context, ld *pr.AuthData) (*pr.AuthRegResult, error) {
+	out := cl.AcceprLoadUser(ld.PublicK, ld.PrivateK)
+	return &pr.AuthRegResult{Distortion: out}, nil
+}
+
 func (s *GRserver) ChainSize(context.Context, *pr.Wpar) (*pr.ResponseSize, error) {
 	//srr := cl.ChainSize()
 	return &pr.ResponseSize{Size: cl.ChainSize()}, nil
@@ -47,11 +59,17 @@ func (s *GRserver) Balance(ctx context.Context, address *pr.Address) (*pr.Lanb, 
 	srr = cl.PrintBalance(address.Useradrr)
 	return &pr.Lanb{Balance: srr}, nil
 }
-func (s *GRserver) ViewCandidates(context.Context, *pr.Wpar) (*pr.CandidateList, error) {
-	var results []string
-	results = cl.ViewCandidates()
-	return &pr.CandidateList{Candidate: results}, nil
+
+func (s *GRserver) ViewCandidates(wr *pr.Wpar, stream pr.BLCH_Contract_ViewCandidatesServer) error {
+	results := cl.ViewCandidates()
+	for i := 0; i < len(results); i++ {
+		fmt.Println(len(results))
+		temp := results[i]
+		stream.Send(&pr.CandidateList{CandidatePK: temp.PublicKey, CandidateName: temp.Description})
+	}
+	return nil
 }
+
 func (s *GRserver) Transfer(ctx context.Context, ld *pr.LowDataChain) (*pr.IsComplited, error) {
 	var srr bool
 	srr = cl.ChainTXBlock(ld.UserCandidate, ld.Num)

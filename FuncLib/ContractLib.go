@@ -16,6 +16,8 @@ var (
 	User      *bc.User
 )
 
+type Proxies []*bc.Candidate
+
 const (
 	ADD_BLOCK = iota + 2
 	ADD_TRNSX
@@ -31,23 +33,6 @@ const (
 	CANDIDATEDBNAME = "Databases/candidate.db"
 )
 
-/*
-	func main() {
-		err := bc.NewVotePass(PASSDBNAME, PAREDBNAME, PUBLICDBNAME, CANDIDATEDBNAME)
-		if err != nil {
-			return
-		}
-
-		file, err := os.Create("hello.txt")
-		file.Close()
-
-		user := bc.NewUser("Databases/pubdb.db")
-		bc.NewCandidate("Володя", "Databases/candidate.db")
-		bc.AddPass("test", "Databases/passdb.db")
-		bc.Private("test", "hello2", "Databases/passdb.db", "Databases/paredb.db", user.Address())
-		ChainTXBlock(user.Address(), 1)
-	}
-*/
 func readFile(filename string) string {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -71,6 +56,25 @@ func CreatePublic(count int) {
 		fmt.Println("4")
 	}
 }
+
+func AcceprNewUser(Pass string, PublicK string, salt string) bool {
+	srr := bc.Private(Pass, salt, PASSDBNAME, PAREDBNAME, PublicK, PUBLICDBNAME)
+	if srr == "Empty" {
+		return false
+	}
+	return true
+}
+func AcceprLoadUser(PublicK string, PrivateK string) bool {
+	User := bc.LoadUser(PrivateK, PAREDBNAME)
+	if User == nil {
+		return false
+	}
+	if User.Address() != PublicK {
+		return false
+	}
+	return true
+}
+
 func PrintBalance(useraddr string) string {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	var srr string
@@ -114,25 +118,23 @@ func ChainPrint() []string {
 	return allChain
 }
 
-func ViewCandidates() []string {
+func ViewCandidates() Proxies {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	db, _ := sql.Open("sqlite3", CANDIDATEDBNAME)
-	rows, _ := db.Query("SELECT PublicK FROM CandidateDB")
-	rows1, _ := db.Query("SELECT Description FROM CandidateDB")
+	rows, _ := db.Query("SELECT PublicK, Description FROM CandidateDB")
+	//rows1, _ := db.Query("SELECT Description FROM CandidateDB")
+	p := Proxies{}
 	defer db.Close()
 	var candidateP string
 	var candidateD string
-
-	var results []string
 	for rows.Next() {
-		rows.Scan(&candidateP)
+		rows.Scan(&candidateP, &candidateD)
+		p = append(p, &bc.Candidate{PublicKey: candidateP, Description: candidateD})
 	}
-	for rows1.Next() {
-		rows1.Scan(&candidateD)
-	}
-	candidateR := candidateP + " " + candidateD
-	results = append(results, candidateR)
-	return results
+	//for rows1.Next() {
+	//	rows1.Scan(&candidateD)
+	//}
+	return p
 }
 
 func ChainTX(candidate string, num uint64, datapass string, PrivateK string) bool {

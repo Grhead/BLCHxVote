@@ -10,7 +10,7 @@ service BLCH_Contract {
   rpc ViewCandidates(Wpar) returns (stream CandidateList); // вывод кандидатов
   rpc Transfer(LowDataChain) returns (IsComplited); // раздача токенов
   rpc Vote(LowData) returns (IsComplited); // голосование
-  rpc TimeBlock(BlockData) returns (BlockData); //время начала голосования
+  rpc TimeBlock(BlockDataGet) returns (BlockData); //время начала голосования
   rpc ChainPrint(Wpar) returns (Chain);
 }
 message RegData{
@@ -49,8 +49,7 @@ message CandidateList {
 message LowData {
   string UserCandidate = 1;
   uint64 num = 2;
-  string passport = 3;
-  string private = 4;
+  string private = 3;
 }
 message LowDataChain {
   string UserCandidate = 1;
@@ -60,6 +59,9 @@ message IsComplited {
   bool ic = 1;
 }
 message BlockData {
+  string InfoBlock = 1;
+}
+message BlockDataGet
+{
   string BlockNum = 1;
 }
-

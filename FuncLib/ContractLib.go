@@ -6,14 +6,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/valyala/fastjson"
 	_ "google.golang.org/protobuf/types/known/wrapperspb"
 	"io/ioutil"
 	"strconv"
+	"time"
 )
 
 var (
 	Addresses []string
 	User      *bc.User
+	TimeBlock *bc.Block
 )
 
 type Proxies []*bc.Candidate
@@ -56,8 +59,18 @@ func CreatePublic(count int) {
 		fmt.Println("4")
 	}
 }
-
+func LimitTime(timeNow time.Time) string {
+	temp := ChainBlock("1")
+	//var p fastjson.Parser
+	//v, _ := p.Parse(string(temp))
+	srr := fastjson.GetString([]byte(temp), "TimeStamp")
+	u, _ := time.Parse(time.RFC3339, srr)
+	trim := time.Until(u).String()
+	//yi := trim.String()
+	return trim
+}
 func AcceprNewUser(Pass string, PublicK string, salt string) bool {
+
 	srr := bc.Private(Pass, salt, PASSDBNAME, PAREDBNAME, PublicK, PUBLICDBNAME)
 	if srr == "Empty" {
 		return false
@@ -65,6 +78,7 @@ func AcceprNewUser(Pass string, PublicK string, salt string) bool {
 	return true
 }
 func AcceprLoadUser(PublicK string, PrivateK string) bool {
+	fmt.Println(LimitTime(time.Now()))
 	User := bc.LoadUser(PrivateK, PAREDBNAME)
 	if User == nil {
 		return false
@@ -137,7 +151,7 @@ func ViewCandidates() Proxies {
 	return p
 }
 
-func ChainTX(candidate string, num uint64, datapass string, PrivateK string) bool {
+func ChainTX(candidate string, num uint64, PrivateK string) bool {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	User = bc.LoadUser(PrivateK, PAREDBNAME)
 	for _, addr := range Addresses {
@@ -147,7 +161,7 @@ func ChainTX(candidate string, num uint64, datapass string, PrivateK string) boo
 		if res == nil {
 			continue
 		}
-		tx := bc.NewTransaction(User, candidate, bc.Base64Decode(res.Data), num, datapass, PASSDBNAME)
+		tx := bc.NewTransaction(User, candidate, bc.Base64Decode(res.Data), num)
 		res = nt.Send(addr, &nt.Package{
 			Option: ADD_TRNSX,
 			Data:   bc.SerializeTX(tx),
@@ -203,7 +217,7 @@ func ChainBlock(splited string) string {
 	if res == nil || res.Data == "" {
 		return "fail1111"
 	}
-	srr := fmt.Sprintf("[%d] => %s\n", num, res.Data)
+	srr := fmt.Sprintf("%s", res.Data)
 	return srr
 }
 

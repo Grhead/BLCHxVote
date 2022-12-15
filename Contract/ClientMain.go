@@ -9,6 +9,7 @@ import (
 	"fmt"
 	_ "google.golang.org/protobuf/types/known/wrapperspb"
 	"io/ioutil"
+	"time"
 )
 
 var (
@@ -47,12 +48,13 @@ func (s *GRserver) AuthLogin(ctx context.Context, ld *pr.AuthData) (*pr.AuthRegR
 
 func (s *GRserver) ChainSize(context.Context, *pr.Wpar) (*pr.ResponseSize, error) {
 	//srr := cl.ChainSize()
-	return &pr.ResponseSize{Size: cl.ChainSize()}, nil
+	//return &pr.ResponseSize{Size: cl.ChainSize()}, nil
+	return &pr.ResponseSize{Size: cl.LimitTime(time.Now())}, nil
 }
-func (s *GRserver) TimeBlock(ctx context.Context, ld *pr.BlockData) (*pr.BlockData, error) {
+func (s *GRserver) TimeBlock(ctx context.Context, ld *pr.BlockDataGet) (*pr.BlockData, error) {
 	var srr string
 	srr = cl.ChainBlock(ld.BlockNum)
-	return &pr.BlockData{BlockNum: srr}, nil
+	return &pr.BlockData{InfoBlock: srr}, nil
 }
 func (s *GRserver) Balance(ctx context.Context, address *pr.Address) (*pr.Lanb, error) {
 	var srr string
@@ -69,7 +71,6 @@ func (s *GRserver) ViewCandidates(wr *pr.Wpar, stream pr.BLCH_Contract_ViewCandi
 	}
 	return nil
 }
-
 func (s *GRserver) Transfer(ctx context.Context, ld *pr.LowDataChain) (*pr.IsComplited, error) {
 	var srr bool
 	srr = cl.ChainTXBlock(ld.UserCandidate, ld.Num)
@@ -77,7 +78,7 @@ func (s *GRserver) Transfer(ctx context.Context, ld *pr.LowDataChain) (*pr.IsCom
 }
 func (s *GRserver) Vote(ctx context.Context, ld *pr.LowData) (*pr.IsComplited, error) {
 	var srr bool
-	srr = cl.ChainTX(ld.UserCandidate, ld.Num, ld.Passport, ld.Private)
+	srr = cl.ChainTX(ld.UserCandidate, ld.Num, ld.Private)
 	return &pr.IsComplited{Ic: srr}, nil
 }
 func (s *GRserver) ChainPrint(context.Context, *pr.Wpar) (*pr.Chain, error) {

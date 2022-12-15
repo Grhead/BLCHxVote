@@ -86,6 +86,10 @@ const (
 	TIME_URL      = "http://worldtimeapi.org/api/ip"
 )
 
+var (
+	TimeBlock *Block
+)
+
 func NewVotePass(Pasefile string, Parefile string, Publicfile string, Candidatefile string) error {
 	file, err := os.Create(Pasefile)
 	if err != nil {
@@ -304,7 +308,7 @@ func HashSum(data []byte) []byte {
 	return hash[:]
 }
 
-func NewTransaction(user *User, toUser string, lastHash []byte, value uint64, passdata string, file string) *Transaction {
+func NewTransaction(user *User, toUser string, lastHash []byte, value uint64) *Transaction {
 	tran := &Transaction{
 		RandBytes: GenerateRandomBytes(RAND_BYTES),
 		PrevBlock: lastHash,
@@ -313,7 +317,7 @@ func NewTransaction(user *User, toUser string, lastHash []byte, value uint64, pa
 		Value:     value,
 	}
 	tran.CurrHash = tran.Hash()
-	tran.Signature = tran.Sign([]byte(Purse(passdata, file)))
+	tran.Signature = tran.Sign([]byte(user.Address() + toUser))
 	return tran
 }
 func NewTransactionBlock(toUser string, lastHash []byte, value uint64) *Transaction {

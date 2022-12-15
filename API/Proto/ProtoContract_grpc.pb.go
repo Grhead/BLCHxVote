@@ -22,12 +22,14 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BLCH_ContractClient interface {
+	AuthRegister(ctx context.Context, in *RegData, opts ...grpc.CallOption) (*AuthRegResult, error)
+	AuthLogin(ctx context.Context, in *AuthData, opts ...grpc.CallOption) (*AuthRegResult, error)
 	ChainSize(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (*ResponseSize, error)
 	Balance(ctx context.Context, in *Address, opts ...grpc.CallOption) (*Lanb, error)
-	ViewCandidates(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (*CandidateList, error)
+	ViewCandidates(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (BLCH_Contract_ViewCandidatesClient, error)
 	Transfer(ctx context.Context, in *LowDataChain, opts ...grpc.CallOption) (*IsComplited, error)
 	Vote(ctx context.Context, in *LowData, opts ...grpc.CallOption) (*IsComplited, error)
-	TimeBlock(ctx context.Context, in *BlockData, opts ...grpc.CallOption) (*BlockData, error)
+	TimeBlock(ctx context.Context, in *BlockDataGet, opts ...grpc.CallOption) (*BlockData, error)
 	ChainPrint(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (*Chain, error)
 }
 
@@ -37,6 +39,24 @@ type bLCH_ContractClient struct {
 
 func NewBLCH_ContractClient(cc grpc.ClientConnInterface) BLCH_ContractClient {
 	return &bLCH_ContractClient{cc}
+}
+
+func (c *bLCH_ContractClient) AuthRegister(ctx context.Context, in *RegData, opts ...grpc.CallOption) (*AuthRegResult, error) {
+	out := new(AuthRegResult)
+	err := c.cc.Invoke(ctx, "/Contract.BLCH_Contract/AuthRegister", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bLCH_ContractClient) AuthLogin(ctx context.Context, in *AuthData, opts ...grpc.CallOption) (*AuthRegResult, error) {
+	out := new(AuthRegResult)
+	err := c.cc.Invoke(ctx, "/Contract.BLCH_Contract/AuthLogin", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *bLCH_ContractClient) ChainSize(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (*ResponseSize, error) {
@@ -57,13 +77,36 @@ func (c *bLCH_ContractClient) Balance(ctx context.Context, in *Address, opts ...
 	return out, nil
 }
 
-func (c *bLCH_ContractClient) ViewCandidates(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (*CandidateList, error) {
-	out := new(CandidateList)
-	err := c.cc.Invoke(ctx, "/Contract.BLCH_Contract/ViewCandidates", in, out, opts...)
+func (c *bLCH_ContractClient) ViewCandidates(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (BLCH_Contract_ViewCandidatesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &BLCH_Contract_ServiceDesc.Streams[0], "/Contract.BLCH_Contract/ViewCandidates", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &bLCH_ContractViewCandidatesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type BLCH_Contract_ViewCandidatesClient interface {
+	Recv() (*CandidateList, error)
+	grpc.ClientStream
+}
+
+type bLCH_ContractViewCandidatesClient struct {
+	grpc.ClientStream
+}
+
+func (x *bLCH_ContractViewCandidatesClient) Recv() (*CandidateList, error) {
+	m := new(CandidateList)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *bLCH_ContractClient) Transfer(ctx context.Context, in *LowDataChain, opts ...grpc.CallOption) (*IsComplited, error) {
@@ -84,7 +127,7 @@ func (c *bLCH_ContractClient) Vote(ctx context.Context, in *LowData, opts ...grp
 	return out, nil
 }
 
-func (c *bLCH_ContractClient) TimeBlock(ctx context.Context, in *BlockData, opts ...grpc.CallOption) (*BlockData, error) {
+func (c *bLCH_ContractClient) TimeBlock(ctx context.Context, in *BlockDataGet, opts ...grpc.CallOption) (*BlockData, error) {
 	out := new(BlockData)
 	err := c.cc.Invoke(ctx, "/Contract.BLCH_Contract/TimeBlock", in, out, opts...)
 	if err != nil {
@@ -106,12 +149,14 @@ func (c *bLCH_ContractClient) ChainPrint(ctx context.Context, in *Wpar, opts ...
 // All implementations must embed UnimplementedBLCH_ContractServer
 // for forward compatibility
 type BLCH_ContractServer interface {
+	AuthRegister(context.Context, *RegData) (*AuthRegResult, error)
+	AuthLogin(context.Context, *AuthData) (*AuthRegResult, error)
 	ChainSize(context.Context, *Wpar) (*ResponseSize, error)
 	Balance(context.Context, *Address) (*Lanb, error)
-	ViewCandidates(context.Context, *Wpar) (*CandidateList, error)
+	ViewCandidates(*Wpar, BLCH_Contract_ViewCandidatesServer) error
 	Transfer(context.Context, *LowDataChain) (*IsComplited, error)
 	Vote(context.Context, *LowData) (*IsComplited, error)
-	TimeBlock(context.Context, *BlockData) (*BlockData, error)
+	TimeBlock(context.Context, *BlockDataGet) (*BlockData, error)
 	ChainPrint(context.Context, *Wpar) (*Chain, error)
 	mustEmbedUnimplementedBLCH_ContractServer()
 }
@@ -120,14 +165,20 @@ type BLCH_ContractServer interface {
 type UnimplementedBLCH_ContractServer struct {
 }
 
+func (UnimplementedBLCH_ContractServer) AuthRegister(context.Context, *RegData) (*AuthRegResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthRegister not implemented")
+}
+func (UnimplementedBLCH_ContractServer) AuthLogin(context.Context, *AuthData) (*AuthRegResult, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthLogin not implemented")
+}
 func (UnimplementedBLCH_ContractServer) ChainSize(context.Context, *Wpar) (*ResponseSize, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChainSize not implemented")
 }
 func (UnimplementedBLCH_ContractServer) Balance(context.Context, *Address) (*Lanb, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Balance not implemented")
 }
-func (UnimplementedBLCH_ContractServer) ViewCandidates(context.Context, *Wpar) (*CandidateList, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ViewCandidates not implemented")
+func (UnimplementedBLCH_ContractServer) ViewCandidates(*Wpar, BLCH_Contract_ViewCandidatesServer) error {
+	return status.Errorf(codes.Unimplemented, "method ViewCandidates not implemented")
 }
 func (UnimplementedBLCH_ContractServer) Transfer(context.Context, *LowDataChain) (*IsComplited, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Transfer not implemented")
@@ -135,7 +186,7 @@ func (UnimplementedBLCH_ContractServer) Transfer(context.Context, *LowDataChain)
 func (UnimplementedBLCH_ContractServer) Vote(context.Context, *LowData) (*IsComplited, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Vote not implemented")
 }
-func (UnimplementedBLCH_ContractServer) TimeBlock(context.Context, *BlockData) (*BlockData, error) {
+func (UnimplementedBLCH_ContractServer) TimeBlock(context.Context, *BlockDataGet) (*BlockData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TimeBlock not implemented")
 }
 func (UnimplementedBLCH_ContractServer) ChainPrint(context.Context, *Wpar) (*Chain, error) {
@@ -152,6 +203,42 @@ type UnsafeBLCH_ContractServer interface {
 
 func RegisterBLCH_ContractServer(s grpc.ServiceRegistrar, srv BLCH_ContractServer) {
 	s.RegisterService(&BLCH_Contract_ServiceDesc, srv)
+}
+
+func _BLCH_Contract_AuthRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegData)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BLCH_ContractServer).AuthRegister(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Contract.BLCH_Contract/AuthRegister",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BLCH_ContractServer).AuthRegister(ctx, req.(*RegData))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BLCH_Contract_AuthLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthData)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BLCH_ContractServer).AuthLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Contract.BLCH_Contract/AuthLogin",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BLCH_ContractServer).AuthLogin(ctx, req.(*AuthData))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _BLCH_Contract_ChainSize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -190,22 +277,25 @@ func _BLCH_Contract_Balance_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BLCH_Contract_ViewCandidates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Wpar)
-	if err := dec(in); err != nil {
-		return nil, err
+func _BLCH_Contract_ViewCandidates_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Wpar)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(BLCH_ContractServer).ViewCandidates(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/Contract.BLCH_Contract/ViewCandidates",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BLCH_ContractServer).ViewCandidates(ctx, req.(*Wpar))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(BLCH_ContractServer).ViewCandidates(m, &bLCH_ContractViewCandidatesServer{stream})
+}
+
+type BLCH_Contract_ViewCandidatesServer interface {
+	Send(*CandidateList) error
+	grpc.ServerStream
+}
+
+type bLCH_ContractViewCandidatesServer struct {
+	grpc.ServerStream
+}
+
+func (x *bLCH_ContractViewCandidatesServer) Send(m *CandidateList) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 func _BLCH_Contract_Transfer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -245,7 +335,7 @@ func _BLCH_Contract_Vote_Handler(srv interface{}, ctx context.Context, dec func(
 }
 
 func _BLCH_Contract_TimeBlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BlockData)
+	in := new(BlockDataGet)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -257,7 +347,7 @@ func _BLCH_Contract_TimeBlock_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: "/Contract.BLCH_Contract/TimeBlock",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BLCH_ContractServer).TimeBlock(ctx, req.(*BlockData))
+		return srv.(BLCH_ContractServer).TimeBlock(ctx, req.(*BlockDataGet))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -288,16 +378,20 @@ var BLCH_Contract_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*BLCH_ContractServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "AuthRegister",
+			Handler:    _BLCH_Contract_AuthRegister_Handler,
+		},
+		{
+			MethodName: "AuthLogin",
+			Handler:    _BLCH_Contract_AuthLogin_Handler,
+		},
+		{
 			MethodName: "ChainSize",
 			Handler:    _BLCH_Contract_ChainSize_Handler,
 		},
 		{
 			MethodName: "Balance",
 			Handler:    _BLCH_Contract_Balance_Handler,
-		},
-		{
-			MethodName: "ViewCandidates",
-			Handler:    _BLCH_Contract_ViewCandidates_Handler,
 		},
 		{
 			MethodName: "Transfer",
@@ -316,6 +410,12 @@ var BLCH_Contract_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BLCH_Contract_ChainPrint_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ViewCandidates",
+			Handler:       _BLCH_Contract_ViewCandidates_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "API/Proto/ProtoContract.proto",
 }

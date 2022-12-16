@@ -16,10 +16,16 @@ import (
 var (
 	Addresses []string
 	User      *bc.User
-	EndTime   string = "50h10m10s"
+	EndTime   string = "0h53m0s"
 )
 
 type Proxies []*bc.Candidate
+type ListBal []*Horo
+
+type Horo struct {
+	Candidate *bc.Candidate
+	Balance   string
+}
 
 const (
 	ADD_BLOCK = iota + 2
@@ -59,19 +65,52 @@ func CreatePublic(count int) {
 		fmt.Println("4")
 	}
 }
-func LimitTime(timeNow time.Time) string {
+func WinnerList() ListBal {
+	var list = ViewCandidates()
+	srr := ListBal{}
+	db, _ := sql.Open("sqlite3", CANDIDATEDBNAME)
+	var desc string
+	for i := 0; i < len(list); i++ {
+		temp := list[i].PublicKey
+		db.QueryRow("SELECT Description FROM CandidateDB WHERE PublicK = $1", temp).Scan(&desc)
+		candidate := &bc.Candidate{
+			PublicKey:   temp,
+			Description: desc,
+		}
+		p := PrintBalance(candidate.PublicKey)
+		srr = append(srr, &Horo{Candidate: candidate, Balance: p})
+	}
+	return srr
+}
+func WinnerSolo() *bc.Candidate {
+	wl := WinnerList()
+	var temp1 string
+	var num1 int
+	for i := 0; i < len(wl); i++ {
+		fmt.Println(1)
+		if i+1 < len(wl) {
+			fmt.Println(2)
+			temp1 = wl[i+1].Balance
+			if wl[i].Balance > temp1 {
+				fmt.Println(3)
+				temp1 = wl[i].Balance
+				num1 = i
+			}
+		}
+	}
+	return wl[num1].Candidate
+}
+
+func LimitTime() string {
 	temp := ChainBlock("1")
-	//var p fastjson.Parser
-	//v, _ := p.Parse(string(temp))
 	srr := fastjson.GetString([]byte(temp), "TimeStamp")
 	u, _ := time.Parse(time.RFC3339, srr)
 	trim := time.Since(u).String()
-	//yi := trim.String()
 	return trim
 }
 func AcceprNewUser(Pass string, PublicK string, salt string) bool {
 	t, _ := time.ParseDuration(EndTime)
-	t1, _ := time.ParseDuration(LimitTime(time.Now()))
+	t1, _ := time.ParseDuration(LimitTime())
 	if t1 > t {
 		return false
 	}
@@ -83,7 +122,7 @@ func AcceprNewUser(Pass string, PublicK string, salt string) bool {
 }
 func AcceprLoadUser(PublicK string, PrivateK string) bool {
 	t, _ := time.ParseDuration(EndTime)
-	t1, _ := time.ParseDuration(LimitTime(time.Now()))
+	t1, _ := time.ParseDuration(LimitTime())
 	fmt.Println(t1)
 	fmt.Println(t)
 	if t1 > t {
@@ -110,7 +149,7 @@ func PrintBalance(useraddr string) string {
 		if res == nil {
 			continue
 		}
-		srr = fmt.Sprintf("%s, %s", addr, res.Data)
+		srr = fmt.Sprintf("%s", res.Data)
 	}
 	return srr
 }
@@ -137,7 +176,7 @@ func ChainPrint() []string {
 		if res == nil || res.Data == "" {
 			break
 		}
-		allChain = append(allChain, fmt.Sprintf("%s", i+1, res.Data))
+		allChain = append(allChain, fmt.Sprintf("%s", res.Data))
 	}
 	return allChain
 }
@@ -146,7 +185,6 @@ func ViewCandidates() Proxies {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	db, _ := sql.Open("sqlite3", CANDIDATEDBNAME)
 	rows, _ := db.Query("SELECT PublicK, Description FROM CandidateDB")
-	//rows1, _ := db.Query("SELECT Description FROM CandidateDB")
 	p := Proxies{}
 	defer db.Close()
 	var candidateP string
@@ -155,9 +193,6 @@ func ViewCandidates() Proxies {
 		rows.Scan(&candidateP, &candidateD)
 		p = append(p, &bc.Candidate{PublicKey: candidateP, Description: candidateD})
 	}
-	//for rows1.Next() {
-	//	rows1.Scan(&candidateD)
-	//}
 	return p
 }
 
@@ -231,15 +266,14 @@ func ChainBlock(splited string) string {
 	return srr
 }
 
-func ChainBalance(splited []string) string {
+/*func ChainBalance(splited string) string {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	if len(splited) != 2 {
 		fmt.Println("fail: len(splited) != 2\n")
 		return "fail9"
 	}
-	PrintBalance(splited[1])
-	return PrintBalance(splited[1])
-}
+	return PrintBalance(splited)
+}*/
 
 /* 	func main() {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)

@@ -12,6 +12,13 @@ service BLCH_Contract {
   rpc Vote(LowData) returns (IsComplited); // голосование
   rpc TimeBlock(BlockDataGet) returns (BlockData); //время начала голосования
   rpc ChainPrint(Wpar) returns (Chain);
+  rpc ResultsWinner(Wpar) returns (stream CandidateListWithBalance);
+}
+
+message CandidateListWithBalance {
+  string candidatePK = 1;
+  string candidateName = 2;
+  string balance = 3;
 }
 message RegData{
   string Passport = 1;
@@ -25,7 +32,6 @@ message AuthData{
 message AuthRegResult{
   bool Distortion = 1;
 }
-
 message Wpar {
 
 }
@@ -44,7 +50,6 @@ message Chain {
 message CandidateList {
   string candidatePK = 1;
   string candidateName = 2;
-
 }
 message LowData {
   string UserCandidate = 1;

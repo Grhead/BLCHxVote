@@ -58,10 +58,11 @@ message LowDataChain {
 message IsComplited {
   bool ic = 1;
 }
-message BlockData {
-  string InfoBlock = 1;
-}
 message BlockDataGet
 {
   string BlockNum = 1;
+}
+message BlockData {
+  string InfoBlock = 1;
+  string EndTime = 2;
 }

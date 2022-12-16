@@ -16,7 +16,7 @@ import (
 var (
 	Addresses []string
 	User      *bc.User
-	TimeBlock *bc.Block
+	EndTime   string = "50h10m10s"
 )
 
 type Proxies []*bc.Candidate
@@ -65,12 +65,16 @@ func LimitTime(timeNow time.Time) string {
 	//v, _ := p.Parse(string(temp))
 	srr := fastjson.GetString([]byte(temp), "TimeStamp")
 	u, _ := time.Parse(time.RFC3339, srr)
-	trim := time.Until(u).String()
+	trim := time.Since(u).String()
 	//yi := trim.String()
 	return trim
 }
 func AcceprNewUser(Pass string, PublicK string, salt string) bool {
-
+	t, _ := time.ParseDuration(EndTime)
+	t1, _ := time.ParseDuration(LimitTime(time.Now()))
+	if t1 > t {
+		return false
+	}
 	srr := bc.Private(Pass, salt, PASSDBNAME, PAREDBNAME, PublicK, PUBLICDBNAME)
 	if srr == "Empty" {
 		return false
@@ -78,7 +82,13 @@ func AcceprNewUser(Pass string, PublicK string, salt string) bool {
 	return true
 }
 func AcceprLoadUser(PublicK string, PrivateK string) bool {
-	fmt.Println(LimitTime(time.Now()))
+	t, _ := time.ParseDuration(EndTime)
+	t1, _ := time.ParseDuration(LimitTime(time.Now()))
+	fmt.Println(t1)
+	fmt.Println(t)
+	if t1 > t {
+		return false
+	}
 	User := bc.LoadUser(PrivateK, PAREDBNAME)
 	if User == nil {
 		return false

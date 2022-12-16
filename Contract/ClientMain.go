@@ -9,7 +9,6 @@ import (
 	"fmt"
 	_ "google.golang.org/protobuf/types/known/wrapperspb"
 	"io/ioutil"
-	"time"
 )
 
 var (
@@ -48,13 +47,13 @@ func (s *GRserver) AuthLogin(ctx context.Context, ld *pr.AuthData) (*pr.AuthRegR
 
 func (s *GRserver) ChainSize(context.Context, *pr.Wpar) (*pr.ResponseSize, error) {
 	//srr := cl.ChainSize()
-	//return &pr.ResponseSize{Size: cl.ChainSize()}, nil
-	return &pr.ResponseSize{Size: cl.LimitTime(time.Now())}, nil
+	return &pr.ResponseSize{Size: cl.ChainSize()}, nil
+	//return &pr.ResponseSize{Size: cl.LimitTime(time.Now())}, nil
 }
 func (s *GRserver) TimeBlock(ctx context.Context, ld *pr.BlockDataGet) (*pr.BlockData, error) {
 	var srr string
 	srr = cl.ChainBlock(ld.BlockNum)
-	return &pr.BlockData{InfoBlock: srr}, nil
+	return &pr.BlockData{InfoBlock: srr, EndTime: cl.EndTime}, nil
 }
 func (s *GRserver) Balance(ctx context.Context, address *pr.Address) (*pr.Lanb, error) {
 	var srr string

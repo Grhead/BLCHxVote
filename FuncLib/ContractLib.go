@@ -137,7 +137,7 @@ func ChainPrint() []string {
 		if res == nil || res.Data == "" {
 			break
 		}
-		allChain = append(allChain, fmt.Sprintf("[%d] => %s\n", i+1, res.Data))
+		allChain = append(allChain, fmt.Sprintf("%s", i+1, res.Data))
 	}
 	return allChain
 }

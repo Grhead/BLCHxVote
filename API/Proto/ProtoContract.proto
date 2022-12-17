@@ -2,17 +2,19 @@ syntax = "proto3";
 package Contract;
 option go_package = "./API/Proto/";
 
+
 service BLCH_Contract {
-  rpc AuthRegister(RegData) returns(AuthRegResult);
-  rpc AuthLogin(AuthData) returns(AuthRegResult);
+  rpc AuthRegister(RegData) returns (AuthRegResult);
+  rpc AuthLogin(AuthData) returns (AuthRegResult);
   rpc ChainSize(Wpar) returns (ResponseSize); //размер цепи
   rpc Balance(Address) returns (Lanb); //баланс на счете
   rpc ViewCandidates(Wpar) returns (stream CandidateList); // вывод кандидатов
   rpc Transfer(LowDataChain) returns (IsComplited); // раздача токенов
   rpc Vote(LowData) returns (IsComplited); // голосование
-  rpc TimeBlock(BlockDataGet) returns (BlockData); //время начала голосования
+  rpc TimeBlock(Wpar) returns (stream TimeData); //время до конца голосования
   rpc ChainPrint(Wpar) returns (Chain);
   rpc ResultsWinner(Wpar) returns (stream CandidateListWithBalance);
+  rpc SoloWinner(Wpar) returns (CandidateList);
 }
 
 message CandidateListWithBalance {
@@ -30,7 +32,7 @@ message AuthData{
   string PrivateK = 2;
 }
 message AuthRegResult{
-  bool Distortion = 1;
+  string Distortion = 1;
 }
 message Wpar {
 
@@ -63,11 +65,9 @@ message LowDataChain {
 message IsComplited {
   bool ic = 1;
 }
-message BlockDataGet
-{
+message BlockDataGet {
   string BlockNum = 1;
 }
-message BlockData {
-  string InfoBlock = 1;
-  string EndTime = 2;
+message TimeData {
+  string EndTime = 1;
 }

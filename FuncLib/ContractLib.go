@@ -16,7 +16,7 @@ import (
 var (
 	Addresses []string
 	User      *bc.User
-	EndTime   string = "0h53m0s"
+	EndTime   string = "8h5m0s"
 )
 
 type Proxies []*bc.Candidate
@@ -84,23 +84,20 @@ func WinnerList() ListBal {
 }
 func WinnerSolo() *bc.Candidate {
 	wl := WinnerList()
-	var temp1 string
+	var temp string
 	var num1 int
 	for i := 0; i < len(wl); i++ {
-		fmt.Println(1)
 		if i+1 < len(wl) {
-			fmt.Println(2)
-			temp1 = wl[i+1].Balance
-			if wl[i].Balance > temp1 {
-				fmt.Println(3)
-				temp1 = wl[i].Balance
+			temp = wl[i+1].Balance
+			if wl[i].Balance > temp {
+				temp = wl[i].Balance
 				num1 = i
 			}
+			num1 = i + 1
 		}
 	}
 	return wl[num1].Candidate
 }
-
 func LimitTime() string {
 	temp := ChainBlock("1")
 	srr := fastjson.GetString([]byte(temp), "TimeStamp")
@@ -108,36 +105,35 @@ func LimitTime() string {
 	trim := time.Since(u).String()
 	return trim
 }
-func AcceprNewUser(Pass string, PublicK string, salt string) bool {
+func AcceprNewUser(Pass string, PublicK string, salt string) string {
 	t, _ := time.ParseDuration(EndTime)
 	t1, _ := time.ParseDuration(LimitTime())
 	if t1 > t {
-		return false
+		return "2"
 	}
 	srr := bc.Private(Pass, salt, PASSDBNAME, PAREDBNAME, PublicK, PUBLICDBNAME)
 	if srr == "Empty" {
-		return false
+		return "0"
 	}
-	return true
+	return srr
 }
-func AcceprLoadUser(PublicK string, PrivateK string) bool {
+func AcceprLoadUser(PublicK string, PrivateK string) string {
 	t, _ := time.ParseDuration(EndTime)
 	t1, _ := time.ParseDuration(LimitTime())
 	fmt.Println(t1)
 	fmt.Println(t)
 	if t1 > t {
-		return false
+		return "2"
 	}
 	User := bc.LoadUser(PrivateK, PAREDBNAME)
 	if User == nil {
-		return false
+		return "0"
 	}
 	if User.Address() != PublicK {
-		return false
+		return "0"
 	}
-	return true
+	return "1"
 }
-
 func PrintBalance(useraddr string) string {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	var srr string
@@ -164,7 +160,6 @@ func ChainSize() string {
 	srr := fmt.Sprintf("%s", res.Data)
 	return srr
 }
-
 func ChainPrint() []string {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	var allChain []string
@@ -180,7 +175,6 @@ func ChainPrint() []string {
 	}
 	return allChain
 }
-
 func ViewCandidates() Proxies {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	db, _ := sql.Open("sqlite3", CANDIDATEDBNAME)
@@ -195,7 +189,6 @@ func ViewCandidates() Proxies {
 	}
 	return p
 }
-
 func ChainTX(candidate string, num uint64, PrivateK string) bool {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	User = bc.LoadUser(PrivateK, PAREDBNAME)
@@ -248,7 +241,6 @@ func ChainTXBlock(john string, num uint64) bool {
 
 	return false
 }
-
 func ChainBlock(splited string) string {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	num, err := strconv.Atoi(splited)
@@ -265,24 +257,3 @@ func ChainBlock(splited string) string {
 	srr := fmt.Sprintf("%s", res.Data)
 	return srr
 }
-
-/*func ChainBalance(splited string) string {
-	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
-	if len(splited) != 2 {
-		fmt.Println("fail: len(splited) != 2\n")
-		return "fail9"
-	}
-	return PrintBalance(splited)
-}*/
-
-/* 	func main() {
-	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
-	 printBalance("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c")
-	 chainSize()
-	User = bc.LoadUser("47ad6449aa0885d4598ac42129d1ae789e453aef6ba39cee12c0fd9ee6c0cdc8", PAREDBNAME)
-	 chainTXBlock("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c", 1, "ASD", PASSDBNAME)
-	  chainTX("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c", 1, "ASD", PASSDBNAME)
-	 printBalance("7921b2bb7c20ad655e713b3bbedd3a91ad65c114a63e6dd32d74632d59d7b98c")
-	 chainSize()
-	chainPrint()
-}*/

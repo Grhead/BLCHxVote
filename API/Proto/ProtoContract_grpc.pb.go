@@ -29,9 +29,10 @@ type BLCH_ContractClient interface {
 	ViewCandidates(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (BLCH_Contract_ViewCandidatesClient, error)
 	Transfer(ctx context.Context, in *LowDataChain, opts ...grpc.CallOption) (*IsComplited, error)
 	Vote(ctx context.Context, in *LowData, opts ...grpc.CallOption) (*IsComplited, error)
-	TimeBlock(ctx context.Context, in *BlockDataGet, opts ...grpc.CallOption) (*BlockData, error)
+	TimeBlock(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (BLCH_Contract_TimeBlockClient, error)
 	ChainPrint(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (*Chain, error)
 	ResultsWinner(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (BLCH_Contract_ResultsWinnerClient, error)
+	SoloWinner(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (*CandidateList, error)
 }
 
 type bLCH_ContractClient struct {
@@ -128,13 +129,36 @@ func (c *bLCH_ContractClient) Vote(ctx context.Context, in *LowData, opts ...grp
 	return out, nil
 }
 
-func (c *bLCH_ContractClient) TimeBlock(ctx context.Context, in *BlockDataGet, opts ...grpc.CallOption) (*BlockData, error) {
-	out := new(BlockData)
-	err := c.cc.Invoke(ctx, "/Contract.BLCH_Contract/TimeBlock", in, out, opts...)
+func (c *bLCH_ContractClient) TimeBlock(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (BLCH_Contract_TimeBlockClient, error) {
+	stream, err := c.cc.NewStream(ctx, &BLCH_Contract_ServiceDesc.Streams[1], "/Contract.BLCH_Contract/TimeBlock", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &bLCH_ContractTimeBlockClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type BLCH_Contract_TimeBlockClient interface {
+	Recv() (*TimeData, error)
+	grpc.ClientStream
+}
+
+type bLCH_ContractTimeBlockClient struct {
+	grpc.ClientStream
+}
+
+func (x *bLCH_ContractTimeBlockClient) Recv() (*TimeData, error) {
+	m := new(TimeData)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func (c *bLCH_ContractClient) ChainPrint(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (*Chain, error) {
@@ -147,7 +171,7 @@ func (c *bLCH_ContractClient) ChainPrint(ctx context.Context, in *Wpar, opts ...
 }
 
 func (c *bLCH_ContractClient) ResultsWinner(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (BLCH_Contract_ResultsWinnerClient, error) {
-	stream, err := c.cc.NewStream(ctx, &BLCH_Contract_ServiceDesc.Streams[1], "/Contract.BLCH_Contract/ResultsWinner", opts...)
+	stream, err := c.cc.NewStream(ctx, &BLCH_Contract_ServiceDesc.Streams[2], "/Contract.BLCH_Contract/ResultsWinner", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +202,15 @@ func (x *bLCH_ContractResultsWinnerClient) Recv() (*CandidateListWithBalance, er
 	return m, nil
 }
 
+func (c *bLCH_ContractClient) SoloWinner(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (*CandidateList, error) {
+	out := new(CandidateList)
+	err := c.cc.Invoke(ctx, "/Contract.BLCH_Contract/SoloWinner", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BLCH_ContractServer is the server API for BLCH_Contract service.
 // All implementations must embed UnimplementedBLCH_ContractServer
 // for forward compatibility
@@ -189,9 +222,10 @@ type BLCH_ContractServer interface {
 	ViewCandidates(*Wpar, BLCH_Contract_ViewCandidatesServer) error
 	Transfer(context.Context, *LowDataChain) (*IsComplited, error)
 	Vote(context.Context, *LowData) (*IsComplited, error)
-	TimeBlock(context.Context, *BlockDataGet) (*BlockData, error)
+	TimeBlock(*Wpar, BLCH_Contract_TimeBlockServer) error
 	ChainPrint(context.Context, *Wpar) (*Chain, error)
 	ResultsWinner(*Wpar, BLCH_Contract_ResultsWinnerServer) error
+	SoloWinner(context.Context, *Wpar) (*CandidateList, error)
 	mustEmbedUnimplementedBLCH_ContractServer()
 }
 
@@ -220,14 +254,17 @@ func (UnimplementedBLCH_ContractServer) Transfer(context.Context, *LowDataChain)
 func (UnimplementedBLCH_ContractServer) Vote(context.Context, *LowData) (*IsComplited, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Vote not implemented")
 }
-func (UnimplementedBLCH_ContractServer) TimeBlock(context.Context, *BlockDataGet) (*BlockData, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method TimeBlock not implemented")
+func (UnimplementedBLCH_ContractServer) TimeBlock(*Wpar, BLCH_Contract_TimeBlockServer) error {
+	return status.Errorf(codes.Unimplemented, "method TimeBlock not implemented")
 }
 func (UnimplementedBLCH_ContractServer) ChainPrint(context.Context, *Wpar) (*Chain, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChainPrint not implemented")
 }
 func (UnimplementedBLCH_ContractServer) ResultsWinner(*Wpar, BLCH_Contract_ResultsWinnerServer) error {
 	return status.Errorf(codes.Unimplemented, "method ResultsWinner not implemented")
+}
+func (UnimplementedBLCH_ContractServer) SoloWinner(context.Context, *Wpar) (*CandidateList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SoloWinner not implemented")
 }
 func (UnimplementedBLCH_ContractServer) mustEmbedUnimplementedBLCH_ContractServer() {}
 
@@ -371,22 +408,25 @@ func _BLCH_Contract_Vote_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BLCH_Contract_TimeBlock_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BlockDataGet)
-	if err := dec(in); err != nil {
-		return nil, err
+func _BLCH_Contract_TimeBlock_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Wpar)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(BLCH_ContractServer).TimeBlock(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/Contract.BLCH_Contract/TimeBlock",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BLCH_ContractServer).TimeBlock(ctx, req.(*BlockDataGet))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(BLCH_ContractServer).TimeBlock(m, &bLCH_ContractTimeBlockServer{stream})
+}
+
+type BLCH_Contract_TimeBlockServer interface {
+	Send(*TimeData) error
+	grpc.ServerStream
+}
+
+type bLCH_ContractTimeBlockServer struct {
+	grpc.ServerStream
+}
+
+func (x *bLCH_ContractTimeBlockServer) Send(m *TimeData) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 func _BLCH_Contract_ChainPrint_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -428,6 +468,24 @@ func (x *bLCH_ContractResultsWinnerServer) Send(m *CandidateListWithBalance) err
 	return x.ServerStream.SendMsg(m)
 }
 
+func _BLCH_Contract_SoloWinner_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Wpar)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BLCH_ContractServer).SoloWinner(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Contract.BLCH_Contract/SoloWinner",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BLCH_ContractServer).SoloWinner(ctx, req.(*Wpar))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BLCH_Contract_ServiceDesc is the grpc.ServiceDesc for BLCH_Contract service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -460,18 +518,23 @@ var BLCH_Contract_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BLCH_Contract_Vote_Handler,
 		},
 		{
-			MethodName: "TimeBlock",
-			Handler:    _BLCH_Contract_TimeBlock_Handler,
-		},
-		{
 			MethodName: "ChainPrint",
 			Handler:    _BLCH_Contract_ChainPrint_Handler,
+		},
+		{
+			MethodName: "SoloWinner",
+			Handler:    _BLCH_Contract_SoloWinner_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "ViewCandidates",
 			Handler:       _BLCH_Contract_ViewCandidates_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "TimeBlock",
+			Handler:       _BLCH_Contract_TimeBlock_Handler,
 			ServerStreams: true,
 		},
 		{

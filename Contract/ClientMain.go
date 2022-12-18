@@ -97,10 +97,10 @@ func (s *GRserver) Transfer(ctx context.Context, ld *pr.LowDataChain) (*pr.IsCom
 	srr = cl.ChainTXBlock(ld.UserCandidate, ld.Num)
 	return &pr.IsComplited{Ic: srr}, nil
 }
-func (s *GRserver) Vote(ctx context.Context, ld *pr.LowData) (*pr.IsComplited, error) {
-	var srr bool
+func (s *GRserver) Vote(ctx context.Context, ld *pr.LowData) (*pr.IsComplitedVote, error) {
+	var srr string
 	srr = cl.ChainTX(ld.UserCandidate, ld.Num, ld.Private)
-	return &pr.IsComplited{Ic: srr}, nil
+	return &pr.IsComplitedVote{Ic: srr}, nil
 }
 func (s *GRserver) ChainPrint(context.Context, *pr.Wpar) (*pr.Chain, error) {
 	var allChain []string

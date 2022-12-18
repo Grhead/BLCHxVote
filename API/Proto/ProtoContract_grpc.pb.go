@@ -28,7 +28,7 @@ type BLCH_ContractClient interface {
 	Balance(ctx context.Context, in *Address, opts ...grpc.CallOption) (*Lanb, error)
 	ViewCandidates(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (BLCH_Contract_ViewCandidatesClient, error)
 	Transfer(ctx context.Context, in *LowDataChain, opts ...grpc.CallOption) (*IsComplited, error)
-	Vote(ctx context.Context, in *LowData, opts ...grpc.CallOption) (*IsComplited, error)
+	Vote(ctx context.Context, in *LowData, opts ...grpc.CallOption) (*IsComplitedVote, error)
 	TimeBlock(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (BLCH_Contract_TimeBlockClient, error)
 	ChainPrint(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (*Chain, error)
 	ResultsWinner(ctx context.Context, in *Wpar, opts ...grpc.CallOption) (BLCH_Contract_ResultsWinnerClient, error)
@@ -120,8 +120,8 @@ func (c *bLCH_ContractClient) Transfer(ctx context.Context, in *LowDataChain, op
 	return out, nil
 }
 
-func (c *bLCH_ContractClient) Vote(ctx context.Context, in *LowData, opts ...grpc.CallOption) (*IsComplited, error) {
-	out := new(IsComplited)
+func (c *bLCH_ContractClient) Vote(ctx context.Context, in *LowData, opts ...grpc.CallOption) (*IsComplitedVote, error) {
+	out := new(IsComplitedVote)
 	err := c.cc.Invoke(ctx, "/Contract.BLCH_Contract/Vote", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -221,7 +221,7 @@ type BLCH_ContractServer interface {
 	Balance(context.Context, *Address) (*Lanb, error)
 	ViewCandidates(*Wpar, BLCH_Contract_ViewCandidatesServer) error
 	Transfer(context.Context, *LowDataChain) (*IsComplited, error)
-	Vote(context.Context, *LowData) (*IsComplited, error)
+	Vote(context.Context, *LowData) (*IsComplitedVote, error)
 	TimeBlock(*Wpar, BLCH_Contract_TimeBlockServer) error
 	ChainPrint(context.Context, *Wpar) (*Chain, error)
 	ResultsWinner(*Wpar, BLCH_Contract_ResultsWinnerServer) error
@@ -251,7 +251,7 @@ func (UnimplementedBLCH_ContractServer) ViewCandidates(*Wpar, BLCH_Contract_View
 func (UnimplementedBLCH_ContractServer) Transfer(context.Context, *LowDataChain) (*IsComplited, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Transfer not implemented")
 }
-func (UnimplementedBLCH_ContractServer) Vote(context.Context, *LowData) (*IsComplited, error) {
+func (UnimplementedBLCH_ContractServer) Vote(context.Context, *LowData) (*IsComplitedVote, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Vote not implemented")
 }
 func (UnimplementedBLCH_ContractServer) TimeBlock(*Wpar, BLCH_Contract_TimeBlockServer) error {

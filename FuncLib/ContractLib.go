@@ -16,7 +16,7 @@ import (
 var (
 	Addresses []string
 	User      *bc.User
-	EndTime   string = "8h5m0s"
+	EndTime   string = "30h5m0s"
 )
 
 type Proxies []*bc.Candidate
@@ -84,19 +84,20 @@ func WinnerList() ListBal {
 }
 func WinnerSolo() *bc.Candidate {
 	wl := WinnerList()
-	var temp string
-	var num1 int
 	for i := 0; i < len(wl); i++ {
-		if i+1 < len(wl) {
-			temp = wl[i+1].Balance
-			if wl[i].Balance > temp {
-				temp = wl[i].Balance
-				num1 = i
+		for j := i + 1; j < len(wl); j++ {
+			if wl[i].Balance == wl[j].Balance {
+				return &bc.Candidate{PublicKey: "0", Description: "0"}
 			}
-			num1 = i + 1
 		}
 	}
-	return wl[num1].Candidate
+	max := wl[0]
+	for _, element := range wl {
+		if element.Balance > max.Balance {
+			max = element
+		}
+	}
+	return max.Candidate
 }
 func LimitTime() string {
 	temp := ChainBlock("1")
@@ -109,23 +110,35 @@ func AcceprNewUser(Pass string, PublicK string, salt string) string {
 	t, _ := time.ParseDuration(EndTime)
 	t1, _ := time.ParseDuration(LimitTime())
 	if t1 > t {
-		return "2"
+		return "time"
+	}
+	db, _ := sql.Open("sqlite3", CANDIDATEDBNAME)
+	var after string
+	db.QueryRow("SELECT PublicK FROM CandidateDB WHERE PublicK = $1", PublicK).Scan(&after)
+	fmt.Println(after)
+	if after != "" {
+		return "cdt"
 	}
 	srr := bc.Private(Pass, salt, PASSDBNAME, PAREDBNAME, PublicK, PUBLICDBNAME)
-	if srr == "Empty" {
-		return "0"
+	if srr == "Empty0" {
+		return "pass"
+	}
+	if srr == "Empty1" {
+		return "pk"
 	}
 	return srr
 }
 func AcceprLoadUser(PublicK string, PrivateK string) string {
 	t, _ := time.ParseDuration(EndTime)
 	t1, _ := time.ParseDuration(LimitTime())
-	fmt.Println(t1)
-	fmt.Println(t)
 	if t1 > t {
 		return "2"
 	}
 	User := bc.LoadUser(PrivateK, PAREDBNAME)
+	bal := PrintBalance(User.Address())
+	if bal == "0" {
+		return "zero"
+	}
 	if User == nil {
 		return "0"
 	}
@@ -189,9 +202,13 @@ func ViewCandidates() Proxies {
 	}
 	return p
 }
-func ChainTX(candidate string, num uint64, PrivateK string) bool {
+func ChainTX(candidate string, num uint64, PrivateK string) string {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	User = bc.LoadUser(PrivateK, PAREDBNAME)
+	bal := PrintBalance(User.Address())
+	if bal == "0" {
+		return "zero"
+	}
 	for _, addr := range Addresses {
 		res := nt.Send(addr, &nt.Package{
 			Option: GET_LHASH,
@@ -208,12 +225,12 @@ func ChainTX(candidate string, num uint64, PrivateK string) bool {
 			continue
 		}
 		if res.Data == "ok" {
-			return true
+			return "true"
 		} else {
-			return false
+			return "false"
 		}
 	}
-	return false
+	return "false"
 }
 func ChainTXBlock(john string, num uint64) bool {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)

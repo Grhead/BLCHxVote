@@ -203,7 +203,6 @@ func AddTransaction(pack *nt.Package) string {
 		PushBlockToNet(&block)
 	}
 	Block = bc.NewBlock(Chain.LastHash())
-	//}()
 	return "ok"
 }
 

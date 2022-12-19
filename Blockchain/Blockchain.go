@@ -487,6 +487,10 @@ func AddPass(passport string, filename string) error {
 	return nil
 }
 func Private(passport string, salt string, TemplateDBFile string, PareDBFile string, PKey string, publicDBFile string) string {
+	postUsed, _ := sql.Open("sqlite3", publicDBFile)
+	var PostIs string
+	postUsed.QueryRow("UPDATE PublicDB SET isUsed = 1 WHERE PublicK = $1", PKey).Scan(&PostIs)
+
 	templateDB, _ := sql.Open("sqlite3", TemplateDBFile)
 	var template string
 	templateDB.QueryRow("SELECT TemplatePRK FROM TemplateDB WHERE Passport = $1", passport).Scan(&template)

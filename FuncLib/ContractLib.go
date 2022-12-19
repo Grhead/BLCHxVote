@@ -16,7 +16,7 @@ import (
 var (
 	Addresses []string
 	User      *bc.User
-	EndTime   string = "30h5m0s"
+	EndTime   = "3h5m0s"
 )
 
 type Proxies []*bc.Candidate
@@ -112,6 +112,12 @@ func AcceprNewUser(Pass string, PublicK string, salt string) string {
 	if t1 > t {
 		return "time"
 	}
+	dbpub, _ := sql.Open("sqlite3", PUBLICDBNAME)
+	var isUsed string
+	dbpub.QueryRow("SELECT isUsed FROM PublicDB WHERE PublicK = $1", PublicK).Scan(&isUsed)
+	if isUsed == strconv.Itoa(1) {
+		return "AddressUsed"
+	}
 	db, _ := sql.Open("sqlite3", CANDIDATEDBNAME)
 	var after string
 	db.QueryRow("SELECT PublicK FROM CandidateDB WHERE PublicK = $1", PublicK).Scan(&after)
@@ -135,12 +141,12 @@ func AcceprLoadUser(PublicK string, PrivateK string) string {
 		return "2"
 	}
 	User := bc.LoadUser(PrivateK, PAREDBNAME)
+	if User == nil {
+		return "0"
+	}
 	bal := PrintBalance(User.Address())
 	if bal == "0" {
 		return "zero"
-	}
-	if User == nil {
-		return "0"
 	}
 	if User.Address() != PublicK {
 		return "0"
@@ -205,9 +211,19 @@ func ViewCandidates() Proxies {
 func ChainTX(candidate string, num uint64, PrivateK string) string {
 	json.Unmarshal([]byte(readFile("addr.json")), &Addresses)
 	User = bc.LoadUser(PrivateK, PAREDBNAME)
+	if User == nil {
+		return "false"
+	}
 	bal := PrintBalance(User.Address())
 	if bal == "0" {
 		return "zero"
+	}
+	userbalAfter, err := strconv.Atoi(bal)
+	if err != nil {
+		return "false"
+	}
+	if uint64(userbalAfter) < num {
+		return "false"
 	}
 	for _, addr := range Addresses {
 		res := nt.Send(addr, &nt.Package{
@@ -240,6 +256,19 @@ func ChainTXBlock(john string, num uint64) bool {
 		})
 		if res == nil {
 			continue
+		}
+		var after string
+		db, _ := sql.Open("sqlite3", PUBLICDBNAME)
+		db.QueryRow("SELECT PublicK FROM PublicDB WHERE PublicK = $1", john).Scan(&after)
+		if after == "" {
+			return false
+		}
+		chainAfter, err := strconv.Atoi(PrintBalance("GRChain"))
+		if err != nil {
+			return false
+		}
+		if uint64(chainAfter) < num {
+			return false
 		}
 		tx := bc.NewTransactionBlock(john, bc.Base64Decode(res.Data), num)
 		res = nt.Send(addr, &nt.Package{

@@ -20,9 +20,8 @@ func main() {
 	block, err := Blockchain.NewBlock(h, "user1", "hfheffe")
 	block.CurrHash = block.Hash()
 	err = Blockchain.AddBlock(block)
+
 	//TODO release server
-	//Blockchain.NewChain(100, "first")
-	//Blockchain.NewPublicKeyItem("first")
 	//l, err := net.Listen("tcp", viper.GetString("PORT"))
 	//if err != nil {
 	//	log.Fatal(err)

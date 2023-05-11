@@ -1,1 +1,3 @@
-# BLCHxVote
+BLCHxVote
+---------------
+## Chapter 2: VOX

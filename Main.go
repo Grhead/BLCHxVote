@@ -14,12 +14,48 @@ func main() {
 		return
 	}
 
-	err = Blockchain.NewChain(100, "hfheffe")
-	h, _ := Blockchain.LastHash("hfheffe")
-	fmt.Println(h)
-	block, err := Blockchain.NewBlock(h, "user1", "hfheffe")
-	block.CurrHash = block.Hash()
+	_, err = Blockchain.NewChain(100, "first")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	//_, err = Blockchain.NewChain(50, "second")
+	//if err != nil {
+	//	fmt.Println(err)
+	//	return
+	//}
+	//for i := 0; i < 100; i++ {
+	item, err := Blockchain.NewPublicKeyItem("first")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	lh, err := Blockchain.LastHash("first")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	newTx, err := Blockchain.NewTransactionFromChain("first", item.Address(), lh, 1)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	block, err := Blockchain.NewBlock(lh, "test", "first")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	err = block.AddTransaction(newTx, "first")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	err = Blockchain.AddBlock(block)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	//}
 
 	//TODO release server
 	//l, err := net.Listen("tcp", viper.GetString("PORT"))

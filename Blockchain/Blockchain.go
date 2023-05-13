@@ -41,10 +41,10 @@ func init() {
 	StorageChain = viper.GetString("STORAGE_CHAIN")
 }
 
-func NewChain(VotesCount uint64, ChainMaster string) error {
+func NewChain(VotesCount uint64, ChainMaster string) (*Block, error) {
 	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	curTime, err := GetTime()
 	var blocks []*Chain
@@ -52,7 +52,7 @@ func NewChain(VotesCount uint64, ChainMaster string) error {
 	for _, v := range blocks {
 		desBlock := DeserializeBlock(v.Block)
 		if desBlock.ChainMaster == ChainMaster {
-			return errors.New("affiliation already exist")
+			return nil, errors.New("affiliation already exist")
 		}
 	}
 	genesis := &Block{
@@ -65,9 +65,9 @@ func NewChain(VotesCount uint64, ChainMaster string) error {
 	genesis.CurrHash = genesis.Hash()
 	err = AddBlock(genesis)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return genesis, nil
 }
 
 func NewBlock(prevHash string, miner string, chainMaster string) (*Block, error) {
@@ -185,8 +185,8 @@ func AddBlock(block *Block) error {
 	return nil
 }
 
-// NewUser same with AddPass (BLCHxVote)
-func NewUser(passport string) error {
+// NewDormantUser same with AddPass (BLCHxVote)
+func NewDormantUser(passport string) error {
 	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
 	if err != nil {
 		return err
@@ -197,7 +197,7 @@ func NewUser(passport string) error {
 	}
 	db.Exec("INSERT INTO RelationPatterns (Id, PersonIdentifier, PrivateKeyTemplate) VALUES ($1, $2, $3)",
 		uuid.NewString(),
-		SetHash(passport),
+		HashSum(passport),
 		privateGenKey)
 	return nil
 }
@@ -339,7 +339,7 @@ func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (st
 	}
 	var template string
 	db.Raw("SELECT PrivateKeyTemplate FROM RelationPatterns WHERE PersonIdentifier = $1",
-		SetHash(passport)).Scan(&template)
+		HashSum(passport)).Scan(&template)
 	if template == "" {
 		return "", errors.New("identifier does not exist")
 	}
@@ -388,6 +388,6 @@ func GenerateKey() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	hash := sha256.Sum256(v.GetStringBytes("dateTime"))
-	return string(hash[:]), nil
+	hash := v.GetStringBytes("dateTime")
+	return HashSum(string(hash)), nil
 }

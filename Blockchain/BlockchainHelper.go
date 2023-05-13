@@ -94,10 +94,10 @@ func GetTime() (*timestamp.Timestamp, error) {
 
 }
 
-func SetHash(data string) string {
-	hash := sha256.Sum256([]byte(data))
-	return string(hash[:])
-}
+//func SetHash(data string) string {
+//	hash := sha256.Sum256([]byte(data))
+//	return string(hash[:])
+//}
 
 func ToBytes(data uint64) []byte {
 	var buf = new(bytes.Buffer)

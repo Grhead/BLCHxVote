@@ -61,7 +61,7 @@ func NewChain(VotesCount uint64, ChainMaster string) (*Block, error) {
 		TimeStamp:   curTime,
 		ChainMaster: ChainMaster,
 	}
-	genesis.BalanceMap[StorageChain] = VotesCount
+	genesis.BalanceMap[ChainMaster] = VotesCount
 	genesis.CurrHash = genesis.Hash()
 	err = AddBlock(genesis)
 	if err != nil {

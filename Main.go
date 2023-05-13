@@ -13,12 +13,16 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-
-	_, err = Blockchain.NewChain(100, "first")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	//_, err = Blockchain.NewChain(100, "first")
+	//if err != nil {
+	//	fmt.Println(err)
+	//	return
+	//}
+	//balance, err := Blockchain.Balance("first", "first")
+	//fmt.Println(balance)
+	//if err != nil {
+	//	fmt.Println(err)
+	//	return
 	//_, err = Blockchain.NewChain(50, "second")
 	//if err != nil {
 	//	fmt.Println(err)
@@ -46,6 +50,21 @@ func main() {
 		return
 	}
 	err = block.AddTransaction(newTx, "first")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	t, err := item.Private()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	y, err := Blockchain.LoadToEnterAlreadyUser(t)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	err = block.Accept(y, "first", make(chan bool))
 	if err != nil {
 		fmt.Println(err)
 		return

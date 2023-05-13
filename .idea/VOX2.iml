@@ -6,5 +6,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="VOX 2.0" />
+    <orderEntry type="module" module-name="BLCHxVote" />
   </component>
 </module>

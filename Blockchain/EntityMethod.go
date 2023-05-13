@@ -1,9 +1,7 @@
 package Blockchain
 
 import (
-	"crypto/sha256"
 	"errors"
-	"fmt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"sort"
@@ -55,11 +53,6 @@ func (block *Block) Hash() string {
 			block.TimeStamp.AsTime().String())
 }
 
-func HashSum(data string) string {
-	hash := sha256.Sum256([]byte(data))
-	return fmt.Sprintf("%x", hash[:])
-}
-
 func (tran *Transaction) Sign(privateKey string) string {
 	return Sign(privateKey, tran.CurrHash)
 }
@@ -100,7 +93,7 @@ func (block *Block) AddTransaction(tran *Transaction, master string) error {
 	}
 
 	block.BalanceMap[tran.Sender] = balanceInChain - balanceInTX
-	err = block.addBalance(tran.Receiver, tran.Value, master)
+	err = block.AddBalance(tran.Receiver, tran.Value, master)
 	if err != nil {
 		return err
 	}
@@ -108,7 +101,7 @@ func (block *Block) AddTransaction(tran *Transaction, master string) error {
 	return nil
 }
 
-func (block *Block) addBalance(receiver string, value uint64, master string) error {
+func (block *Block) AddBalance(receiver string, value uint64, master string) error {
 	var balanceInChain uint64
 	var err error
 	if v, ok := block.BalanceMap[receiver]; ok {

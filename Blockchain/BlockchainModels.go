@@ -6,7 +6,7 @@ import (
 )
 
 type Chain struct {
-	id    string
+	Id    string
 	Hash  string
 	Block string
 }
@@ -35,14 +35,15 @@ type Block struct {
 }
 
 type User struct {
-	uuid        uuid.UUID
+	Uuid        uuid.UUID
 	PublicKey   string
 	IsUsed      bool
 	Affiliation string
 }
 
 type Candidate struct {
-	uuid        uuid.UUID
-	PublicKey   string
-	Description string
+	Uuid              uuid.UUID
+	PublicKey         string
+	Description       string
+	VotingAffiliation string
 }

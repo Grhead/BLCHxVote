@@ -3,30 +3,19 @@ package Blockchain
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/spf13/viper"
 	"github.com/valyala/fastjson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
 )
-
-func Base64Encode(data []byte) string {
-	return base64.StdEncoding.EncodeToString(data)
-}
-
-func Base64Decode(data string) []byte {
-	result, err := base64.StdEncoding.DecodeString(data)
-	if err != nil {
-		return nil
-	}
-	return result
-}
 
 // SerializeBlock TODO Rewrite
 func SerializeBlock(block *Block) string {
@@ -114,6 +103,20 @@ func ToBytes(data uint64) []byte {
 		return nil
 	}
 	return buf.Bytes()
+}
+
+func GenerateRandomBytes(max uint64) ([]byte, error) {
+	var slice = make([]byte, max)
+	_, err := rand.Read(slice)
+	if err != nil {
+		return nil, err
+	}
+	return slice, nil
+}
+
+func HashSum(data string) string {
+	hash := sha256.Sum256([]byte(data))
+	return fmt.Sprintf("%x", hash[:])
 }
 
 //func ProofOfWork(blockHash []byte, difficulty uint8, ch chan bool) uint64 {

@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS KeyLinks (
 
 CREATE TABLE IF NOT EXISTS RelationPatterns (
                                                 Id CHAR(36) PRIMARY KEY,
-                                                PersonIndentifier CHAR(64) NOT NULL,
+                                                PersonIdentifier CHAR(64) NOT NULL,
                                                 PrivateKeyTemplate CHAR(64) NOT NULL
 );
 
@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS PublicKeySets (
 CREATE TABLE IF NOT EXISTS ElectionSubjects (
                                                 Id CHAR(36) PRIMARY KEY,
                                                 PublicKey CHAR(64) NOT NULL,
-                                                Description TEXT NOT NULL
+                                                Description TEXT NOT NULL,
+                                                VotingAffiliation CHAR(64) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS Chains (

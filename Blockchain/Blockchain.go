@@ -11,7 +11,6 @@ import (
 	"gorm.io/gorm"
 	"io"
 	"log"
-	"math/rand"
 	"net/http"
 	"sort"
 	"strconv"
@@ -89,7 +88,7 @@ func NewBlock(prevHash string, miner string, chainMaster string) (*Block, error)
 }
 
 func NewTransaction(
-	fromUser User,
+	fromUser *User,
 	toUser string,
 	lastHash string,
 	value uint64) (*Transaction, error) {
@@ -111,6 +110,29 @@ func NewTransaction(
 	return tran, err
 }
 
+func NewTransactionFromChain(
+	master string,
+	toUser string,
+	lastHash string,
+	value uint64) (*Transaction, error) {
+	VarConf := viper.GetString("RAND_BYTES")
+	VarConfConversion, err := strconv.Atoi(VarConf)
+	randBytes, err := GenerateRandomBytes(uint64(VarConfConversion))
+	if err != nil {
+		return nil, err
+	}
+	tran := &Transaction{
+		RandBytes: randBytes,
+		PrevBlock: lastHash,
+		Sender:    master,
+		Receiver:  toUser,
+		Value:     value,
+	}
+	tran.CurrHash = tran.Hash()
+	tran.Signature = tran.Sign(master + toUser)
+	return tran, err
+}
+
 func Sign(privateKey string, data string) string {
 	//tempSign := bytes.Join([][]byte{
 	//	[]byte(privateKey),
@@ -120,15 +142,6 @@ func Sign(privateKey string, data string) string {
 	tempSign := privateKey + data
 	signature := HashSum(tempSign)
 	return signature
-}
-
-func GenerateRandomBytes(max uint64) ([]byte, error) {
-	var slice = make([]byte, max)
-	_, err := rand.Read(slice)
-	if err != nil {
-		return nil, err
-	}
-	return slice, nil
 }
 
 func AddBlock(block *Block) error {
@@ -147,6 +160,7 @@ func AddBlock(block *Block) error {
 	return nil
 }
 
+// NewUser same with AddPass (BLCHxVote)
 func NewUser(passport string) error {
 	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
 	if err != nil {
@@ -163,12 +177,13 @@ func NewUser(passport string) error {
 	return nil
 }
 
+// NewPublicKeyItem Same with NewUser(BLCHxVote)
 func NewPublicKeyItem(affiliation string) (*User, error) {
-	tempKey, err := GenerateKey()
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
-	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	tempKey, err := GenerateKey()
 	if err != nil {
 		return nil, err
 	}
@@ -179,10 +194,30 @@ func NewPublicKeyItem(affiliation string) (*User, error) {
 		false,
 		affiliation)
 	return &User{
-		uuid:        tempUUID,
+		Uuid:        tempUUID,
 		PublicKey:   tempKey,
 		IsUsed:      false,
 		Affiliation: affiliation,
+	}, nil
+}
+
+func NewCandidate(description string, affiliation string) (*Candidate, error) {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	tempUUID := uuid.New()
+	tempKey, err := GenerateKey()
+	db.Exec("INSERT INTO ElectionSubjects (Id, PublicKey,Description, VotingAffiliation) VALUES ($1, $2)",
+		tempUUID,
+		tempKey,
+		description,
+		affiliation)
+	return &Candidate{
+		Uuid:              tempUUID,
+		PublicKey:         tempKey,
+		Description:       description,
+		VotingAffiliation: affiliation,
 	}, nil
 }
 
@@ -225,7 +260,6 @@ func Size(master string) (uint64, error) {
 			index++
 		}
 	}
-	//db.Raw("SELECT Id FROM Chain ORDER BY Id DESC").Scan(&index)
 	return index, nil
 }
 
@@ -272,25 +306,17 @@ func GeneratePrivate(passport string, salt string, PublicKey string) (string, er
 	if err != nil {
 		return "", err
 	}
-
 	var template string
 	db.Raw("SELECT PrivateKeyTemplate FROM RelationPatterns WHERE PersonIndentifier = $1",
 		SetHash(passport)).Scan(&template)
 	if template == "" {
 		return "", errors.New("identifier does not exist")
 	}
-	/*	var pub string
-		db.Raw("SELECT PublicK FROM PublicDB WHERE PublicK = $1", PublicKey).Scan(&pub)
-		if pub == "" {
-			return "Empty1", nil
-		}*/
 	errExec := db.Exec("UPDATE PublicKeySets SET isUsed = 1 WHERE PublicKey = $1", PublicKey)
 	if errExec.Error != nil {
 		return "", errExec.Error
 	}
-	//hash := sha256.New()
 	hash := sha256.Sum256([]byte(template + salt))
-
 	err = ImportToDB(string(hash[:]), PublicKey)
 	if err != nil {
 		return "", err
@@ -332,6 +358,5 @@ func LastHash(master string) (string, error) {
 			break
 		}
 	}
-	fmt.Println(hash)
 	return hash, nil
 }

@@ -12,8 +12,11 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"io"
 	"log"
+	"math"
+	"math/big"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -119,42 +122,34 @@ func HashSum(data string) string {
 	return fmt.Sprintf("%x", hash[:])
 }
 
-//func ProofOfWork(blockHash []byte, difficulty uint8, ch chan bool) uint64 {
-//	DEBUG := true
-//	var (
-//		Target  = big.NewInt(1)
-//		intHash = big.NewInt(1)
-//		nonce   = uint64(rand.Intn(math.MaxUint32))
-//		hash    []byte
-//	)
-//	Target.Lsh(Target, 256-uint(difficulty))
-//	for nonce < math.MaxUint64 {
-//		select {
-//		case <-ch:
-//			if DEBUG {
-//				fmt.Println()
-//			}
-//			return nonce
-//		default:
-//			hash = []byte(HashSum(bytes.Join(
-//				[][]byte{
-//					blockHash,
-//					ToBytes(nonce),
-//				},
-//				[]byte{},
-//			)))
-//			if DEBUG {
-//				fmt.Printf("\rMining: %s", Base64Encode(hash))
-//			}
-//			intHash.SetBytes(hash)
-//			if intHash.Cmp(Target) == -1 {
-//				if DEBUG {
-//					fmt.Println()
-//				}
-//				return nonce
-//			}
-//			nonce++
-//		}
-//	}
-//	return nonce
-//}
+func ProofOfWork(blockHash string, difficulty uint8, ch chan bool) uint64 {
+	var Target = big.NewInt(1)
+	var intHash = big.NewInt(1)
+	var nonce = uint64(rand.Intn(math.MaxUint32))
+	var hash string
+
+	Target.Lsh(Target, 256-uint(difficulty))
+	for nonce < math.MaxUint64 {
+		select {
+		case <-ch:
+			if true {
+				fmt.Println()
+			}
+			return nonce
+		default:
+			hash = HashSum(strconv.FormatUint(nonce, 10) + blockHash)
+			if true {
+				fmt.Printf("\rMining: %x", hash[:])
+			}
+			intHash.SetBytes([]byte(hash))
+			if intHash.Cmp(Target) == -1 {
+				if true {
+					fmt.Println()
+				}
+				return nonce
+			}
+			nonce++
+		}
+	}
+	return nonce
+}

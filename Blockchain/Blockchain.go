@@ -202,6 +202,37 @@ func NewUser(passport string) error {
 	return nil
 }
 
+func LoadToEnterAlreadyUser(privateKey string) (*User, error) {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	var publicKey string
+	var LoadedUser *User
+	db.Raw("SELECT PublicKey FROM KeyLinks WHERE PrivateKey = $1",
+		privateKey).Scan(&publicKey)
+	err_where := db.Where("PublicKey = ?", publicKey).First(&LoadedUser)
+	if err_where.Error != nil {
+		return nil, err_where.Error
+	}
+	return LoadedUser, nil
+}
+
+// SelectByIdentifier Same with Purse (BLCHxVote) and RegisterGeneratePrivate
+/*func SelectByIdentifier(identifier string) (string, error) {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return "", err
+	}
+	var privateKeyTemplate string
+	db.Raw("SELECT PrivateKeyTemplate FROM RelationPatterns WHERE PersonIdentifier = $1",
+		SetHash(identifier)).Scan(&privateKeyTemplate)
+	if privateKeyTemplate == "" {
+		return "", errors.New("identifier does not exist")
+	}
+	return privateKeyTemplate, nil
+}*/
+
 // NewPublicKeyItem Same with NewUser(BLCHxVote)
 func NewPublicKeyItem(affiliation string) (*User, error) {
 	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
@@ -301,7 +332,7 @@ func (block *Block) Accept(user *User, master string, ch chan bool) error {
 	return nil
 }
 
-func GeneratePrivate(passport string, salt string, PublicKey string) (string, error) {
+func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (string, error) {
 	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
 	if err != nil {
 		return "", err

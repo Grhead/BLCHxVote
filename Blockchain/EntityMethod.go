@@ -62,8 +62,8 @@ func (block *Block) Sign(privateKey string) string {
 }
 
 func (block *Block) Proof(ch chan bool) uint64 {
-	//return ProofOfWork([]byte(block.CurrHash), uint8(block.Difficulty), ch)
-	return 0
+	return ProofOfWork(block.CurrHash, uint8(block.Difficulty), ch)
+	//return 0
 
 }
 

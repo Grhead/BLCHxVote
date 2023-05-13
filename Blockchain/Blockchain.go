@@ -133,6 +133,31 @@ func NewTransactionFromChain(
 	return tran, err
 }
 
+func LastHash(master string) (string, error) {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return "", err
+	}
+	var hash string
+	var chain []*Chain
+	var blocks []*Block
+	db.Find(&chain)
+	for _, v := range chain {
+		blocks = append(blocks, DeserializeBlock(v.Block))
+	}
+	sort.Slice(blocks, func(i, j int) bool {
+		return blocks[i].TimeStamp.AsTime().After(blocks[j].TimeStamp.AsTime())
+	})
+	for _, v := range blocks {
+		fmt.Println(v)
+		if v.ChainMaster == master {
+			hash = v.CurrHash
+			break
+		}
+	}
+	return hash, nil
+}
+
 func Sign(privateKey string, data string) string {
 	//tempSign := bytes.Join([][]byte{
 	//	[]byte(privateKey),
@@ -170,7 +195,7 @@ func NewUser(passport string) error {
 	if err != nil {
 		return err
 	}
-	db.Exec("INSERT INTO RelationPatterns (Id, PersonIndentifier, PrivateKeyTemplate) VALUES ($1, $2, $3)",
+	db.Exec("INSERT INTO RelationPatterns (Id, PersonIdentifier, PrivateKeyTemplate) VALUES ($1, $2, $3)",
 		uuid.NewString(),
 		SetHash(passport),
 		privateGenKey)
@@ -208,7 +233,7 @@ func NewCandidate(description string, affiliation string) (*Candidate, error) {
 	}
 	tempUUID := uuid.New()
 	tempKey, err := GenerateKey()
-	db.Exec("INSERT INTO ElectionSubjects (Id, PublicKey,Description, VotingAffiliation) VALUES ($1, $2)",
+	db.Exec("INSERT INTO ElectionSubjects (Id, PublicKey,Description, VotingAffiliation) VALUES ($1, $2, $3, $4)",
 		tempUUID,
 		tempKey,
 		description,
@@ -219,31 +244,6 @@ func NewCandidate(description string, affiliation string) (*Candidate, error) {
 		Description:       description,
 		VotingAffiliation: affiliation,
 	}, nil
-}
-
-// GenerateKey TODO Rewrite
-func GenerateKey() (string, error) {
-	TimeUrl := viper.GetString("TIME_URL")
-	resp, err := http.Get(TimeUrl)
-	if err != nil {
-		defer func(Body io.ReadCloser) {
-			err := Body.Close()
-			if err != nil {
-				log.Fatal(err)
-			}
-		}(resp.Body)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	var p fastjson.Parser
-	v, err := p.Parse(string(body))
-	if err != nil {
-		return "", err
-	}
-	hash := sha256.Sum256(v.GetStringBytes("dateTime"))
-	return string(hash[:]), nil
 }
 
 func Size(master string) (uint64, error) {
@@ -307,7 +307,7 @@ func GeneratePrivate(passport string, salt string, PublicKey string) (string, er
 		return "", err
 	}
 	var template string
-	db.Raw("SELECT PrivateKeyTemplate FROM RelationPatterns WHERE PersonIndentifier = $1",
+	db.Raw("SELECT PrivateKeyTemplate FROM RelationPatterns WHERE PersonIdentifier = $1",
 		SetHash(passport)).Scan(&template)
 	if template == "" {
 		return "", errors.New("identifier does not exist")
@@ -336,27 +336,27 @@ func ImportToDB(PrivateKey string, PublicKey string) error {
 	return nil
 }
 
-func LastHash(master string) (string, error) {
-	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+// GenerateKey TODO Rewrite
+func GenerateKey() (string, error) {
+	TimeUrl := viper.GetString("TIME_URL")
+	resp, err := http.Get(TimeUrl)
+	if err != nil {
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}(resp.Body)
+	}
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
-	var hash string
-	var chain []*Chain
-	var blocks []*Block
-	db.Find(&chain)
-	for _, v := range chain {
-		blocks = append(blocks, DeserializeBlock(v.Block))
+	var p fastjson.Parser
+	v, err := p.Parse(string(body))
+	if err != nil {
+		return "", err
 	}
-	sort.Slice(blocks, func(i, j int) bool {
-		return blocks[i].TimeStamp.AsTime().After(blocks[j].TimeStamp.AsTime())
-	})
-	for _, v := range blocks {
-		fmt.Println(v)
-		if v.ChainMaster == master {
-			hash = v.CurrHash
-			break
-		}
-	}
-	return hash, nil
+	hash := sha256.Sum256(v.GetStringBytes("dateTime"))
+	return string(hash[:]), nil
 }

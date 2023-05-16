@@ -1,8 +1,8 @@
 -- +goose Up
 CREATE TABLE IF NOT EXISTS KeyLinks (
-                                        Id CHAR(36) PRIMARY KEY,
-                                        PublicKey CHAR(64) NOT NULL,
-                                        PrivateKey CHAR(64) NOT NULL
+                                                Id CHAR(36) PRIMARY KEY,
+                                                PublicKey CHAR(64) NOT NULL,
+                                                PrivateKey CHAR(64) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS RelationPatterns (
@@ -12,10 +12,10 @@ CREATE TABLE IF NOT EXISTS RelationPatterns (
 );
 
 CREATE TABLE IF NOT EXISTS PublicKeySets (
-                                             Id CHAR(36) PRIMARY KEY,
-                                             PublicKey CHAR(64) NOT NULL,
-                                             IsUsed BOOLEAN NOT NULL,
-                                             VotingAffiliation CHAR(64) NOT NULL
+                                                Id CHAR(36) PRIMARY KEY,
+                                                PublicKey CHAR(64) NOT NULL,
+                                                IsUsed BOOLEAN NOT NULL,
+                                                VotingAffiliation CHAR(64) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS ElectionSubjects (

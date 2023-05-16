@@ -15,27 +15,27 @@ const (
 )
 
 type Package struct {
-	Option int
+	Option string
 	Data   string
 }
 
 type Listener net.Listener
 type Conn net.Conn
 
-func Send(address string, pack *Package) *Package {
+func Send(address string, pack *Package) (*Package, error) {
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	serializeData, err := SerializePackage(pack)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	_, err = conn.Write([]byte(serializeData + ENDBYTES))
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	var res = new(Package)
+	res := new(Package)
 
 	ch := make(chan bool)
 	go func() {
@@ -46,7 +46,7 @@ func Send(address string, pack *Package) *Package {
 	case <-ch:
 	case <-time.After(WAITTIME * time.Second):
 	}
-	return res
+	return res, nil
 }
 
 func ReadPackage(conn net.Conn) *Package {

@@ -50,7 +50,10 @@ func NewChain(VotesCount uint64, ChainMaster string) (*Block, error) {
 	var blocks []*Chain
 	db.Find(&blocks)
 	for _, v := range blocks {
-		desBlock := DeserializeBlock(v.Block)
+		desBlock, err := DeserializeBlock(v.Block)
+		if err != nil {
+			return nil, err
+		}
 		if desBlock.ChainMaster == ChainMaster {
 			return nil, errors.New("affiliation already exist")
 		}
@@ -70,7 +73,7 @@ func NewChain(VotesCount uint64, ChainMaster string) (*Block, error) {
 	return genesis, nil
 }
 
-func NewBlock(prevHash string, miner string, chainMaster string) (*Block, error) {
+func NewBlock(prevHash string, chainMaster string) (*Block, error) {
 	VarConf := viper.GetString("DIFFICULTY")
 	difficulty, err := strconv.Atoi(VarConf)
 	curTime, err := GetTime()
@@ -78,10 +81,10 @@ func NewBlock(prevHash string, miner string, chainMaster string) (*Block, error)
 		return nil, err
 	}
 	return &Block{
-		Difficulty:  uint64(difficulty),
-		PrevHash:    prevHash,
-		BalanceMap:  make(map[string]uint64),
-		Miner:       miner,
+		Difficulty: uint64(difficulty),
+		PrevHash:   prevHash,
+		BalanceMap: make(map[string]uint64),
+		//Miner:       miner,
 		ChainMaster: chainMaster,
 		TimeStamp:   curTime,
 	}, nil
@@ -143,7 +146,11 @@ func LastHash(master string) (string, error) {
 	var blocks []*Block
 	db.Find(&chain)
 	for _, v := range chain {
-		blocks = append(blocks, DeserializeBlock(v.Block))
+		deserializedBlock, err := DeserializeBlock(v.Block)
+		if err != nil {
+			return "", err
+		}
+		blocks = append(blocks, deserializedBlock)
 	}
 	sort.Slice(blocks, func(i, j int) bool {
 		return blocks[i].TimeStamp.AsTime().After(blocks[j].TimeStamp.AsTime())
@@ -158,26 +165,19 @@ func LastHash(master string) (string, error) {
 	return hash, nil
 }
 
-func Sign(privateKey string, data string) string {
-	//tempSign := bytes.Join([][]byte{
-	//	[]byte(privateKey),
-	//	[]byte(data),
-	//},
-	//	[]byte{})
-	tempSign := privateKey + data
-	signature := HashSum(tempSign)
-	return signature
-}
-
 func AddBlock(block *Block) error {
 	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return err
+	}
+	serializedBlock, err := SerializeBlock(block)
 	if err != nil {
 		return err
 	}
 	errInsert := db.Exec("INSERT INTO Chains (Id, Hash, Block) VALUES ($1, $2, $3)",
 		uuid.NewString(),
 		block.CurrHash,
-		SerializeBlock(block),
+		serializedBlock,
 	)
 	if errInsert.Error != nil {
 		return errInsert.Error
@@ -286,7 +286,10 @@ func Size(master string) (uint64, error) {
 	var blocks []*Chain
 	db.Find(&blocks)
 	for _, v := range blocks {
-		desBlock := DeserializeBlock(v.Block)
+		desBlock, err := DeserializeBlock(v.Block)
+		if err != nil {
+			return 0, err
+		}
 		if desBlock.ChainMaster == master {
 			index++
 		}
@@ -304,7 +307,10 @@ func Balance(address string, master string) (uint64, error) {
 	//db.Where("Id = ?", size).Find(&blocks)
 	db.Find(&blocks)
 	for _, v := range blocks {
-		desBlock := DeserializeBlock(v.Block)
+		desBlock, err := DeserializeBlock(v.Block)
+		if err != nil {
+			return 0, err
+		}
 		if desBlock.ChainMaster == master {
 			if value, ok := desBlock.BalanceMap[address]; ok {
 				balance = value
@@ -313,23 +319,6 @@ func Balance(address string, master string) (uint64, error) {
 		}
 	}
 	return balance, nil
-}
-
-func (block *Block) Accept(user *User, master string, ch chan bool) error {
-	curTime, err := GetTime()
-	if err != nil {
-		return err
-	}
-	block.TimeStamp = curTime
-	block.CurrHash = block.Hash()
-	privateKey, err := user.Private()
-	if err != nil {
-		return err
-	}
-	block.Signatures = block.Sign(privateKey)
-	block.Nonce = block.Proof(ch)
-	block.ChainMaster = master
-	return nil
 }
 
 func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (string, error) {
@@ -353,18 +342,6 @@ func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (st
 		return "", err
 	}
 	return string(hash[:]), nil
-}
-
-func ImportToDB(PrivateKey string, PublicKey string) error {
-	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
-	if err != nil {
-		return err
-	}
-	db.Exec("INSERT INTO KeyLinks (Id, PublicKey, PrivateKey) VALUES ($1, $2, $3)",
-		uuid.NewString(),
-		PublicKey,
-		PrivateKey)
-	return nil
 }
 
 // GenerateKey TODO Rewrite

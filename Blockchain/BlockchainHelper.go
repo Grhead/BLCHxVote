@@ -7,9 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"github.com/valyala/fastjson"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 	"io"
 	"log"
 	"math"
@@ -21,41 +24,41 @@ import (
 )
 
 // SerializeBlock TODO Rewrite
-func SerializeBlock(block *Block) string {
+func SerializeBlock(block *Block) (string, error) {
 	jsonData, err := json.MarshalIndent(*block, "", "\t")
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return string(jsonData)
+	return string(jsonData), nil
 }
 
 // DeserializeBlock TODO Rewrite
-func DeserializeBlock(data string) *Block {
+func DeserializeBlock(data string) (*Block, error) {
 	var block Block
 	err := json.Unmarshal([]byte(data), &block)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return &block
+	return &block, nil
 }
 
 // SerializeTX TODO Rewrite
-func SerializeTX(tx *Transaction) string {
+func SerializeTX(tx *Transaction) (string, error) {
 	jsonData, err := json.MarshalIndent(*tx, "", "\t")
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return string(jsonData)
+	return string(jsonData), nil
 }
 
 // DeserializeTX TODO Rewrite
-func DeserializeTX(data string) *Transaction {
+func DeserializeTX(data string) (*Transaction, error) {
 	var tx Transaction
 	err := json.Unmarshal([]byte(data), &tx)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return &tx
+	return &tx, nil
 }
 
 func GetTime() (*timestamp.Timestamp, error) {
@@ -98,6 +101,46 @@ func GetTime() (*timestamp.Timestamp, error) {
 //	hash := sha256.Sum256([]byte(data))
 //	return string(hash[:])
 //}
+
+func ImportToDB(PrivateKey string, PublicKey string) error {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return err
+	}
+	db.Exec("INSERT INTO KeyLinks (Id, PublicKey, PrivateKey) VALUES ($1, $2, $3)",
+		uuid.NewString(),
+		PublicKey,
+		PrivateKey)
+	return nil
+}
+
+func Sign(privateKey string, data string) string {
+	//tempSign := bytes.Join([][]byte{
+	//	[]byte(privateKey),
+	//	[]byte(data),
+	//},
+	//	[]byte{})
+	tempSign := privateKey + data
+	signature := HashSum(tempSign)
+	return signature
+}
+
+func (block *Block) Accept(user *User, master string, ch chan bool) error {
+	curTime, err := GetTime()
+	if err != nil {
+		return err
+	}
+	block.TimeStamp = curTime
+	block.CurrHash = block.Hash()
+	privateKey, err := user.Private()
+	if err != nil {
+		return err
+	}
+	block.Signatures = block.Sign(privateKey)
+	block.Nonce = block.Proof(ch)
+	block.ChainMaster = master
+	return nil
+}
 
 func ToBytes(data uint64) []byte {
 	var buf = new(bytes.Buffer)

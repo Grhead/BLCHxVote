@@ -33,7 +33,7 @@ var Block *Blockchain.Block
 // TODO RegisterGeneratePrivate
 // TODO GenerateKey
 
-func CompareChains(address string, master string, chainSize int) error {
+func CompareChains(address string, chainSize int) error {
 	dbNode, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
 	dbCompare, err := gorm.Open(sqlite.Open("Database/CompareDb.db"), &gorm.Config{})
 	if err != nil {
@@ -83,6 +83,10 @@ func CompareChains(address string, master string, chainSize int) error {
 	Mutex.Lock()
 	var blocks []*Blockchain.Chain
 	dbCompare.Find(&blocks)
+	errDelete := dbNode.Exec("DELETE FROM Chains")
+	if errDelete.Error != nil {
+		return errDelete.Error
+	}
 	for _, v := range blocks {
 		errInsert := dbNode.Exec("INSERT INTO Chains (Id, Hash, Block) VALUES ($1, $2, $3)",
 			uuid.NewString(),
@@ -93,7 +97,7 @@ func CompareChains(address string, master string, chainSize int) error {
 			return errInsert.Error
 		}
 	}
-	errDelete := dbCompare.Exec("DELETE FROM Chains")
+	errDelete = dbCompare.Exec("DELETE FROM Chains")
 	if errDelete.Error != nil {
 		return errDelete.Error
 	}

@@ -17,8 +17,8 @@ var IsMining bool
 var BreakMining = make(chan bool)
 var Block *Blockchain.Block
 
-// TODO CreateNew			// TODO NewChain
-// TODO CompareChains		// TODO NewBlock
+// TODO --CreateNew			// TODO NewChain
+// TODO --CompareChains		// TODO NewBlock
 // TODO PushBlockToNet		// TODO NewTransaction
 // TODO AddBlock			// TODO NewTransactionFromChain
 // TODO AddTransaction		// TODO LastHash
@@ -32,6 +32,28 @@ var Block *Blockchain.Block
 
 // TODO RegisterGeneratePrivate
 // TODO GenerateKey
+
+func ChainNew(chainMaster string, count uint64) error {
+	_, err := Blockchain.NewChain(count, chainMaster)
+	if err != nil {
+		return nil
+	}
+	return err
+}
+
+func PushBlockToNet(block *Blockchain.Block) error {
+	sblock, err := Blockchain.SerializeBlock(block)
+	if err != nil {
+		return nil
+	}
+	var msg = Serve + Separator + fmt.Sprintf("%d", Chain.Size()) + Separator + sblock
+	for _, addr := range Addresses {
+		go nt.Send(addr, &nt.Package{
+			Option: ADD_BLOCK,
+			Data:   msg,
+		})
+	}
+}
 
 func CompareChains(address string, chainSize int) error {
 	dbNode, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})

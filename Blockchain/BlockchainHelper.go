@@ -2,6 +2,7 @@ package Blockchain
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/json"
@@ -17,7 +18,7 @@ import (
 	"log"
 	"math"
 	"math/big"
-	"math/rand"
+	mr "math/rand"
 	"net/http"
 	"strconv"
 	"time"
@@ -168,7 +169,7 @@ func HashSum(data string) string {
 func ProofOfWork(blockHash string, difficulty uint8, ch chan bool) uint64 {
 	var Target = big.NewInt(1)
 	var intHash = big.NewInt(1)
-	var nonce = uint64(rand.Intn(math.MaxUint32))
+	var nonce = uint64(mr.Intn(math.MaxUint32))
 	var hash string
 
 	Target.Lsh(Target, 256-uint(difficulty))

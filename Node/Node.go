@@ -6,8 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/valyala/fastjson"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"log"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -16,10 +20,12 @@ var Mutex sync.Mutex
 var IsMining bool
 var BreakMining = make(chan bool)
 var Block *Blockchain.Block
+var ThisServe string
+var OtherAddresses []*fastjson.Value
 
 // TODO --CreateNew			// TODO NewChain
 // TODO --CompareChains		// TODO NewBlock
-// TODO PushBlockToNet		// TODO NewTransaction
+// TODO --PushBlockToNet		// TODO NewTransaction
 // TODO AddBlock			// TODO NewTransactionFromChain
 // TODO AddTransaction		// TODO LastHash
 // TODO GetBlock			// TODO AddBlock
@@ -33,6 +39,21 @@ var Block *Blockchain.Block
 // TODO RegisterGeneratePrivate
 // TODO GenerateKey
 
+func init() {
+	ThisServe = ":7575"
+	file, err := os.ReadFile("LowConf/addr.json")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	var p fastjson.Parser
+	v, err := p.Parse(string(file))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	OtherAddresses = v.GetArray("addresses")
+	fmt.Println(OtherAddresses)
+}
+
 func ChainNew(chainMaster string, count uint64) error {
 	_, err := Blockchain.NewChain(count, chainMaster)
 	if err != nil {
@@ -44,15 +65,47 @@ func ChainNew(chainMaster string, count uint64) error {
 func PushBlockToNet(block *Blockchain.Block) error {
 	sblock, err := Blockchain.SerializeBlock(block)
 	if err != nil {
-		return nil
+		return err
 	}
-	var msg = Serve + Separator + fmt.Sprintf("%d", Chain.Size()) + Separator + sblock
-	for _, addr := range Addresses {
-		go nt.Send(addr, &nt.Package{
-			Option: ADD_BLOCK,
-			Data:   msg,
-		})
+	chainSizeForMsg, err := Blockchain.Size(block.ChainMaster)
+	if err != nil {
+		return err
 	}
+	var msg = ThisServe + Separator + fmt.Sprintf("%d", chainSizeForMsg) + Separator + sblock
+	for _, addr := range OtherAddresses {
+		goAddr := addr.String()
+		go func() {
+			_, err := Network.Send(goAddr, &Network.Package{
+				Option: AddBlock,
+				Data:   msg,
+			})
+			if err != nil {
+				return
+			}
+		}()
+	}
+	return nil
+}
+
+func AddBlock(pack *Network.Package) (string, error) {
+	fmt.Println("AddBlock-Completed")
+	splited := strings.Split(pack.Data, Separator)
+	block, err := Blockchain.DeserializeBlock(splited[2])
+	if err != nil {
+		return "", err
+	}
+	currSize := Chain.Size()
+	num, _ := strconv.Atoi(splited[1])
+	if currSize < uint64(num) {
+		err := CompareChains(splited[0], uint64(num))
+		if err != nil {
+			return "", err
+		}
+		return "ok ", nil
+	}
+	Chain.AddBlock(block)
+	Block = bc.NewBlock(Chain.LastHash())
+	return "ok"
 }
 
 func CompareChains(address string, chainSize int) error {

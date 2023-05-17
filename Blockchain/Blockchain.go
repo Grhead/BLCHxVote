@@ -211,9 +211,9 @@ func LoadToEnterAlreadyUser(privateKey string) (*User, error) {
 	var LoadedUser *User
 	db.Raw("SELECT PublicKey FROM KeyLinks WHERE PrivateKey = $1",
 		privateKey).Scan(&publicKey)
-	err_where := db.Where("PublicKey = ?", publicKey).First(&LoadedUser)
-	if err_where.Error != nil {
-		return nil, err_where.Error
+	errWhere := db.Where("PublicKey = ?", publicKey).First(&LoadedUser)
+	if errWhere.Error != nil {
+		return nil, errWhere.Error
 	}
 	return LoadedUser, nil
 }

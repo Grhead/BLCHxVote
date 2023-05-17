@@ -218,6 +218,19 @@ func LoadToEnterAlreadyUser(privateKey string) (*User, error) {
 	return LoadedUser, nil
 }
 
+func FindByEnterUserWithLogin(publicKey string) (*User, error) {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	var LoadedUser *User
+	errWhere := db.Where("PublicKey = ?", publicKey).First(&LoadedUser)
+	if errWhere.Error != nil {
+		return nil, errWhere.Error
+	}
+	return LoadedUser, nil
+}
+
 // SelectByIdentifier Same with Purse (BLCHxVote) and RegisterGeneratePrivate
 /*func SelectByIdentifier(identifier string) (string, error) {
 	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})

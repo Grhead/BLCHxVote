@@ -2,5 +2,5 @@ package Node
 
 const Separator = "_sep_"
 
-const GetBlock = "get-block"
-const AddBlock = "add-block"
+const GetBlock_const = "get-block"
+const AddBlock_const = "add-block"

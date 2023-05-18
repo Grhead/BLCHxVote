@@ -33,8 +33,8 @@ var OtherAddresses []*fastjson.Value
 // TODO GetBalance			// TODO LoadToEnterAlreadyUser
 // TODO GetChainSize		// TODO NewPublicKeyItem
 // TODO SelectBlock			// TODO NewCandidate
-// TODO HashBlock			// TODO Size
-// TODO CopyFile			// TODO Balance
+// TODO __HashBlock			// TODO Size
+// TODO __CopyFile			// TODO Balance
 
 // TODO RegisterGeneratePrivate
 // TODO GenerateKey
@@ -261,4 +261,22 @@ func CompareChains(address string, chainSize int) error {
 		IsMining = false
 	}
 	return nil
+}
+
+func GetBlock(pack *Network.Package) (string, error) {
+	dbNode, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	dataId, err := strconv.Atoi(pack.Data)
+	if err != nil {
+		return "", err
+	}
+	var block Blockchain.Block
+	errWhere := dbNode.Where("Id = ?", dataId).First(&block)
+	if errWhere.Error != nil {
+		return "", errWhere.Error
+	}
+	size := Chain.Size()
+	if uint64(num) < size {
+		return SelectBlock(Chain, num)
+	}
+	return "", errors.New("incorrect request")
 }

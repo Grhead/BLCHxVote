@@ -2,7 +2,6 @@ package Blockchain
 
 import (
 	"errors"
-	"fmt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"sort"
@@ -63,9 +62,7 @@ func (block *Block) Sign(privateKey string) string {
 }
 
 func (block *Block) Proof(ch chan bool) uint64 {
-	qwe := ProofOfWork(block.CurrHash, uint8(block.Difficulty), ch)
-	fmt.Println("==========> ", qwe)
-	return qwe
+	return ProofOfWork(block.CurrHash, uint8(block.Difficulty), ch)
 }
 
 func (block *Block) Accept(user *User, master string, ch chan bool) error {

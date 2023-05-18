@@ -153,11 +153,11 @@ func ProofOfWork(blockHash string, difficulty uint8, ch chan bool) uint64 {
 	var Target = big.NewInt(1)
 	var intHash = big.NewInt(1)
 	var nonce = uint64(mr.Intn(math.MaxUint32))
-	var hash []byte
-
+	var hash string
+	fmt.Println(Target)
 	Target.Lsh(Target, 256-uint(difficulty))
 	fmt.Println(Target)
-	Target.SetBytes([]byte(HashSum(Target.String())))
+	Target.SetBytes([]byte(Target.String()))
 	fmt.Println(Target)
 	for nonce < math.MaxUint64 {
 		select {
@@ -167,18 +167,11 @@ func ProofOfWork(blockHash string, difficulty uint8, ch chan bool) uint64 {
 			}
 			return nonce
 		default:
-			hash = []byte(HashSum(strconv.FormatUint(nonce, 10) + blockHash))
-			/*hash = []byte(HashSum(string(bytes.Join(
-				[][]byte{
-					[]byte(blockHash),
-					ToBytes(nonce),
-				},
-				[]byte{},
-			))))*/
+			hash = HashSum(strconv.FormatUint(nonce, 10) + blockHash)
 			if true {
 				fmt.Printf("\rMining: %x", hash[:])
 			}
-			intHash.SetBytes(hash)
+			intHash.SetBytes([]byte(hash))
 			if intHash.Cmp(Target) == -1 {
 				if true {
 					fmt.Println()

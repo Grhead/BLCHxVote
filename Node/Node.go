@@ -53,7 +53,6 @@ func init() {
 		log.Fatalln(err)
 	}
 	OtherAddresses = v.GetArray("addresses")
-	fmt.Println(OtherAddresses)
 }
 
 func NewChain(chainMaster string, count uint64) error {

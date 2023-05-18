@@ -154,9 +154,11 @@ func ProofOfWork(blockHash string, difficulty uint8, ch chan bool) uint64 {
 	var Target = big.NewInt(1)
 	var intHash = big.NewInt(1)
 	var nonce = uint64(RandomGenerator.Uint32())
+	var hashq [32]byte
 	var hash string
 	Target.Lsh(Target, 256-uint(difficulty))
-	Target.SetBytes([]byte(HashSum(Target.String())))
+	//Target.SetBytes([]byte(HashSum(Target.String())))
+	fmt.Println("\rTARGET: ", Target)
 	for nonce < math.MaxUint64 {
 		select {
 		case <-ch:
@@ -165,11 +167,12 @@ func ProofOfWork(blockHash string, difficulty uint8, ch chan bool) uint64 {
 			}
 			return nonce
 		default:
+			hashq = sha256.Sum256([]byte(strconv.FormatUint(nonce, 10) + blockHash))
 			hash = HashSum(strconv.FormatUint(nonce, 10) + blockHash)
 			if true {
-				fmt.Printf("\rMining: %x", hash[:])
+				fmt.Printf("\rMining: %s  Mining: %x", hash[:], hashq[:])
 			}
-			intHash.SetBytes([]byte(hash))
+			intHash.SetBytes([]byte(hash[:]))
 			if intHash.Cmp(Target) == -1 {
 				if true {
 					fmt.Println()

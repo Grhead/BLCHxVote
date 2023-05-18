@@ -211,9 +211,22 @@ func LoadToEnterAlreadyUser(privateKey string) (*User, error) {
 	var LoadedUser *User
 	db.Raw("SELECT PublicKey FROM KeyLinks WHERE PrivateKey = $1",
 		privateKey).Scan(&publicKey)
-	err_where := db.Where("PublicKey = ?", publicKey).First(&LoadedUser)
-	if err_where.Error != nil {
-		return nil, err_where.Error
+	errWhere := db.Where("PublicKey = ?", publicKey).First(&LoadedUser)
+	if errWhere.Error != nil {
+		return nil, errWhere.Error
+	}
+	return LoadedUser, nil
+}
+
+func FindByEnterUserWithLogin(publicKey string) (*User, error) {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	var LoadedUser *User
+	errWhere := db.Where("PublicKey = ?", publicKey).First(&LoadedUser)
+	if errWhere.Error != nil {
+		return nil, errWhere.Error
 	}
 	return LoadedUser, nil
 }
@@ -367,4 +380,38 @@ func GenerateKey() (string, error) {
 	}
 	hash := v.GetStringBytes("dateTime")
 	return HashSum(string(hash)), nil
+}
+
+func GetFullChain(master string) ([]*Block, error) {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	var blocks []*Chain
+	var resultMasterBlocks []*Block
+	db.Find(&blocks)
+	for _, v := range blocks {
+		desBlock, err := DeserializeBlock(v.Block)
+		if err != nil {
+			return nil, err
+		}
+		if desBlock.ChainMaster == master {
+			resultMasterBlocks = append(resultMasterBlocks, desBlock)
+		}
+	}
+	return resultMasterBlocks, nil
+}
+
+func GetBlock(uuidR uuid.UUID) (uuid.UUID, *Block, error) {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return uuid.Nil, nil, err
+	}
+	var chainBlock *Chain
+	db.Where("Id = ?", uuidR).Find(&chainBlock)
+	desBlock, err := DeserializeBlock(chainBlock.Block)
+	if err != nil {
+		return uuid.Nil, nil, nil
+	}
+	return uuidR, desBlock, nil
 }

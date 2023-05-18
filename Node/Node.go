@@ -25,10 +25,10 @@ var OtherAddresses []*fastjson.Value
 
 // TODO --CreateNew			// TODO NewChain
 // TODO --CompareChains		// TODO NewBlock
-// TODO --PushBlockToNet		// TODO NewTransaction
+// TODO --PushBlockToNet	// TODO NewTransaction
 // TODO --AddBlock			// TODO NewTransactionFromChain
-// TODO --AddTransaction		// TODO LastHash
-// TODO --GetBlock_const			// TODO AddBlock
+// TODO --AddTransaction	// TODO LastHash
+// TODO --GetBlock_const	// TODO AddBlock
 // TODO GetLastHash			// TODO NewDormantUser
 // TODO GetBalance			// TODO LoadToEnterAlreadyUser
 // TODO GetChainSize		// TODO NewPublicKeyItem

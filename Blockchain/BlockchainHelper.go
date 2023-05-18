@@ -126,23 +126,6 @@ func Sign(privateKey string, data string) string {
 	return signature
 }
 
-func (block *Block) Accept(user *User, master string, ch chan bool) error {
-	curTime, err := GetTime()
-	if err != nil {
-		return err
-	}
-	block.TimeStamp = curTime
-	block.CurrHash = block.Hash()
-	privateKey, err := user.Private()
-	if err != nil {
-		return err
-	}
-	block.Signatures = block.Sign(privateKey)
-	block.Nonce = block.Proof(ch)
-	block.ChainMaster = master
-	return nil
-}
-
 func ToBytes(data uint64) []byte {
 	var buf = new(bytes.Buffer)
 	err := binary.Write(buf, binary.BigEndian, data)
@@ -170,9 +153,12 @@ func ProofOfWork(blockHash string, difficulty uint8, ch chan bool) uint64 {
 	var Target = big.NewInt(1)
 	var intHash = big.NewInt(1)
 	var nonce = uint64(mr.Intn(math.MaxUint32))
-	var hash string
+	var hash []byte
 
 	Target.Lsh(Target, 256-uint(difficulty))
+	fmt.Println(Target)
+	Target.SetBytes([]byte(HashSum(Target.String())))
+	fmt.Println(Target)
 	for nonce < math.MaxUint64 {
 		select {
 		case <-ch:
@@ -181,11 +167,18 @@ func ProofOfWork(blockHash string, difficulty uint8, ch chan bool) uint64 {
 			}
 			return nonce
 		default:
-			hash = HashSum(strconv.FormatUint(nonce, 10) + blockHash)
+			hash = []byte(HashSum(strconv.FormatUint(nonce, 10) + blockHash))
+			/*hash = []byte(HashSum(string(bytes.Join(
+				[][]byte{
+					[]byte(blockHash),
+					ToBytes(nonce),
+				},
+				[]byte{},
+			))))*/
 			if true {
 				fmt.Printf("\rMining: %x", hash[:])
 			}
-			intHash.SetBytes([]byte(hash))
+			intHash.SetBytes(hash)
 			if intHash.Cmp(Target) == -1 {
 				if true {
 					fmt.Println()

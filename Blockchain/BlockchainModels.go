@@ -30,8 +30,8 @@ type Block struct {
 	Nonce        uint64                 `json:"nonce"`
 	Difficulty   uint64                 `json:"difficulty"`
 	Miner        string                 `json:"miner"`
-	Signatures   string                 `json:"signatures"`
-	ChainMaster  string                 `json:"chainMaster"`
+	//Signatures   string                 `json:"signatures"`
+	ChainMaster string `json:"chainMaster"`
 }
 
 type User struct {

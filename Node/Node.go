@@ -3,6 +3,7 @@ package Node
 import (
 	"VOX2/Blockchain"
 	"VOX2/Transport/Network"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -71,12 +73,18 @@ func PushBlockToNet(block *Blockchain.Block) error {
 	if err != nil {
 		return err
 	}
-	var msg = ThisServe + Separator + fmt.Sprintf("%d", chainSizeForMsg) + Separator + sblock
+	var msg = ThisServe +
+		Separator +
+		fmt.Sprintf("%s", block.ChainMaster) +
+		Separator +
+		fmt.Sprintf("%d", chainSizeForMsg) +
+		Separator +
+		sblock
 	for _, addr := range OtherAddresses {
 		goAddr := addr.String()
 		go func() {
 			_, err := Network.Send(goAddr, &Network.Package{
-				Option: AddBlock_const,
+				Option: AddblockConst,
 				Data:   msg,
 			})
 			if err != nil {
@@ -89,7 +97,7 @@ func PushBlockToNet(block *Blockchain.Block) error {
 
 func AddBlock(pack *Network.Package) (string, error) {
 	splited := strings.Split(pack.Data, Separator)
-	block, err := Blockchain.DeserializeBlock(splited[2])
+	block, err := Blockchain.DeserializeBlock(splited[3])
 	if err != nil {
 		return "", err
 	}
@@ -97,9 +105,14 @@ func AddBlock(pack *Network.Package) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	num, _ := strconv.Atoi(splited[1])
+	num, _ := strconv.Atoi(splited[2])
 	if currSize < uint64(num) {
-		err := CompareChains(splited[0], num)
+		go func() {
+			err := CompareChains(splited[0], block.ChainMaster)
+			if err != nil {
+				return
+			}
+		}()
 		if err != nil {
 			return "", err
 		}
@@ -137,7 +150,7 @@ func addTransaction(pack *Network.Package) (string, error) {
 		return "", errors.New("transactions limit in blocks")
 	}
 	Mutex.Lock()
-	err = Block.AddTransaction(tx, Block.ChainMaster)
+	err = Block.AddTransaction(tx)
 	if err != nil {
 		return "", err
 	}
@@ -186,7 +199,7 @@ func CompareChains(address string, master string) error {
 		return err
 	}
 	res0, err := Network.Send(address, &Network.Package{
-		Option: GetBlock_const,
+		Option: GetblockConst,
 		//Data:   fmt.Sprintf("%d", 0),
 		Data: fmt.Sprintf("%s", master),
 	})
@@ -204,9 +217,10 @@ func CompareChains(address string, master string) error {
 	if err != nil {
 		return err
 	}
-	for i := 1; i < chainSize; i++ {
+	//TODO ERROR
+	for i := 1; i < 10; i++ {
 		res1, err := Network.Send(address, &Network.Package{
-			Option: GetBlock_const,
+			Option: GetblockConst,
 			//Data:   fmt.Sprintf("%d", i),
 			Data: fmt.Sprintf("%s", i),
 		})
@@ -214,7 +228,7 @@ func CompareChains(address string, master string) error {
 			return err
 		}
 		if res1 == nil {
-			return errors.New("block is nil")
+			return errors.New("request data is nil")
 		}
 		block, errDeserialize := Blockchain.DeserializeBlock(res1.Data)
 		if errDeserialize != nil {
@@ -265,7 +279,7 @@ func CompareChains(address string, master string) error {
 	return nil
 }
 
-func GetBlock(pack *Network.Package) (string, error) {
+/*func GetBlock(pack *Network.Package) (string, error) {
 	dataId := pack.Data
 	_, block, err := Blockchain.GetBlock(uuid.MustParse(dataId))
 	if err != nil {
@@ -276,4 +290,19 @@ func GetBlock(pack *Network.Package) (string, error) {
 		return "", err
 	}
 	return sblock, nil
+}*/
+
+func GetBlocks(pack *Network.Package) (string, error) {
+	blocks, err := Blockchain.GetFullChain(pack.Data)
+	if err != nil {
+		return "", err
+	}
+	sort.Slice(blocks, func(i, j int) bool {
+		return blocks[i].TimeStamp.AsTime().After(blocks[j].TimeStamp.AsTime())
+	})
+	serializedArrayOfBlocks, err := json.Marshal(blocks)
+	if err != nil {
+		return "", err
+	}
+	return string(serializedArrayOfBlocks), nil
 }

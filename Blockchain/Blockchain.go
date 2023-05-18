@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	GenesisBlock string
-	//StorageChain string
+// GenesisBlock string
+// StorageChain string
 )
 
 const (
@@ -37,7 +37,7 @@ func init() {
 		fmt.Println(err)
 		return
 	}
-	GenesisBlock = viper.GetString("GENESIS_BLOCK")
+	//GenesisBlock = viper.GetString("GENESIS_BLOCK")
 	//StorageChain = viper.GetString("STORAGE_CHAIN")
 }
 
@@ -58,8 +58,9 @@ func NewChain(VotesCount uint64, ChainMaster string) (*Block, error) {
 			return nil, errors.New("affiliation already exist")
 		}
 	}
+
 	genesis := &Block{
-		PrevHash:    GenesisBlock,
+		PrevHash:    HashSum(ChainMaster),
 		BalanceMap:  make(map[string]uint64),
 		TimeStamp:   curTime,
 		ChainMaster: ChainMaster,
@@ -76,7 +77,7 @@ func NewChain(VotesCount uint64, ChainMaster string) (*Block, error) {
 func NewBlock(prevHash string, chainMaster string) (*Block, error) {
 	VarConf := viper.GetString("DIFFICULTY")
 	difficulty, err := strconv.Atoi(VarConf)
-	curTime, err := GetTime()
+	//curTime, err := GetTime()
 	if err != nil {
 		return nil, err
 	}
@@ -86,13 +87,13 @@ func NewBlock(prevHash string, chainMaster string) (*Block, error) {
 		BalanceMap: make(map[string]uint64),
 		//Miner:       miner,
 		ChainMaster: chainMaster,
-		TimeStamp:   curTime,
+		//TimeStamp:   curTime,
 	}, nil
 }
 
 func NewTransaction(
 	fromUser *User,
-	toUser string,
+	toUser *User,
 	lastHash string,
 	value uint64) (*Transaction, error) {
 	VarConf := viper.GetString("RAND_BYTES")
@@ -100,23 +101,25 @@ func NewTransaction(
 	randBytes, err := GenerateRandomBytes(uint64(VarConfConversion))
 	if err != nil {
 		return nil, err
+	}
+	if fromUser.Affiliation != toUser.Affiliation {
+		return nil, errors.New("affiliation does not match")
 	}
 	tran := &Transaction{
 		RandBytes: randBytes,
 		PrevBlock: lastHash,
 		Sender:    fromUser.Address(),
-		Receiver:  toUser,
+		Receiver:  toUser.Address(),
 		Value:     value,
 	}
 	tran.CurrHash = tran.Hash()
-	tran.Signature = tran.Sign(fromUser.Address() + toUser)
+	tran.Signature = tran.Sign(fromUser.Address() + toUser.Address())
 	return tran, err
 }
 
 func NewTransactionFromChain(
 	master string,
-	toUser string,
-	lastHash string,
+	toUser *User,
 	value uint64) (*Transaction, error) {
 	VarConf := viper.GetString("RAND_BYTES")
 	VarConfConversion, err := strconv.Atoi(VarConf)
@@ -124,15 +127,22 @@ func NewTransactionFromChain(
 	if err != nil {
 		return nil, err
 	}
+	lastHash, err := LastHash(master)
+	if err != nil {
+		return nil, err
+	}
+	if master != toUser.Affiliation {
+		return nil, errors.New("affiliation does not match")
+	}
 	tran := &Transaction{
 		RandBytes: randBytes,
 		PrevBlock: lastHash,
 		Sender:    master,
-		Receiver:  toUser,
+		Receiver:  toUser.Address(),
 		Value:     value,
 	}
 	tran.CurrHash = tran.Hash()
-	tran.Signature = tran.Sign(master + toUser)
+	tran.Signature = tran.Sign(master + toUser.Address())
 	return tran, err
 }
 
@@ -350,11 +360,11 @@ func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (st
 		return "", errExec.Error
 	}
 	hash := sha256.Sum256([]byte(template + salt))
-	err = ImportToDB(string(hash[:]), PublicKey)
+	err = ImportToDB(fmt.Sprintf("%x", hash[:]), PublicKey)
 	if err != nil {
 		return "", err
 	}
-	return string(hash[:]), nil
+	return fmt.Sprintf("%x", hash[:]), nil
 }
 
 // GenerateKey TODO Rewrite

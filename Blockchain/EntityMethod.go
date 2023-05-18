@@ -2,6 +2,7 @@ package Blockchain
 
 import (
 	"errors"
+	"fmt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"sort"
@@ -62,12 +63,29 @@ func (block *Block) Sign(privateKey string) string {
 }
 
 func (block *Block) Proof(ch chan bool) uint64 {
-	return ProofOfWork(block.CurrHash, uint8(block.Difficulty), ch)
-	//return 0
-
+	qwe := ProofOfWork(block.CurrHash, uint8(block.Difficulty), ch)
+	fmt.Println("==========> ", qwe)
+	return qwe
 }
 
-func (block *Block) AddTransaction(tran *Transaction, master string) error {
+func (block *Block) Accept(user *User, master string, ch chan bool) error {
+	curTime, err := GetTime()
+	if err != nil {
+		return err
+	}
+	block.TimeStamp = curTime
+	block.CurrHash = block.Hash()
+	//privateKey, err := user.Private()
+	if err != nil {
+		return err
+	}
+	//block.Signatures = block.Sign(privateKey)
+	block.Nonce = block.Proof(ch)
+	//block.ChainMaster = master
+	return nil
+}
+
+func (block *Block) AddTransaction(tran *Transaction) error {
 	if tran == nil {
 		return errors.New("tx = null")
 	}
@@ -83,7 +101,7 @@ func (block *Block) AddTransaction(tran *Transaction, master string) error {
 	if value, ok := block.BalanceMap[tran.Sender]; ok {
 		balanceInChain = value
 	} else {
-		balanceInChain, err = Balance(tran.Sender, master)
+		balanceInChain, err = Balance(tran.Sender, block.ChainMaster)
 		if err != nil {
 			return err
 		}
@@ -93,7 +111,7 @@ func (block *Block) AddTransaction(tran *Transaction, master string) error {
 	}
 
 	block.BalanceMap[tran.Sender] = balanceInChain - balanceInTX
-	err = block.AddBalance(tran.Receiver, tran.Value, master)
+	err = block.AddBalance(tran.Receiver, tran.Value, block.ChainMaster)
 	if err != nil {
 		return err
 	}

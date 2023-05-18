@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -154,10 +155,9 @@ func ProofOfWork(blockHash string, difficulty uint8, ch chan bool) uint64 {
 	var Target = big.NewInt(1)
 	var intHash = big.NewInt(1)
 	var nonce = uint64(RandomGenerator.Uint32())
-	var hashq [32]byte
+	//var hashq [32]byte
 	var hash string
 	Target.Lsh(Target, 256-uint(difficulty))
-	//Target.SetBytes([]byte(HashSum(Target.String())))
 	fmt.Println("\rTARGET: ", Target)
 	for nonce < math.MaxUint64 {
 		select {
@@ -167,12 +167,19 @@ func ProofOfWork(blockHash string, difficulty uint8, ch chan bool) uint64 {
 			}
 			return nonce
 		default:
-			hashq = sha256.Sum256([]byte(strconv.FormatUint(nonce, 10) + blockHash))
+			//hashq = sha256.Sum256([]byte(strconv.FormatUint(nonce, 10) + blockHash))
 			hash = HashSum(strconv.FormatUint(nonce, 10) + blockHash)
 			if true {
-				fmt.Printf("\rMining: %s  Mining: %x", hash[:], hashq[:])
+				//fmt.Printf("\rMining: %v", intHash.SetBytes(hashq[:]))
+				fmt.Printf("\rMining: %v", hash)
+
 			}
-			intHash.SetBytes([]byte(hash[:]))
+			decodeString, err := hex.DecodeString(hash)
+			if err != nil {
+				return 0
+			}
+			intHash.SetBytes(decodeString)
+			//intHash.SetBytes([]byte(hashq[:]))
 			if intHash.Cmp(Target) == -1 {
 				if true {
 					fmt.Println()

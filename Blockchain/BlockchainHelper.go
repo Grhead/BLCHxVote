@@ -150,15 +150,13 @@ func HashSum(data string) string {
 }
 
 func ProofOfWork(blockHash string, difficulty uint8, ch chan bool) uint64 {
+	RandomGenerator := mr.New(mr.NewSource(time.Now().Unix()))
 	var Target = big.NewInt(1)
 	var intHash = big.NewInt(1)
-	var nonce = uint64(mr.Intn(math.MaxUint32))
+	var nonce = uint64(RandomGenerator.Uint32())
 	var hash string
-	fmt.Println(Target)
 	Target.Lsh(Target, 256-uint(difficulty))
-	fmt.Println(Target)
-	Target.SetBytes([]byte(Target.String()))
-	fmt.Println(Target)
+	Target.SetBytes([]byte(HashSum(Target.String())))
 	for nonce < math.MaxUint64 {
 		select {
 		case <-ch:

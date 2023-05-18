@@ -139,6 +139,10 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
+	lh, err = Blockchain.LastHash("water")
+	if err != nil {
+		fmt.Println(err)
+	}
 	block1, err := Blockchain.NewBlock(lh, "water")
 	if err != nil {
 		fmt.Println(err)
@@ -148,6 +152,10 @@ func main() {
 		fmt.Println(err)
 	}
 	err = block1.AddTransaction(tx5)
+	if err != nil {
+		fmt.Println(err)
+	}
+	lh, err = Blockchain.LastHash("bulk")
 	if err != nil {
 		fmt.Println(err)
 	}

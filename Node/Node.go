@@ -179,7 +179,7 @@ func addTransaction(pack *Network.Package) (string, error) {
 	return "ok", nil
 }
 
-func CompareChains(address string, chainSize int) error {
+func CompareChains(address string, master string) error {
 	dbNode, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
 	dbCompare, err := gorm.Open(sqlite.Open("Database/CompareDb.db"), &gorm.Config{})
 	if err != nil {
@@ -187,7 +187,8 @@ func CompareChains(address string, chainSize int) error {
 	}
 	res0, err := Network.Send(address, &Network.Package{
 		Option: GetBlock_const,
-		Data:   fmt.Sprintf("%d", 0),
+		//Data:   fmt.Sprintf("%d", 0),
+		Data: fmt.Sprintf("%s", master),
 	})
 	if err != nil {
 		return err
@@ -206,7 +207,8 @@ func CompareChains(address string, chainSize int) error {
 	for i := 1; i < chainSize; i++ {
 		res1, err := Network.Send(address, &Network.Package{
 			Option: GetBlock_const,
-			Data:   fmt.Sprintf("%d", i),
+			//Data:   fmt.Sprintf("%d", i),
+			Data: fmt.Sprintf("%s", i),
 		})
 		if err != nil {
 			return err
@@ -264,19 +266,14 @@ func CompareChains(address string, chainSize int) error {
 }
 
 func GetBlock(pack *Network.Package) (string, error) {
-	dbNode, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
-	dataId, err := strconv.Atoi(pack.Data)
+	dataId := pack.Data
+	_, block, err := Blockchain.GetBlock(uuid.MustParse(dataId))
 	if err != nil {
 		return "", err
 	}
-	var block Blockchain.Block
-	errWhere := dbNode.Where("Id = ?", dataId).First(&block)
-	if errWhere.Error != nil {
-		return "", errWhere.Error
+	sblock, err := Blockchain.SerializeBlock(block)
+	if err != nil {
+		return "", err
 	}
-	size := Chain.Size()
-	if uint64(num) < size {
-		return SelectBlock(Chain, num)
-	}
-	return "", errors.New("incorrect request")
+	return sblock, nil
 }

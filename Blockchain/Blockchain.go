@@ -381,3 +381,37 @@ func GenerateKey() (string, error) {
 	hash := v.GetStringBytes("dateTime")
 	return HashSum(string(hash)), nil
 }
+
+func GetFullChain(master string) ([]*Block, error) {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	var blocks []*Chain
+	var resultMasterBlocks []*Block
+	db.Find(&blocks)
+	for _, v := range blocks {
+		desBlock, err := DeserializeBlock(v.Block)
+		if err != nil {
+			return nil, err
+		}
+		if desBlock.ChainMaster == master {
+			resultMasterBlocks = append(resultMasterBlocks, desBlock)
+		}
+	}
+	return resultMasterBlocks, nil
+}
+
+func GetBlock(uuidR uuid.UUID) (uuid.UUID, *Block, error) {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return uuid.Nil, nil, err
+	}
+	var chainBlock *Chain
+	db.Where("Id = ?", uuidR).Find(&chainBlock)
+	desBlock, err := DeserializeBlock(chainBlock.Block)
+	if err != nil {
+		return uuid.Nil, nil, nil
+	}
+	return uuidR, desBlock, nil
+}

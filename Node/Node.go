@@ -41,19 +41,19 @@ func ChainNew(chainMaster string, count uint64) error {
 	return err
 }
 
-func PushBlockToNet(block *Blockchain.Block) error {
-	sblock, err := Blockchain.SerializeBlock(block)
-	if err != nil {
-		return nil
-	}
-	var msg = Serve + Separator + fmt.Sprintf("%d", Chain.Size()) + Separator + sblock
-	for _, addr := range Addresses {
-		go nt.Send(addr, &nt.Package{
-			Option: ADD_BLOCK,
-			Data:   msg,
-		})
-	}
-}
+//func PushBlockToNet(block *Blockchain.Block) error {
+//	sblock, err := Blockchain.SerializeBlock(block)
+//	if err != nil {
+//		return nil
+//	}
+//	var msg = Serve + Separator + fmt.Sprintf("%d", Chain.Size()) + Separator + sblock
+//	for _, addr := range Addresses {
+//		go nt.Send(addr, &nt.Package{
+//			Option: ADD_BLOCK,
+//			Data:   msg,
+//		})
+//	}
+//}
 
 func CompareChains(address string, chainSize int) error {
 	dbNode, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})

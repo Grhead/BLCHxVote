@@ -18,7 +18,7 @@ import (
 
 var (
 	GenesisBlock string
-	StorageChain string
+	//StorageChain string
 )
 
 const (
@@ -38,7 +38,7 @@ func init() {
 		return
 	}
 	GenesisBlock = viper.GetString("GENESIS_BLOCK")
-	StorageChain = viper.GetString("STORAGE_CHAIN")
+	//StorageChain = viper.GetString("STORAGE_CHAIN")
 }
 
 func NewChain(VotesCount uint64, ChainMaster string) (*Block, error) {

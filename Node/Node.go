@@ -63,13 +63,12 @@ func init() {
 
 func main() {
 	Network.Listen(strings.Trim(ThisServe, "\""), HandleServer)
-	select {}
-	//for {
-	//	_, err := fmt.Scanln()
-	//	if err != nil {
-	//		return
-	//	}
-	//}
+	for {
+		_, err := fmt.Scanln()
+		if err != nil {
+			return
+		}
+	}
 }
 
 func HandleServer(conn Network.Conn, pack *Network.Package) {

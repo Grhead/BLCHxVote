@@ -3,12 +3,13 @@ package Network
 import (
 	"fmt"
 	"github.com/spf13/viper"
+	"log"
 	"net"
 	"strings"
 	"time"
 )
 
-const WAITTIME = 5
+const WaitTime = 5
 const DMAXSIZE = 2 << 20
 const BUFFSIZE = 4096
 
@@ -29,7 +30,7 @@ func init() {
 }
 func Send(address string, pack *Package) (*Package, error) {
 	EndBytes := viper.GetString("ENDBYTES")
-	conn, err := net.Dial("tcp", address)
+	conn, err := net.Dial("tcp", strings.Trim(address, "\""))
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +43,6 @@ func Send(address string, pack *Package) (*Package, error) {
 		return nil, err
 	}
 	res := new(Package)
-
 	ch := make(chan bool)
 	go func() {
 		res = ReadPackage(conn)
@@ -50,7 +50,7 @@ func Send(address string, pack *Package) (*Package, error) {
 	}()
 	select {
 	case <-ch:
-	case <-time.After(WAITTIME * time.Second):
+	case <-time.After(WaitTime * time.Second):
 	}
 	return res, nil
 }
@@ -63,10 +63,12 @@ func ReadPackage(conn net.Conn) *Package {
 	for {
 		length, err := conn.Read(buffer)
 		if err != nil {
+			log.Fatalln(err)
 			return nil
 		}
 		size += uint64(length)
 		if size > DMAXSIZE {
+			log.Fatalln(err)
 			return nil
 		}
 		data += string(buffer[:length])
@@ -94,13 +96,14 @@ func handleConn(conn net.Conn, handle func(Conn, *Package)) {
 }
 
 func serve(listener net.Listener, handle func(Conn, *Package)) {
-	defer func(listener net.Listener) {
+	/*defer func(listener net.Listener) {
 		err := listener.Close()
 		if err != nil {
 			panic(err)
 			return
 		}
-	}(listener)
+	}(listener)*/
+	defer listener.Close()
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -117,6 +120,7 @@ func Listen(address string, handle func(Conn, *Package)) Listener {
 	}
 	listener, err := net.Listen("tcp", "0.0.0.0:"+splitAddresses[1])
 	if err != nil {
+		panic(err)
 		return nil
 	}
 	go serve(listener, handle)

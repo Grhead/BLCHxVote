@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/valyala/fastjson"
 	"os"
+	"strings"
 )
 
 func PrintBalance(moneyMan string) (string, error) {
@@ -19,13 +20,13 @@ func PrintBalance(moneyMan string) (string, error) {
 			Option: LowConf.GetBalanceConst,
 			Data:   moneyMan,
 		})
-		if errSend != nil {
-			return "", errSend
-		}
 		if response == nil {
 			continue
 		}
-		manBalance = fmt.Sprintf("%s", response.Data)
+		if errSend != nil && !strings.Contains(errSend.Error(), "No connection could be made because the target machine actively refused it.") {
+			return "", errSend
+		}
+		manBalance = fmt.Sprintf("%v", response.Data)
 	}
 	return manBalance, nil
 }

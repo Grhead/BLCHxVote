@@ -2,6 +2,7 @@ package main
 
 import (
 	"VOX2/Basic"
+	"VOX2/Blockchain"
 	"fmt"
 	"github.com/spf13/viper"
 )
@@ -22,6 +23,12 @@ func main() {
 		fmt.Println(balance, err)
 		panic(err)
 	}
+	fmt.Println(balance, err)
+	dengi, err := Blockchain.Balance("895838c26839afb0b9998236edf80ad335f4d5607c3e709b019193d9e6c55cde")
+	if err != nil {
+		return
+	}
+	fmt.Println(dengi)
 	//fmt.Println(balance)
 	/*item11, err := Blockchain.NewPublicKeyItem("motor")
 	err = Blockchain.NewDormantUser("pass1")

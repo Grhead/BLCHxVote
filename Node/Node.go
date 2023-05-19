@@ -54,12 +54,15 @@ func init() {
 		log.Fatalln(err)
 	}
 	OtherAddresses = v.GetArray("addresses")
+	//lastHash, err := Blockchain.LastHash(Block.ChainMaster)
+	//if err != nil {
+	//	log.Fatalln(err)
+	//}
+	//Block, err = Blockchain.NewBlock(Block.CurrHash, lastHash)
 }
 
 func main() {
-	fmt.Println("Node-Started")
 	Network.Listen(ThisServe, HandleServer)
-	fmt.Println(ThisServe)
 	for {
 		_, err := fmt.Scanln()
 		if err != nil {
@@ -69,6 +72,7 @@ func main() {
 }
 
 func HandleServer(conn Network.Conn, pack *Network.Package) {
+	fmt.Println("Handle-here")
 	Network.Handle(LowConf.AddBlockConst, conn, pack, AddBlock)
 	Network.Handle(LowConf.AddTransactionConst, conn, pack, AddTransaction)
 	Network.Handle(LowConf.GetBlockConst, conn, pack, GetBlocks)
@@ -86,7 +90,7 @@ func NewChain(chainMaster string, count uint64) error {
 }
 
 func PushBlockToNet(block *Blockchain.Block) error {
-	sblock, err := Blockchain.SerializeBlock(block)
+	serialBlock, err := Blockchain.SerializeBlock(block)
 	if err != nil {
 		return err
 	}
@@ -100,7 +104,7 @@ func PushBlockToNet(block *Blockchain.Block) error {
 		LowConf.Separator +
 		fmt.Sprintf("%d", chainSizeForMsg) +
 		LowConf.Separator +
-		sblock
+		serialBlock
 	for _, addr := range OtherAddresses {
 		goAddr := addr.String()
 		go func() {
@@ -319,9 +323,9 @@ func GetLastHash(pack *Network.Package) (string, error) {
 	return Blockchain.LastHash(pack.Data)
 }
 func GetBalance(pack *Network.Package) (string, error) {
-	fmt.Println("Get-Balance")
-	splited := strings.Split(pack.Data, LowConf.Separator) //pack.Data: 0 = moneyMan, 1 := master
-	balance, err := Blockchain.Balance(splited[0], splited[1])
+	log.Println("Get-Balance")
+	//splited := strings.Split(pack.Data, LowConf.Separator) //pack.Data: 0 = moneyMan, 1 := master
+	balance, err := Blockchain.Balance(pack.Data)
 	if err != nil {
 		return "", err
 	}

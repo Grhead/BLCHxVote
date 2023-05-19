@@ -3,12 +3,15 @@ package main
 import (
 	"VOX2/Blockchain"
 	"VOX2/LowConf"
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"io"
 	"log"
+	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,28 +30,37 @@ func PushBlockToNet(block *Blockchain.Block) error {
 	if err != nil {
 		return err
 	}
-	chainSizeForMsg, err := Blockchain.Size(block.ChainMaster)
-	if err != nil {
-		return err
-	}
-	var msg = ThisServe +
-		LowConf.Separator +
-		fmt.Sprintf("%s", block.ChainMaster) +
-		LowConf.Separator +
-		fmt.Sprintf("%d", chainSizeForMsg) +
-		LowConf.Separator +
-		serialBlock
+	//chainSizeForMsg, err := Blockchain.Size(block.ChainMaster)
+	//if err != nil {
+	//	return err
+	//}
+	//var msg = ThisServe +
+	//	LowConf.Separator +
+	//	fmt.Sprintf("%s", block.ChainMaster) +
+	//	LowConf.Separator +
+	//	fmt.Sprintf("%d", chainSizeForMsg) +
+	//	LowConf.Separator +
+	//	serialBlock
 	for _, addr := range OtherAddresses {
 		goAddr := addr.String()
 		go func() {
-			_, err := Network.Send(goAddr, &Network.Package{
-				Option: LowConf.AddBlockConst,
-				Data:   msg,
-			})
+			resp, err := http.Post(fmt.Sprintf("https:/%s/addblock", goAddr),
+				"application/json",
+				bytes.NewBuffer([]byte(serialBlock)))
 			if err != nil {
 				return
 			}
+			defer func(Body io.ReadCloser) {
+				err := Body.Close()
+				if err != nil {
+					return
+				}
+			}(resp.Body)
 		}()
+		//_, err := Network.Send(goAddr, &Network.Package{
+		//	Option: LowConf.AddBlockConst,
+		//	Data:   msg,
+		//})
 	}
 	return nil
 }

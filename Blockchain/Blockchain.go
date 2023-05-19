@@ -16,19 +16,9 @@ import (
 	"strconv"
 )
 
-var (
-// GenesisBlock string
-// StorageChain string
-)
-
 const (
 	TxsLimit = 4
 )
-
-//type BlockChain struct {
-//	DB    *gorm.DB
-//	index uint64
-//}
 
 func init() {
 	viper.SetConfigFile("./LowConf/config.env")
@@ -37,8 +27,6 @@ func init() {
 		fmt.Println(err)
 		return
 	}
-	//GenesisBlock = viper.GetString("GENESIS_BLOCK")
-	//StorageChain = viper.GetString("STORAGE_CHAIN")
 }
 
 func NewChain(VotesCount uint64, ChainMaster string) (*Block, error) {

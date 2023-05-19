@@ -65,20 +65,14 @@ func (block *Block) Proof(ch chan bool) uint64 {
 	return ProofOfWork(block.CurrHash, uint8(block.Difficulty), ch)
 }
 
-func (block *Block) Accept(user *User, master string, ch chan bool) error {
+func (block *Block) Accept(ch chan bool) error {
 	curTime, err := GetTime()
 	if err != nil {
 		return err
 	}
 	block.TimeStamp = curTime
 	block.CurrHash = block.Hash()
-	//privateKey, err := user.Private()
-	if err != nil {
-		return err
-	}
-	//block.Signatures = block.Sign(privateKey)
 	block.Nonce = block.Proof(ch)
-	//block.ChainMaster = master
 	return nil
 }
 
@@ -106,7 +100,6 @@ func (block *Block) AddTransaction(tran *Transaction) error {
 	if balanceInTX > balanceInChain {
 		return errors.New("not enough funds")
 	}
-
 	block.BalanceMap[tran.Sender] = balanceInChain - balanceInTX
 	err = block.AddBalance(tran.Receiver, tran.Value, block.ChainMaster)
 	if err != nil {

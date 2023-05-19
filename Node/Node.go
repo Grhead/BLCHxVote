@@ -160,11 +160,11 @@ func addTransaction(pack *Network.Package) (string, error) {
 			block := *Block
 			IsMining = true
 			Mutex.Unlock()
-			user, err := Blockchain.FindByEnterUserWithLogin(tx.Sender)
-			if err != nil {
-				return
-			}
-			res := (&block).Accept(user, Block.ChainMaster, BreakMining)
+			//user, err := Blockchain.FindByEnterUserWithLogin(tx.Sender)
+			//if err != nil {
+			//	return
+			//}
+			res := (&block).Accept(BreakMining)
 			Mutex.Lock()
 			IsMining = false
 			if res == nil && strings.Compare(block.PrevHash, Block.PrevHash) != 0 {

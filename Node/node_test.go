@@ -8,7 +8,7 @@ import (
 
 func TestSomething(t *testing.T) {
 	var testPack *Network.Package
-	testPack.Option = GetblockConst
+	testPack.Option = GetBlockConst
 	testPack.Data = "motor"
 
 	blocks, err := GetBlocks(testPack)

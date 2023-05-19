@@ -308,14 +308,13 @@ func Size(master string) (uint64, error) {
 	return index, nil
 }
 
-func Balance(address string, master string) (uint64, error) {
+func Balance(moneyMan string, master string) (uint64, error) {
 	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
 	if err != nil {
 		return 0, err
 	}
 	var balance uint64
 	var blocks []*Chain
-	//db.Where("Id = ?", size).Find(&blocks)
 	db.Find(&blocks)
 	for _, v := range blocks {
 		desBlock, err := DeserializeBlock(v.Block)
@@ -323,7 +322,7 @@ func Balance(address string, master string) (uint64, error) {
 			return 0, err
 		}
 		if desBlock.ChainMaster == master {
-			if value, ok := desBlock.BalanceMap[address]; ok {
+			if value, ok := desBlock.BalanceMap[moneyMan]; ok {
 				balance = value
 				break
 			}

@@ -25,16 +25,16 @@ var Block *Blockchain.Block
 var ThisServe string
 var OtherAddresses []*fastjson.Value
 
-// TODO --CreateNew			// TODO NewChain
+// TODO --CreateNewChain			// TODO NewChain
 // TODO --CompareChains		// TODO NewBlock
 // TODO --PushBlockToNet	// TODO NewTransaction
 // TODO --AddBlock			// TODO NewTransactionFromChain
-// TODO --AddTransaction	// TODO LastHash
+// TODO --AddTransaction	// TODO --LastHash
 // TODO --GetBlock_const	// TODO AddBlock
-// TODO GetLastHash			// TODO NewDormantUser
-// TODO GetBalance			// TODO LoadToEnterAlreadyUser
-// TODO GetChainSize		// TODO NewPublicKeyItem
-// TODO SelectBlock			// TODO NewCandidate
+// TODO --GetLastHash			// TODO NewDormantUser
+// TODO --GetBalance		// TODO LoadToEnterAlreadyUser
+// TODO --GetChainSize		// TODO NewPublicKeyItem
+// TODO __SelectBlock		// TODO NewCandidate
 // TODO __HashBlock			// TODO Size
 // TODO __CopyFile			// TODO Balance
 
@@ -53,6 +53,15 @@ func init() {
 		log.Fatalln(err)
 	}
 	OtherAddresses = v.GetArray("addresses")
+}
+
+func HandleServer(conn Network.Conn, pack *Network.Package) {
+	Network.Handle(AddBlockConst, conn, pack, AddBlock)
+	Network.Handle(AddTransactionConst, conn, pack, AddTransaction)
+	Network.Handle(GetBlockConst, conn, pack, GetBlocks)
+	Network.Handle(GetLastHashConst, conn, pack, GetLastHash)
+	Network.Handle(GetBalanceConst, conn, pack, GetBalance)
+	Network.Handle(GetChainSizeConst, conn, pack, GetChainSize)
 }
 
 func NewChain(chainMaster string, count uint64) error {
@@ -83,7 +92,7 @@ func PushBlockToNet(block *Blockchain.Block) error {
 		goAddr := addr.String()
 		go func() {
 			_, err := Network.Send(goAddr, &Network.Package{
-				Option: AddblockConst,
+				Option: AddBlockConst,
 				Data:   msg,
 			})
 			if err != nil {
@@ -140,7 +149,7 @@ func AddBlock(pack *Network.Package) (string, error) {
 	return "ok", nil
 }
 
-func addTransaction(pack *Network.Package) (string, error) {
+func AddTransaction(pack *Network.Package) (string, error) {
 	tx, err := Blockchain.DeserializeTX(pack.Data)
 	if err != nil {
 		return "", err
@@ -198,7 +207,7 @@ func CompareChains(address string, master string) error {
 		return err
 	}
 	res0, err := Network.Send(address, &Network.Package{
-		Option: GetblockConst,
+		Option: GetBlockConst,
 		//Data:   fmt.Sprintf("%d", 0),
 		Data: fmt.Sprintf("%s", master),
 	})
@@ -219,7 +228,7 @@ func CompareChains(address string, master string) error {
 	//TODO ERROR
 	for i := 1; i < 10; i++ {
 		res1, err := Network.Send(address, &Network.Package{
-			Option: GetblockConst,
+			Option: GetBlockConst,
 			//Data:   fmt.Sprintf("%d", i),
 			Data: fmt.Sprintf("%s", i),
 		})
@@ -278,19 +287,6 @@ func CompareChains(address string, master string) error {
 	return nil
 }
 
-/*func GetBlock(pack *Network.Package) (string, error) {
-	dataId := pack.Data
-	_, block, err := Blockchain.GetBlock(uuid.MustParse(dataId))
-	if err != nil {
-		return "", err
-	}
-	sblock, err := Blockchain.SerializeBlock(block)
-	if err != nil {
-		return "", err
-	}
-	return sblock, nil
-}*/
-
 func GetBlocks(pack *Network.Package) (string, error) {
 	blocks, err := Blockchain.GetFullChain(pack.Data)
 	if err != nil {
@@ -304,4 +300,23 @@ func GetBlocks(pack *Network.Package) (string, error) {
 		return "", err
 	}
 	return string(serializedArrayOfBlocks), nil
+}
+
+func GetLastHash(pack *Network.Package) (string, error) {
+	return Blockchain.LastHash(pack.Data)
+}
+func GetBalance(pack *Network.Package) (string, error) {
+	splited := strings.Split(pack.Data, Separator) //pack.Data: 0 = moneyMan, 1 := master
+	balance, err := Blockchain.Balance(splited[0], splited[1])
+	if err != nil {
+		return "", err
+	}
+	return strconv.FormatUint(balance, 10), nil
+}
+func GetChainSize(pack *Network.Package) (string, error) {
+	size, err := Blockchain.Size(pack.Data)
+	if err != nil {
+		return "", err
+	}
+	return strconv.FormatUint(size, 10), nil
 }

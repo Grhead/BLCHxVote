@@ -1,28 +1,34 @@
 package Network
 
 import (
-	"encoding/json"
+	"fmt"
+	"github.com/spf13/viper"
 	"net"
 	"strings"
 	"time"
 )
 
-const (
-	ENDBYTES = "\000\001\000\001\000"
-	WAITTIME = 5
-	DMAXSIZE = 2 << 20
-	BUFFSIZE = 4096
-)
+const WAITTIME = 5
+const DMAXSIZE = 2 << 20
+const BUFFSIZE = 4096
 
+type Listener net.Listener
+type Conn net.Conn
 type Package struct {
 	Option string
 	Data   string
 }
 
-type Listener net.Listener
-type Conn net.Conn
-
+func init() {
+	viper.SetConfigFile("./LowConf/config.env")
+	err := viper.ReadInConfig()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+}
 func Send(address string, pack *Package) (*Package, error) {
+	EndBytes := viper.GetString("ENDBYTES")
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		return nil, err
@@ -31,7 +37,7 @@ func Send(address string, pack *Package) (*Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = conn.Write([]byte(serializeData + ENDBYTES))
+	_, err = conn.Write([]byte(serializeData + EndBytes))
 	if err != nil {
 		return nil, err
 	}
@@ -50,6 +56,7 @@ func Send(address string, pack *Package) (*Package, error) {
 }
 
 func ReadPackage(conn net.Conn) *Package {
+	EndBytes := viper.GetString("ENDBYTES")
 	var data string
 	var size = uint64(0)
 	var buffer = make([]byte, BUFFSIZE)
@@ -63,8 +70,8 @@ func ReadPackage(conn net.Conn) *Package {
 			return nil
 		}
 		data += string(buffer[:length])
-		if strings.Contains(data, ENDBYTES) {
-			data = strings.Split(data, ENDBYTES)[0]
+		if strings.Contains(data, EndBytes) {
+			data = strings.Split(data, EndBytes)[0]
 			break
 		}
 	}
@@ -72,19 +79,65 @@ func ReadPackage(conn net.Conn) *Package {
 	return DeserializePackage(data)
 }
 
-func SerializePackage(pack *Package) (string, error) {
-	jsonData, err := json.MarshalIndent(*pack, "", "\t")
-	if err != nil {
-		return "", err
+func handleConn(conn net.Conn, handle func(Conn, *Package)) {
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+			return
+		}
+	}(conn)
+	pack := ReadPackage(conn)
+	if pack == nil {
+		return
 	}
-	return string(jsonData), nil
+	handle(Conn(conn), pack)
 }
 
-func DeserializePackage(data string) *Package {
-	var pack Package
-	err := json.Unmarshal([]byte(data), &pack)
+func serve(listener net.Listener, handle func(Conn, *Package)) {
+	defer func(listener net.Listener) {
+		err := listener.Close()
+		if err != nil {
+			return
+		}
+	}(listener)
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			break
+		}
+		go handleConn(conn, handle)
+	}
+}
+
+func Listen(address string, handle func(Conn, *Package)) Listener {
+	splitAddresses := strings.Split(address, ":")
+	if len(splitAddresses) != 2 {
+		return nil
+	}
+	listener, err := net.Listen("tcp", "0.0.0.0:"+splitAddresses[1])
 	if err != nil {
 		return nil
 	}
-	return &pack
+	go serve(listener, handle)
+	return Listener(listener)
+}
+
+func Handle(option string, conn Conn, pack *Package, handle func(*Package) (string, error)) bool {
+	EndBytes := viper.GetString("ENDBYTES")
+	if pack.Option != option {
+		return false
+	}
+	handledPack, err := handle(pack)
+	if err != nil {
+		return false
+	}
+	partOfSerialPack, err := SerializePackage(&Package{
+		Option: option,
+		Data:   handledPack,
+	})
+	_, err = conn.Write([]byte(partOfSerialPack + EndBytes))
+	if err != nil {
+		return false
+	}
+	return true
 }

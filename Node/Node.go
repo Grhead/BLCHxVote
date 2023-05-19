@@ -1,7 +1,8 @@
-package Node
+package main
 
 import (
 	"VOX2/Blockchain"
+	"VOX2/LowConf"
 	"VOX2/Transport/Network"
 	"encoding/json"
 	"errors"
@@ -25,13 +26,13 @@ var Block *Blockchain.Block
 var ThisServe string
 var OtherAddresses []*fastjson.Value
 
-// TODO --CreateNewChain			// TODO NewChain
+// TODO --CreateNewChain	// TODO NewChain
 // TODO --CompareChains		// TODO NewBlock
 // TODO --PushBlockToNet	// TODO NewTransaction
 // TODO --AddBlock			// TODO NewTransactionFromChain
 // TODO --AddTransaction	// TODO --LastHash
 // TODO --GetBlock_const	// TODO AddBlock
-// TODO --GetLastHash			// TODO NewDormantUser
+// TODO --GetLastHash		// TODO NewDormantUser
 // TODO --GetBalance		// TODO LoadToEnterAlreadyUser
 // TODO --GetChainSize		// TODO NewPublicKeyItem
 // TODO __SelectBlock		// TODO NewCandidate
@@ -55,13 +56,25 @@ func init() {
 	OtherAddresses = v.GetArray("addresses")
 }
 
+func main() {
+	fmt.Println("Node-Started")
+	Network.Listen(ThisServe, HandleServer)
+	fmt.Println(ThisServe)
+	for {
+		_, err := fmt.Scanln()
+		if err != nil {
+			return
+		}
+	}
+}
+
 func HandleServer(conn Network.Conn, pack *Network.Package) {
-	Network.Handle(AddBlockConst, conn, pack, AddBlock)
-	Network.Handle(AddTransactionConst, conn, pack, AddTransaction)
-	Network.Handle(GetBlockConst, conn, pack, GetBlocks)
-	Network.Handle(GetLastHashConst, conn, pack, GetLastHash)
-	Network.Handle(GetBalanceConst, conn, pack, GetBalance)
-	Network.Handle(GetChainSizeConst, conn, pack, GetChainSize)
+	Network.Handle(LowConf.AddBlockConst, conn, pack, AddBlock)
+	Network.Handle(LowConf.AddTransactionConst, conn, pack, AddTransaction)
+	Network.Handle(LowConf.GetBlockConst, conn, pack, GetBlocks)
+	Network.Handle(LowConf.GetLastHashConst, conn, pack, GetLastHash)
+	Network.Handle(LowConf.GetBalanceConst, conn, pack, GetBalance)
+	Network.Handle(LowConf.GetChainSizeConst, conn, pack, GetChainSize)
 }
 
 func NewChain(chainMaster string, count uint64) error {
@@ -82,17 +95,17 @@ func PushBlockToNet(block *Blockchain.Block) error {
 		return err
 	}
 	var msg = ThisServe +
-		Separator +
+		LowConf.Separator +
 		fmt.Sprintf("%s", block.ChainMaster) +
-		Separator +
+		LowConf.Separator +
 		fmt.Sprintf("%d", chainSizeForMsg) +
-		Separator +
+		LowConf.Separator +
 		sblock
 	for _, addr := range OtherAddresses {
 		goAddr := addr.String()
 		go func() {
 			_, err := Network.Send(goAddr, &Network.Package{
-				Option: AddBlockConst,
+				Option: LowConf.AddBlockConst,
 				Data:   msg,
 			})
 			if err != nil {
@@ -104,7 +117,7 @@ func PushBlockToNet(block *Blockchain.Block) error {
 }
 
 func AddBlock(pack *Network.Package) (string, error) {
-	splited := strings.Split(pack.Data, Separator)
+	splited := strings.Split(pack.Data, LowConf.Separator)
 	block, err := Blockchain.DeserializeBlock(splited[3])
 	if err != nil {
 		return "", err
@@ -207,7 +220,7 @@ func CompareChains(address string, master string) error {
 		return err
 	}
 	res0, err := Network.Send(address, &Network.Package{
-		Option: GetBlockConst,
+		Option: LowConf.GetBlockConst,
 		//Data:   fmt.Sprintf("%d", 0),
 		Data: fmt.Sprintf("%s", master),
 	})
@@ -228,7 +241,7 @@ func CompareChains(address string, master string) error {
 	//TODO ERROR
 	for i := 1; i < 10; i++ {
 		res1, err := Network.Send(address, &Network.Package{
-			Option: GetBlockConst,
+			Option: LowConf.GetBlockConst,
 			//Data:   fmt.Sprintf("%d", i),
 			Data: fmt.Sprintf("%s", i),
 		})
@@ -306,7 +319,8 @@ func GetLastHash(pack *Network.Package) (string, error) {
 	return Blockchain.LastHash(pack.Data)
 }
 func GetBalance(pack *Network.Package) (string, error) {
-	splited := strings.Split(pack.Data, Separator) //pack.Data: 0 = moneyMan, 1 := master
+	fmt.Println("Get-Balance")
+	splited := strings.Split(pack.Data, LowConf.Separator) //pack.Data: 0 = moneyMan, 1 := master
 	balance, err := Blockchain.Balance(splited[0], splited[1])
 	if err != nil {
 		return "", err

@@ -97,6 +97,7 @@ func serve(listener net.Listener, handle func(Conn, *Package)) {
 	defer func(listener net.Listener) {
 		err := listener.Close()
 		if err != nil {
+			panic(err)
 			return
 		}
 	}(listener)

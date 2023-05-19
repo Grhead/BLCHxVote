@@ -2,6 +2,7 @@ package main
 
 import (
 	"VOX2/Blockchain"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/valyala/fastjson"
 	"log"
@@ -62,11 +63,31 @@ func init() {
 		log.Fatalln(err)
 	}
 	OtherAddresses = v.GetArray("addresses")
+	fmt.Println(OtherAddresses)
+	for i, v := range OtherAddresses {
+		if strings.Contains(v.String(), ThisServe) {
+			func(slice []*fastjson.Value, s int) []*fastjson.Value {
+				return append(slice[:s], slice[s+1:]...)
+			}(OtherAddresses, i)
+		}
+	}
+	fmt.Println(OtherAddresses)
 }
 
 func main() {
 	router := gin.Default()
-
+	//router.Use(cors.New(cors.Config{
+	//	AllowAllOrigins:  true,
+	//	AllowMethods:     []string{"PUT", "PATCH", "POST", "GET", "DELETE"},
+	//	AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept-Encoding"},
+	//	ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials", "Access-Control-Allow-Headers", "Access-Control-Allow-Methods"},
+	//	AllowCredentials: true,
+	//}))
+	router.GET("/ping", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "pong",
+		})
+	})
 	router.POST("/newchain", GinNewChain)
 	router.POST("/addblock", GinAddBlock)
 	router.POST("/addtx", GinAddTransaction)
@@ -76,10 +97,10 @@ func main() {
 	router.POST("/getchainsize", GinGetChainSize)
 
 	router.POST("/netpush", GinPushBlockToNet)
+	fmt.Println(strings.Trim(ThisServe, "\""))
+	err := router.Run(":8585")
 
-	err := router.Run(strings.Trim(ThisServe, "\""))
 	if err != nil {
-		panic(err)
 		return
 	}
 }

@@ -2,13 +2,9 @@ package main
 
 import (
 	"VOX2/Blockchain"
-	"VOX2/LowConf"
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"io"
 	"log"
 	"net/http"
@@ -74,7 +70,7 @@ func AddBlock(pack *BlockHelp) (string, error) {
 	num := pack.Size
 	if currSize < num {
 		go func() {
-			err := CompareChains(pack.Address, block.ChainMaster)
+			//err := CompareChains(pack.Address, block.ChainMaster)
 			if err != nil {
 				return
 			}
@@ -108,10 +104,6 @@ func AddBlock(pack *BlockHelp) (string, error) {
 }
 
 func AddTransaction(tx *Blockchain.Transaction) (string, error) {
-	//tx, err := Blockchain.DeserializeTX(pack.Data)
-	//if err != nil {
-	//	return "", err
-	//}
 	if tx == nil || len(Block.Transactions) == Blockchain.TxsLimit {
 		return "", errors.New("transactions limit in blocks")
 	}
@@ -154,93 +146,109 @@ func AddTransaction(tx *Blockchain.Transaction) (string, error) {
 	return "ok", nil
 }
 
-func CompareChains(address string, master string) error {
-	dbNode, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
-	dbCompare, err := gorm.Open(sqlite.Open("Database/CompareDb.db"), &gorm.Config{})
-	if err != nil {
-		return err
-	}
-	res0, err := Network.Send(address, &Network.Package{
-		Option: LowConf.GetBlockConst,
-		//Data:   fmt.Sprintf("%d", 0),
-		Data: fmt.Sprintf("%s", master),
-	})
-	if err != nil {
-		return err
-	}
-	genesis, err := Blockchain.DeserializeBlock(res0.Data)
-	if err != nil {
-		return err
-	}
-	if strings.Compare(genesis.CurrHash, genesis.Hash()) != 0 {
-		return errors.New("hashes are not the same")
-	}
-	err = Blockchain.AddBlockCompare(genesis)
-	if err != nil {
-		return err
-	}
-	//TODO ERROR
-	for i := 1; i < 10; i++ {
-		res1, err := Network.Send(address, &Network.Package{
-			Option: LowConf.GetBlockConst,
-			//Data:   fmt.Sprintf("%d", i),
-			Data: fmt.Sprintf("%s", i),
-		})
+/*
+	func CompareChains(address string, master string) error {
+		dbNode, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+		dbCompare, err := gorm.Open(sqlite.Open("Database/CompareDb.db"), &gorm.Config{})
 		if err != nil {
 			return err
 		}
-		if res1 == nil {
-			return errors.New("request data is nil")
+		resp, err := http.Post(fmt.Sprintf("https:/%s/getblock", address),
+			"application/json",
+			bytes.NewBuffer([]byte(master)))
+		if err != nil {
+			return err
 		}
-		block, errDeserialize := Blockchain.DeserializeBlock(res1.Data)
-		if errDeserialize != nil {
-			return errDeserialize
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}(resp.Body)
+		//res0, err := Network.Send(address, &Network.Package{
+		//	Option: LowConf.GetBlockConst,
+		//	//Data:   fmt.Sprintf("%d", 0),
+		//	Data: fmt.Sprintf("%s", master),
+		//})
+		var p fastjson.Parser
+		body, err := io.ReadAll(resp.Body)
+		res0, err := p.Parse(string(body))
+		if err != nil {
+			return err
 		}
-		if block == nil {
-			return errors.New("block is nil")
+		genesis, err := Blockchain.DeserializeBlock(string(res0.GetStringBytes("block")))
+		if err != nil {
+			return err
 		}
-		errAddBlock := Blockchain.AddBlockCompare(block)
-		if errAddBlock != nil {
-			return errAddBlock
+		if strings.Compare(genesis.CurrHash, genesis.Hash()) != 0 {
+			return errors.New("hashes are not the same")
 		}
-	}
-	Mutex.Lock()
-	var blocks []*Blockchain.Chain
-	dbCompare.Find(&blocks)
-	errDelete := dbNode.Exec("DELETE FROM Chains")
-	if errDelete.Error != nil {
-		return errDelete.Error
-	}
-	for _, v := range blocks {
-		errInsert := dbNode.Exec("INSERT INTO Chains (Id, Hash, Block) VALUES ($1, $2, $3)",
-			uuid.NewString(),
-			v.Hash,
-			v.Block,
-		)
-		if errInsert.Error != nil {
-			return errInsert.Error
+		err = Blockchain.AddBlockCompare(genesis)
+		if err != nil {
+			return err
 		}
+		//TODO ERROR
+		for i := 1; i < 10; i++ {
+			res1, err := Network.Send(address, &Network.Package{
+				Option: LowConf.GetBlockConst,
+				//Data:   fmt.Sprintf("%d", i),
+				Data: fmt.Sprintf("%s", i),
+			})
+			if err != nil {
+				return err
+			}
+			if res1 == nil {
+				return errors.New("request data is nil")
+			}
+			block, errDeserialize := Blockchain.DeserializeBlock(res1.Data)
+			if errDeserialize != nil {
+				return errDeserialize
+			}
+			if block == nil {
+				return errors.New("block is nil")
+			}
+			errAddBlock := Blockchain.AddBlockCompare(block)
+			if errAddBlock != nil {
+				return errAddBlock
+			}
+		}
+		Mutex.Lock()
+		var blocks []*Blockchain.Chain
+		dbCompare.Find(&blocks)
+		errDelete := dbNode.Exec("DELETE FROM Chains")
+		if errDelete.Error != nil {
+			return errDelete.Error
+		}
+		for _, v := range blocks {
+			errInsert := dbNode.Exec("INSERT INTO Chains (Id, Hash, Block) VALUES ($1, $2, $3)",
+				uuid.NewString(),
+				v.Hash,
+				v.Block,
+			)
+			if errInsert.Error != nil {
+				return errInsert.Error
+			}
+		}
+		errDelete = dbCompare.Exec("DELETE FROM Chains")
+		if errDelete.Error != nil {
+			return errDelete.Error
+		}
+		lastHash, err := Blockchain.LastHash(Block.ChainMaster)
+		if err != nil {
+			return err
+		}
+		Block, err = Blockchain.NewBlock(Block.CurrHash, lastHash)
+		if err != nil {
+			return err
+		}
+		Mutex.Unlock()
+		if IsMining {
+			BreakMining <- true
+			IsMining = false
+		}
+		return nil
 	}
-	errDelete = dbCompare.Exec("DELETE FROM Chains")
-	if errDelete.Error != nil {
-		return errDelete.Error
-	}
-	lastHash, err := Blockchain.LastHash(Block.ChainMaster)
-	if err != nil {
-		return err
-	}
-	Block, err = Blockchain.NewBlock(Block.CurrHash, lastHash)
-	if err != nil {
-		return err
-	}
-	Mutex.Unlock()
-	if IsMining {
-		BreakMining <- true
-		IsMining = false
-	}
-	return nil
-}
-
+*/
 func GetBlocks(pack *MasterHelp) ([]*Blockchain.Block, error) {
 	blocks, err := Blockchain.GetFullChain(pack.Master)
 	if err != nil {

@@ -28,7 +28,10 @@ func init() {
 		return
 	}
 }
+
 func Send(address string, pack *Package) (*Package, error) {
+	fmt.Printf("ooooption: %v\n", pack.Option)
+	fmt.Printf("sendsendsend: %v\n", pack.Data)
 	EndBytes := viper.GetString("ENDBYTES")
 	conn, err := net.Dial("tcp", strings.Trim(address, "\""))
 	if err != nil {
@@ -56,6 +59,7 @@ func Send(address string, pack *Package) (*Package, error) {
 }
 
 func ReadPackage(conn net.Conn) *Package {
+	fmt.Printf("readdddd: %v\n", conn)
 	EndBytes := viper.GetString("ENDBYTES")
 	var data string
 	var size = uint64(0)
@@ -82,6 +86,7 @@ func ReadPackage(conn net.Conn) *Package {
 }
 
 func handleConn(conn net.Conn, handle func(Conn, *Package)) {
+	fmt.Printf("handleCONNNN: %v\n", handle)
 	defer func(conn net.Conn) {
 		err := conn.Close()
 		if err != nil {
@@ -104,6 +109,7 @@ func serve(listener net.Listener, handle func(Conn, *Package)) {
 		}
 	}(listener)*/
 	defer listener.Close()
+	fmt.Printf("start: %v\n", listener)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -119,6 +125,7 @@ func Listen(address string, handle func(Conn, *Package)) Listener {
 		return nil
 	}
 	listener, err := net.Listen("tcp", "0.0.0.0:"+splitAddresses[1])
+	fmt.Printf("Incominge: %v\n", address)
 	if err != nil {
 		panic(err)
 		return nil

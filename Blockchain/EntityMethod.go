@@ -49,7 +49,7 @@ func (block *Block) Hash() string {
 		tempHash +
 			string(ToBytes(block.Difficulty)) +
 			block.PrevHash +
-			block.Miner +
+			//block.Miner +
 			block.TimeStamp.AsTime().String())
 }
 

@@ -2,22 +2,30 @@ package main
 
 import (
 	"VOX2/Blockchain"
-	"VOX2/LowConf"
-	"VOX2/Transport/Network"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"github.com/google/uuid"
+	"github.com/gin-gonic/gin"
 	"github.com/valyala/fastjson"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 	"log"
+	"net/http"
 	"os"
-	"sort"
-	"strconv"
 	"strings"
 	"sync"
 )
+
+type ChainHelp struct {
+	Master string `form:"master" json:"master"`
+	Count  uint64 `form:"count" json:"count"`
+}
+type MasterHelp struct {
+	Master string `form:"master" json:"master"`
+}
+type UserHelp struct {
+	User string `form:"user" json:"user"`
+}
+type BlockHelp struct {
+	Block   *Blockchain.Block `form:"user" json:"block"`
+	Size    uint64            `form:"size" json:"size"`
+	Address string            `form:"address" json:"address"`
+}
 
 var Mutex sync.Mutex
 var IsMining bool
@@ -54,289 +62,151 @@ func init() {
 		log.Fatalln(err)
 	}
 	OtherAddresses = v.GetArray("addresses")
-	//lastHash, err := Blockchain.LastHash(Block.ChainMaster)
-	//if err != nil {
-	//	log.Fatalln(err)
-	//}
-	//Block, err = Blockchain.NewBlock(Block.CurrHash, lastHash)
 }
 
 func main() {
-	Network.Listen(strings.Trim(ThisServe, "\""), HandleServer)
-	select {}
-	//for {
-	//	_, err := fmt.Scanln()
-	//	if err != nil {
-	//		return
-	//	}
-	//}
+	router := gin.Default()
+
+	router.POST("/newchain", GinNewChain)
+	router.POST("/addblock", GinAddBlock)
+	router.POST("/addtx", GinAddTransaction)
+	router.POST("/getblock", GinGetBlocks)
+	router.POST("/getlasthash", GinGetLastHash)
+	router.POST("/getbalance", GinGetBalance)
+	router.POST("/getchainsize", GinGetChainSize)
+
+	router.POST("/netpush", GinPushBlockToNet)
+
+	err := router.Run(strings.Trim(ThisServe, "\""))
+	if err != nil {
+		panic(err)
+		return
+	}
 }
 
-func HandleServer(conn Network.Conn, pack *Network.Package) {
-	log.Println("start")
-	Network.Handle(LowConf.AddBlockConst, conn, pack, AddBlock)
-	Network.Handle(LowConf.AddTransactionConst, conn, pack, AddTransaction)
-	Network.Handle(LowConf.GetBlockConst, conn, pack, GetBlocks)
-	Network.Handle(LowConf.GetLastHashConst, conn, pack, GetLastHash)
-	Network.Handle(LowConf.GetBalanceConst, conn, pack, GetBalance)
-	Network.Handle(LowConf.GetChainSizeConst, conn, pack, GetChainSize)
-	log.Println("end")
+func GinNewChain(c *gin.Context) {
+	var input *ChainHelp
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest,
+			gin.H{"error": err.Error()})
+		return
+	} else {
+		genesisHash, errChain := NewChain(input.Master, input.Count)
+		if errChain != nil {
+			c.JSON(http.StatusBadRequest,
+				gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"GenesisHash": genesisHash})
+	}
 }
 
-func NewChain(chainMaster string, count uint64) error {
-	_, err := Blockchain.NewChain(count, chainMaster)
-	if err != nil {
-		return nil
+func GinAddBlock(c *gin.Context) {
+	var input *BlockHelp
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest,
+			gin.H{"error": err.Error()})
+		return
+	} else {
+		block, errAdd := AddBlock(input)
+		if errAdd != nil {
+			c.JSON(http.StatusBadRequest,
+				gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"BlockAddStatus": block})
 	}
-	return err
 }
 
-func PushBlockToNet(block *Blockchain.Block) error {
-	serialBlock, err := Blockchain.SerializeBlock(block)
-	if err != nil {
-		return err
-	}
-	chainSizeForMsg, err := Blockchain.Size(block.ChainMaster)
-	if err != nil {
-		return err
-	}
-	var msg = ThisServe +
-		LowConf.Separator +
-		fmt.Sprintf("%s", block.ChainMaster) +
-		LowConf.Separator +
-		fmt.Sprintf("%d", chainSizeForMsg) +
-		LowConf.Separator +
-		serialBlock
-	for _, addr := range OtherAddresses {
-		goAddr := addr.String()
-		go func() {
-			_, err := Network.Send(goAddr, &Network.Package{
-				Option: LowConf.AddBlockConst,
-				Data:   msg,
-			})
-			if err != nil {
-				return
-			}
-		}()
-	}
-	return nil
-}
-
-func AddBlock(pack *Network.Package) (string, error) {
-	splited := strings.Split(pack.Data, LowConf.Separator)
-	block, err := Blockchain.DeserializeBlock(splited[3])
-	if err != nil {
-		return "", err
-	}
-	currSize, err := Blockchain.Size(block.ChainMaster)
-	if err != nil {
-		return "", err
-	}
-	num, _ := strconv.Atoi(splited[2])
-	if currSize < uint64(num) {
-		go func() {
-			err := CompareChains(splited[0], block.ChainMaster)
-			if err != nil {
-				return
-			}
-		}()
+func GinAddTransaction(c *gin.Context) {
+	var input *Blockchain.Transaction
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest,
+			gin.H{"error": err.Error()})
+		return
+	} else {
+		transaction, err := AddTransaction(input)
 		if err != nil {
-			return "", err
+			return
 		}
-		return "ok ", nil
+		c.JSON(200, gin.H{"AddTxStatus": transaction})
 	}
-
-	Mutex.Lock()
-	err = Blockchain.AddBlock(block)
-	if err != nil {
-		return "", err
-	}
-	lastHash, err := Blockchain.LastHash(block.ChainMaster)
-	if err != nil {
-		return "", err
-	}
-	Block, err = Blockchain.NewBlock(block.CurrHash, lastHash)
-	if err != nil {
-		return "", err
-	}
-	Mutex.Unlock()
-	if IsMining {
-		BreakMining <- true
-		IsMining = false
-	}
-
-	return "ok", nil
 }
-
-func AddTransaction(pack *Network.Package) (string, error) {
-	tx, err := Blockchain.DeserializeTX(pack.Data)
-	if err != nil {
-		return "", err
+func GinGetBlocks(c *gin.Context) {
+	var input *MasterHelp
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest,
+			gin.H{"error": err.Error()})
+		return
+	} else {
+		blocks, errGet := GetBlocks(input)
+		if errGet != nil {
+			c.JSON(http.StatusBadRequest,
+				gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, blocks)
 	}
-	if tx == nil || len(Block.Transactions) == Blockchain.TxsLimit {
-		return "", errors.New("transactions limit in blocks")
-	}
-	Mutex.Lock()
-	err = Block.AddTransaction(tx)
-	if err != nil {
-		return "", err
-	}
-	Mutex.Unlock()
-	if len(Block.Transactions) == Blockchain.TxsLimit {
-		go func() {
-			Mutex.Lock()
-			block := *Block
-			IsMining = true
-			Mutex.Unlock()
-			//user, err := Blockchain.FindByEnterUserWithLogin(tx.Sender)
-			//if err != nil {
-			//	return
-			//}
-			res := (&block).Accept(BreakMining)
-			Mutex.Lock()
-			IsMining = false
-			if res == nil && strings.Compare(block.PrevHash, Block.PrevHash) != 0 {
-				err = Blockchain.AddBlock(&block)
-				if err != nil {
-					return
-				}
-				err := PushBlockToNet(&block)
-				if err != nil {
-					return
-				}
-			}
-			lastHash, err := Blockchain.LastHash(Block.ChainMaster)
-			if err != nil {
-				return
-			}
-			Block, err = Blockchain.NewBlock(Block.CurrHash, lastHash)
-			if err != nil {
-				return
-			}
-			Mutex.Unlock()
-		}()
-	}
-	return "ok", nil
 }
-
-func CompareChains(address string, master string) error {
-	dbNode, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
-	dbCompare, err := gorm.Open(sqlite.Open("Database/CompareDb.db"), &gorm.Config{})
-	if err != nil {
-		return err
-	}
-	res0, err := Network.Send(address, &Network.Package{
-		Option: LowConf.GetBlockConst,
-		//Data:   fmt.Sprintf("%d", 0),
-		Data: fmt.Sprintf("%s", master),
-	})
-	if err != nil {
-		return err
-	}
-	genesis, err := Blockchain.DeserializeBlock(res0.Data)
-	if err != nil {
-		return err
-	}
-	if strings.Compare(genesis.CurrHash, genesis.Hash()) != 0 {
-		return errors.New("hashes are not the same")
-	}
-	err = Blockchain.AddBlockCompare(genesis)
-	if err != nil {
-		return err
-	}
-	//TODO ERROR
-	for i := 1; i < 10; i++ {
-		res1, err := Network.Send(address, &Network.Package{
-			Option: LowConf.GetBlockConst,
-			//Data:   fmt.Sprintf("%d", i),
-			Data: fmt.Sprintf("%s", i),
-		})
-		if err != nil {
-			return err
+func GinGetLastHash(c *gin.Context) {
+	var input *MasterHelp
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest,
+			gin.H{"error": err.Error()})
+		return
+	} else {
+		hash, errLH := GetLastHash(input)
+		if errLH != nil {
+			c.JSON(http.StatusBadRequest,
+				gin.H{"error": err.Error()})
+			return
 		}
-		if res1 == nil {
-			return errors.New("request data is nil")
-		}
-		block, errDeserialize := Blockchain.DeserializeBlock(res1.Data)
-		if errDeserialize != nil {
-			return errDeserialize
-		}
-		if block == nil {
-			return errors.New("block is nil")
-		}
-		errAddBlock := Blockchain.AddBlockCompare(block)
-		if errAddBlock != nil {
-			return errAddBlock
-		}
+		c.JSON(200, gin.H{"LastHash": hash})
 	}
-	Mutex.Lock()
-	var blocks []*Blockchain.Chain
-	dbCompare.Find(&blocks)
-	errDelete := dbNode.Exec("DELETE FROM Chains")
-	if errDelete.Error != nil {
-		return errDelete.Error
-	}
-	for _, v := range blocks {
-		errInsert := dbNode.Exec("INSERT INTO Chains (Id, Hash, Block) VALUES ($1, $2, $3)",
-			uuid.NewString(),
-			v.Hash,
-			v.Block,
-		)
-		if errInsert.Error != nil {
-			return errInsert.Error
-		}
-	}
-	errDelete = dbCompare.Exec("DELETE FROM Chains")
-	if errDelete.Error != nil {
-		return errDelete.Error
-	}
-	lastHash, err := Blockchain.LastHash(Block.ChainMaster)
-	if err != nil {
-		return err
-	}
-	Block, err = Blockchain.NewBlock(Block.CurrHash, lastHash)
-	if err != nil {
-		return err
-	}
-	Mutex.Unlock()
-	if IsMining {
-		BreakMining <- true
-		IsMining = false
-	}
-	return nil
 }
-
-func GetBlocks(pack *Network.Package) (string, error) {
-	blocks, err := Blockchain.GetFullChain(pack.Data)
-	if err != nil {
-		return "", err
+func GinGetBalance(c *gin.Context) {
+	var input *UserHelp
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest,
+			gin.H{"error": err.Error()})
+		return
+	} else {
+		balance, errBalance := GetBalance(input)
+		if errBalance != nil {
+			c.JSON(http.StatusBadRequest,
+				gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"Balance": balance})
 	}
-	sort.Slice(blocks, func(i, j int) bool {
-		return blocks[i].TimeStamp.AsTime().After(blocks[j].TimeStamp.AsTime())
-	})
-	serializedArrayOfBlocks, err := json.Marshal(blocks)
-	if err != nil {
-		return "", err
-	}
-	return string(serializedArrayOfBlocks), nil
 }
-
-func GetLastHash(pack *Network.Package) (string, error) {
-	return Blockchain.LastHash(pack.Data)
-}
-func GetBalance(pack *Network.Package) (string, error) {
-	log.Println("Get-Balance")
-	//splited := strings.Split(pack.Data, LowConf.Separator) //pack.Data: 0 = moneyMan, 1 := master
-	balance, err := Blockchain.Balance(pack.Data)
-	if err != nil {
-		return "", err
+func GinGetChainSize(c *gin.Context) {
+	var input *MasterHelp
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest,
+			gin.H{"error": err.Error()})
+		return
+	} else {
+		size, errChainSize := GetChainSize(input)
+		if errChainSize != nil {
+			return
+		}
+		c.JSON(200, gin.H{"ChainSize": size})
 	}
-	return strconv.FormatUint(balance, 10), nil
 }
-func GetChainSize(pack *Network.Package) (string, error) {
-	size, err := Blockchain.Size(pack.Data)
-	if err != nil {
-		return "", err
+func GinPushBlockToNet(c *gin.Context) {
+	var input *Blockchain.Block
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest,
+			gin.H{"error": err.Error()})
+		return
+	} else {
+		errBlock := PushBlockToNet(input)
+		if errBlock != nil {
+			c.JSON(http.StatusBadRequest,
+				gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(200, gin.H{"Status": "ok"})
 	}
-	return strconv.FormatUint(size, 10), nil
 }

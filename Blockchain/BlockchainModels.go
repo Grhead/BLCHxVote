@@ -12,13 +12,13 @@ type Chain struct {
 }
 
 type Transaction struct {
-	RandBytes []byte
-	PrevBlock string
-	Sender    string
-	Receiver  string
-	Value     uint64
-	Signature string
-	CurrHash  string
+	RandBytes []byte `form:"randBytes" json:"randBytes"`
+	PrevBlock string `form:"prevBlock" json:"prevBlock"`
+	Sender    string `form:"sender" json:"sender"`
+	Receiver  string `form:"receiver" json:"receiver"`
+	Value     uint64 `form:"value" json:"value"`
+	Signature string `form:"signature" json:"signature"`
+	CurrHash  string `form:"currHash" json:"currHash"`
 }
 
 type Block struct {
@@ -29,9 +29,7 @@ type Block struct {
 	BalanceMap   map[string]uint64      `json:"balanceMap"`
 	Nonce        uint64                 `json:"nonce"`
 	Difficulty   uint64                 `json:"difficulty"`
-	Miner        string                 `json:"miner"`
-	//Signatures   string                 `json:"signatures"`
-	ChainMaster string `json:"chainMaster"`
+	ChainMaster  string                 `json:"chainMaster"`
 }
 
 type User struct {

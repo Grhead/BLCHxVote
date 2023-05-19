@@ -128,6 +128,7 @@ func Listen(address string, handle func(Conn, *Package)) Listener {
 }
 
 func Handle(option string, conn Conn, pack *Package, handle func(*Package) (string, error)) bool {
+	fmt.Printf("Incoming package: %v\n", pack)
 	EndBytes := viper.GetString("ENDBYTES")
 	if pack.Option != option {
 		return false

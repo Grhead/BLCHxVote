@@ -62,7 +62,7 @@ func init() {
 }
 
 func main() {
-	Network.Listen(ThisServe, HandleServer)
+	Network.Listen(strings.Trim(ThisServe, "\""), HandleServer)
 	for {
 		_, err := fmt.Scanln()
 		if err != nil {
@@ -72,13 +72,14 @@ func main() {
 }
 
 func HandleServer(conn Network.Conn, pack *Network.Package) {
-	fmt.Println("Handle-here")
+	log.Println("start")
 	Network.Handle(LowConf.AddBlockConst, conn, pack, AddBlock)
 	Network.Handle(LowConf.AddTransactionConst, conn, pack, AddTransaction)
 	Network.Handle(LowConf.GetBlockConst, conn, pack, GetBlocks)
 	Network.Handle(LowConf.GetLastHashConst, conn, pack, GetLastHash)
 	Network.Handle(LowConf.GetBalanceConst, conn, pack, GetBalance)
 	Network.Handle(LowConf.GetChainSizeConst, conn, pack, GetChainSize)
+	log.Println("end")
 }
 
 func NewChain(chainMaster string, count uint64) error {

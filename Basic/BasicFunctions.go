@@ -16,10 +16,20 @@ func PrintBalance(moneyMan string) (string, error) {
 	}
 	var manBalance string
 	for _, address := range addresses {
-		response, errSend := Network.Send(address.String(), &Network.Package{
-			Option: LowConf.GetBalanceConst,
-			Data:   moneyMan,
-		})
+		fmt.Println(address.String())
+		//fmt.Println(strings.Trim(address.String(), "\""))
+		//response, errSend := Network.Send(
+		//	strings.Trim(address.String(), "\""),
+		//	&Network.Package{
+		//		Option: LowConf.GetBalanceConst,
+		//		Data:   moneyMan,
+		//	})
+		response, errSend := Network.Send(
+			":7575",
+			&Network.Package{
+				Option: LowConf.GetBalanceConst,
+				Data:   moneyMan,
+			})
 		if response == nil {
 			continue
 		}

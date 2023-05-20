@@ -49,7 +49,7 @@ func (block *Block) Hash() string {
 		tempHash +
 			string(ToBytes(block.Difficulty)) +
 			block.PrevHash +
-			block.Miner +
+			//block.Miner +
 			block.TimeStamp.AsTime().String())
 }
 
@@ -101,7 +101,7 @@ func (block *Block) AddTransaction(tran *Transaction) error {
 		return errors.New("not enough funds")
 	}
 	block.BalanceMap[tran.Sender] = balanceInChain - balanceInTX
-	err = block.AddBalance(tran.Receiver, tran.Value)
+	err = block.addBalance(tran.Receiver, tran.Value)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (block *Block) AddTransaction(tran *Transaction) error {
 	return nil
 }
 
-func (block *Block) AddBalance(receiver string, value uint64) error {
+func (block *Block) addBalance(receiver string, value uint64) error {
 	var balanceInChain uint64
 	var err error
 	if v, ok := block.BalanceMap[receiver]; ok {

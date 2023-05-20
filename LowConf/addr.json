@@ -1,7 +1,7 @@
 {
     "addresses":
     [
-        ":7575",
-        ":8585"
+        "localhost:8585",
+        "localhost:9595"
     ]
 }

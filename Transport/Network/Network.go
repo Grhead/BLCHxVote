@@ -20,6 +20,8 @@ type Package struct {
 	Data   string
 }
 
+var Data string
+
 func init() {
 	viper.SetConfigFile("./LowConf/config.env")
 	err := viper.ReadInConfig()

@@ -59,19 +59,23 @@ func goAddTransaction() {
 	}
 	Mutex.Unlock()
 }
-func goCompare(address string, chainMaster string) {
-	err := CompareChains(address, chainMaster)
+func goCompare(address string) {
+	err := CompareChains(address)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
 func pushBlockToNet(block *BlockHelp) error {
+	err := Blockchain.AddBlock(block.Block)
+	if err != nil {
+		log.Fatal(err)
+	}
 	var result resultStruct
 	var returnErr error
 	for _, addr := range OtherAddresses {
 		goAddr := addr.String()
-		goAddBlock(block, result, goAddr)
+		go goAddBlock(block, result, goAddr)
 	}
 	if returnErr != nil {
 		return returnErr
@@ -88,7 +92,7 @@ func AddBlock(pack *BlockHelp) (string, error) {
 	num := pack.Size
 	if currSize < num {
 		fmt.Println("inside")
-		goCompare(pack.Address, block.ChainMaster)
+		go goCompare(pack.Address)
 		return "ok ", nil
 	}
 	Mutex.Lock()
@@ -130,9 +134,9 @@ func AddTransaction(BlockTx *TransactionHelp) (string, error) {
 	return "ok", nil
 }
 
-func CompareChains(address string, master string) error {
+func CompareChains(address string) error {
 	dbNode, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
-	dbCompare, err := gorm.Open(sqlite.Open("Database/CompareDb.db"), &gorm.Config{})
+	//dbCompare, err := gorm.Open(sqlite.Open("Database/CompareDb.db"), &gorm.Config{})
 	if err != nil {
 		return err
 	}
@@ -143,38 +147,52 @@ func CompareChains(address string, master string) error {
 	if err != nil {
 		return err
 	}
-	size, err := Blockchain.DbSize()
-	if err != nil {
-		return err
-	}
-
 	someGenesis := blocksResponse[0]
 	if strings.Compare(someGenesis.CurrHash, someGenesis.Hash()) != 0 {
 		return errors.New("hashes are not the same")
 	}
-	err = Blockchain.AddBlockCompare(someGenesis)
+	var arrayToMerge []*Blockchain.Chain
+	serializeGenesisBlock, err := Blockchain.SerializeBlock(someGenesis)
+	fmt.Println("--------2")
 	if err != nil {
 		return err
 	}
-	for i := uint64(1); i < size; i++ {
-		fmt.Println("--------", i)
-		block := blocksResponse[i]
-		if block == nil {
-			return errors.New("block is nil")
-		}
-		errAddBlock := Blockchain.AddBlockCompare(block)
-		if errAddBlock != nil {
-			return errAddBlock
+	genesisBlock := Blockchain.Chain{
+		Id:    uuid.NewString(),
+		Hash:  someGenesis.CurrHash,
+		Block: serializeGenesisBlock,
+	}
+	arrayToMerge = append(arrayToMerge, &genesisBlock)
+	for _, v := range blocksResponse {
+		if v != blocksResponse[0] {
+			fmt.Println("--------", v)
+			if v == nil {
+				return errors.New("block is nil")
+			}
+			fmt.Println("--------1")
+			serializeBlock, err := Blockchain.SerializeBlock(v)
+			fmt.Println("--------2")
+			if err != nil {
+				return err
+			}
+			fmt.Println("--------3")
+			block := Blockchain.Chain{
+				Id:    uuid.NewString(),
+				Hash:  v.CurrHash,
+				Block: serializeBlock,
+			}
+			arrayToMerge = append(arrayToMerge, &block)
+			fmt.Println("--------4")
 		}
 	}
 	Mutex.Lock()
-	var blocks []*Blockchain.Chain
-	dbCompare.Find(&blocks)
-	errDelete := dbNode.Exec("DELETE FROM Chains")
+	//var blocks []*Blockchain.Chain
+	//dbCompare.Find(&blocks)
+	errDelete := dbNode.Exec("DELETE FROM Chains WHERE Id != 0")
 	if errDelete.Error != nil {
 		return errDelete.Error
 	}
-	for _, v := range blocks {
+	for _, v := range arrayToMerge {
 		errInsert := dbNode.Exec("INSERT INTO Chains (Id, Hash, Block) VALUES ($1, $2, $3)",
 			uuid.NewString(),
 			v.Hash,
@@ -184,10 +202,10 @@ func CompareChains(address string, master string) error {
 			return errInsert.Error
 		}
 	}
-	errDelete = dbCompare.Exec("DELETE FROM Chains")
-	if errDelete.Error != nil {
-		return errDelete.Error
-	}
+	//errDelete = dbCompare.Exec("DELETE FROM Chains")
+	//if errDelete.Error != nil {
+	//	return errDelete.Error
+	//}
 	BlockForTransaction = nil
 	Mutex.Unlock()
 	if IsMining {

@@ -43,12 +43,12 @@ var OtherAddresses []*fastjson.Value
 var BlockForTransaction *Blockchain.Block
 
 func init() {
-	ThisServe = ":8585"
+	ThisServe = ":9595"
 	hash, err := Blockchain.LastHash("Start")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	BlockForTransaction, err = Blockchain.NewBlock(hash, "Start")
+	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
 	if err != nil {
 		log.Fatalln(err)
 	}

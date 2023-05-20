@@ -30,19 +30,19 @@ func goAddBlock(block *BlockHelp, result resultStruct, goAddr string) {
 }
 func goAddTransaction() {
 	Mutex.Lock()
-	goroutineBlock := *BlockForTransaction
+	goroutineBlock := BlockForTransaction
+	fmt.Println("====11=", goroutineBlock)
 	fmt.Println("====11=", goroutineBlock)
 	IsMining = true
 	Mutex.Unlock()
-	res := (&goroutineBlock).Accept(BreakMining)
+	res := (goroutineBlock).Accept(BreakMining)
 	Mutex.Lock()
-	fmt.Println("=====", res)
-	fmt.Println("=====", goroutineBlock.PrevHash)
-	fmt.Println("=====", BlockForTransaction.PrevHash)
+	//fmt.Println("=====", goroutineBlock.CurrHash)
+	//fmt.Println("=====", BlockForTransaction.CurrHash)
 	IsMining = false
-	if res == nil && strings.Compare(goroutineBlock.PrevHash, BlockForTransaction.PrevHash) != 0 {
+	if res == nil && strings.Compare(goroutineBlock.PrevHash, BlockForTransaction.PrevHash) == 0 {
 		fmt.Println("=====", 1)
-		err := Blockchain.AddBlock(&goroutineBlock)
+		err := Blockchain.AddBlock(goroutineBlock)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -53,7 +53,7 @@ func goAddTransaction() {
 		}
 		fmt.Println("=====", 3)
 		help := BlockHelp{
-			Block:   &goroutineBlock,
+			Block:   goroutineBlock,
 			Address: ThisServe,
 			Size:    size,
 		}
@@ -64,6 +64,14 @@ func goAddTransaction() {
 		fmt.Println("=====", 4)
 	}
 	fmt.Println("=====NOOOOOOOOOOOOOOOOOOOOO")
+	hash, err := Blockchain.LastHash("Start")
+	if err != nil {
+		log.Fatal(err)
+	}
+	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	if err != nil {
+		log.Fatal(err)
+	}
 	Mutex.Unlock()
 }
 func goCompare(address string) {
@@ -100,32 +108,31 @@ func AddBlock(pack *BlockHelp) (string, error) {
 	if currSize < num {
 		fmt.Println("inside")
 		go goCompare(pack.Address)
-		return "ok ", nil
+		return "ok", nil
 	}
 	Mutex.Lock()
 	fmt.Println("out")
-	err = Blockchain.AddBlock(block)
-	if err != nil {
-		return "", err
-	}
+	//err = Blockchain.AddBlock(block)
+	//if err != nil {
+	//	return "", err
+	//}
 	Mutex.Unlock()
 	if IsMining {
 		BreakMining <- true
 		IsMining = false
 	}
-	BlockForTransaction = nil
+	hash, err := Blockchain.LastHash("Start")
+	if err != nil {
+		return "", nil
+	}
+	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	if err != nil {
+		return "", nil
+	}
 	return "ok", nil
 }
 
 func AddTransaction(BlockTx *TransactionHelp) (string, error) {
-	//hash, err := Blockchain.LastHash(BlockTx.Master)
-	//if err != nil {
-	//	return "", err
-	//}
-	//BlockForTransaction, err = Blockchain.NewBlock(hash, BlockTx.Master)
-	//if err != nil {
-	//	return "", err
-	//}
 	if BlockTx.Tx == nil {
 		return "", errors.New("tx is empty")
 	}
@@ -147,7 +154,6 @@ func AddTransaction(BlockTx *TransactionHelp) (string, error) {
 
 func CompareChains(address string) error {
 	dbNode, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
-	//dbCompare, err := gorm.Open(sqlite.Open("Database/CompareDb.db"), &gorm.Config{})
 	if err != nil {
 		return err
 	}
@@ -164,7 +170,7 @@ func CompareChains(address string) error {
 	}
 	var arrayToMerge []*Blockchain.Chain
 	serializeGenesisBlock, err := Blockchain.SerializeBlock(someGenesis)
-	fmt.Println("--------2")
+	fmt.Println("--------00")
 	if err != nil {
 		return err
 	}
@@ -217,7 +223,14 @@ func CompareChains(address string) error {
 	//if errDelete.Error != nil {
 	//	return errDelete.Error
 	//}
-	BlockForTransaction = nil
+	hash, err := Blockchain.LastHash("Start")
+	if err != nil {
+		log.Fatal(err)
+	}
+	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	if err != nil {
+		log.Fatal(err)
+	}
 	Mutex.Unlock()
 	if IsMining {
 		BreakMining <- true

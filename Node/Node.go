@@ -28,7 +28,7 @@ type BlockHelp struct {
 	Address string            `form:"address" json:"address"`
 }
 type TransactionHelp struct {
-	Master string                  `form:"block" json:"block"`
+	Master string                  `form:"master" json:"master"`
 	Tx     *Blockchain.Transaction `form:"transaction" json:"transaction"`
 }
 type ArrayBlockHelp struct {
@@ -40,9 +40,18 @@ var IsMining bool
 var BreakMining = make(chan bool)
 var ThisServe string
 var OtherAddresses []*fastjson.Value
+var BlockForTransaction *Blockchain.Block
 
 func init() {
-	ThisServe = ":9595"
+	ThisServe = ":8585"
+	hash, err := Blockchain.LastHash("Start")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	BlockForTransaction, err = Blockchain.NewBlock(hash, "Start")
+	if err != nil {
+		log.Fatalln(err)
+	}
 	file, err := os.ReadFile("LowConf/addr.json")
 	if err != nil {
 		log.Fatalln(err)
@@ -129,8 +138,10 @@ func GinAddTransaction(c *gin.Context) {
 			gin.H{"error": err.Error()})
 		return
 	} else {
-		transaction, err := AddTransaction(input)
-		if err != nil {
+		transaction, errTx := AddTransaction(input)
+		if errTx != nil {
+			c.JSON(http.StatusBadRequest,
+				gin.H{"error": errTx.Error()})
 			return
 		}
 		c.JSON(200, gin.H{"AddTxStatus": transaction})

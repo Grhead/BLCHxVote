@@ -18,8 +18,6 @@ type resultStruct struct {
 	AddTxStatus string
 }
 
-var BlockForTransaction *Blockchain.Block
-
 func goAddBlock(block *BlockHelp, result resultStruct, goAddr string) {
 	client := req.C().DevMode()
 	_, err := client.R().
@@ -33,20 +31,27 @@ func goAddBlock(block *BlockHelp, result resultStruct, goAddr string) {
 func goAddTransaction() {
 	Mutex.Lock()
 	goroutineBlock := *BlockForTransaction
+	fmt.Println("====11=", goroutineBlock)
 	IsMining = true
 	Mutex.Unlock()
 	res := (&goroutineBlock).Accept(BreakMining)
 	Mutex.Lock()
+	fmt.Println("=====", res)
+	fmt.Println("=====", goroutineBlock.PrevHash)
+	fmt.Println("=====", BlockForTransaction.PrevHash)
 	IsMining = false
 	if res == nil && strings.Compare(goroutineBlock.PrevHash, BlockForTransaction.PrevHash) != 0 {
+		fmt.Println("=====", 1)
 		err := Blockchain.AddBlock(&goroutineBlock)
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println("=====", 2)
 		size, err := Blockchain.Size(goroutineBlock.ChainMaster)
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println("=====", 3)
 		help := BlockHelp{
 			Block:   &goroutineBlock,
 			Address: ThisServe,
@@ -56,7 +61,9 @@ func goAddTransaction() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println("=====", 4)
 	}
+	fmt.Println("=====NOOOOOOOOOOOOOOOOOOOOO")
 	Mutex.Unlock()
 }
 func goCompare(address string) {
@@ -67,10 +74,10 @@ func goCompare(address string) {
 }
 
 func pushBlockToNet(block *BlockHelp) error {
-	err := Blockchain.AddBlock(block.Block)
-	if err != nil {
-		log.Fatal(err)
-	}
+	//err := Blockchain.AddBlock(block.Block)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 	var result resultStruct
 	var returnErr error
 	for _, addr := range OtherAddresses {
@@ -111,25 +118,29 @@ func AddBlock(pack *BlockHelp) (string, error) {
 }
 
 func AddTransaction(BlockTx *TransactionHelp) (string, error) {
-	if BlockTx.Tx == nil || len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
+	//hash, err := Blockchain.LastHash(BlockTx.Master)
+	//if err != nil {
+	//	return "", err
+	//}
+	//BlockForTransaction, err = Blockchain.NewBlock(hash, BlockTx.Master)
+	//if err != nil {
+	//	return "", err
+	//}
+	if BlockTx.Tx == nil {
+		return "", errors.New("tx is empty")
+	}
+	if len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
 		return "", errors.New("transactions limit in blocks")
 	}
-	hash, err := Blockchain.LastHash(BlockTx.Master)
-	if err != nil {
-		return "", err
-	}
-	BlockForTransaction, err = Blockchain.NewBlock(hash, BlockTx.Master)
-	if err != nil {
-		return "", err
-	}
 	Mutex.Lock()
-	err = BlockForTransaction.AddTransaction(BlockTx.Tx)
+	err := BlockForTransaction.AddTransaction(BlockTx.Tx)
 	if err != nil {
 		return "", err
 	}
 	Mutex.Unlock()
+	fmt.Println(len(BlockForTransaction.Transactions))
 	if len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
-		goAddTransaction()
+		go goAddTransaction()
 	}
 	return "ok", nil
 }

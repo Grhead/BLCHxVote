@@ -28,8 +28,8 @@ type BlockHelp struct {
 	Address string            `form:"address" json:"address"`
 }
 type TransactionHelp struct {
-	Block *Blockchain.Block       `form:"block" json:"block"`
-	Tx    *Blockchain.Transaction `form:"transaction" json:"transaction"`
+	Master string                  `form:"master" json:"master"`
+	Tx     *Blockchain.Transaction `form:"transaction" json:"transaction"`
 }
 type ArrayBlockHelp struct {
 	Blocks []*Blockchain.Block `form:"blocks" json:"blocks"`
@@ -38,12 +38,20 @@ type ArrayBlockHelp struct {
 var Mutex sync.Mutex
 var IsMining bool
 var BreakMining = make(chan bool)
-var Block *Blockchain.Block
 var ThisServe string
 var OtherAddresses []*fastjson.Value
+var BlockForTransaction *Blockchain.Block
 
 func init() {
 	ThisServe = ":9595"
+	hash, err := Blockchain.LastHash("Start")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	file, err := os.ReadFile("LowConf/addr.json")
 	if err != nil {
 		log.Fatalln(err)
@@ -79,6 +87,7 @@ func main() {
 	router.POST("/getlasthash", GinGetLastHash)
 	router.POST("/getbalance", GinGetBalance)
 	router.POST("/getchainsize", GinGetChainSize)
+	router.GET("/getdb", GinGetDb)
 
 	router.POST("/netpush", GinPushBlockToNet)
 	err := router.Run(strings.Trim(ThisServe, "\""))
@@ -129,8 +138,10 @@ func GinAddTransaction(c *gin.Context) {
 			gin.H{"error": err.Error()})
 		return
 	} else {
-		transaction, err := AddTransaction(input)
-		if err != nil {
+		transaction, errTx := AddTransaction(input)
+		if errTx != nil {
+			c.JSON(http.StatusBadRequest,
+				gin.H{"error": errTx.Error()})
 			return
 		}
 		c.JSON(200, gin.H{"AddTxStatus": transaction})
@@ -143,7 +154,6 @@ func GinGetBlocks(c *gin.Context) {
 			gin.H{"error": err.Error()})
 		return
 	} else {
-		//var blockArray ArrayBlockHelp
 		blocks, errGet := GetBlocks(input)
 		if errGet != nil {
 			c.JSON(http.StatusBadRequest,
@@ -152,6 +162,13 @@ func GinGetBlocks(c *gin.Context) {
 		}
 		c.JSON(200, blocks)
 	}
+}
+func GinGetDb(c *gin.Context) {
+	db, err := Blockchain.GetFullDb()
+	if err != nil {
+		return
+	}
+	c.JSON(200, db)
 }
 func GinGetLastHash(c *gin.Context) {
 	var input *MasterHelp
@@ -206,7 +223,7 @@ func GinPushBlockToNet(c *gin.Context) {
 			gin.H{"error": err.Error()})
 		return
 	} else {
-		errBlock := PushBlockToNet(input)
+		errBlock := pushBlockToNet(input)
 		if errBlock != nil {
 			c.JSON(http.StatusBadRequest,
 				gin.H{"error": err.Error()})

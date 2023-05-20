@@ -28,48 +28,69 @@ func goAddBlock(block *BlockHelp, result resultStruct, goAddr string) {
 		log.Fatal(err)
 	}
 }
-func goAddTransaction(BlockTx *TransactionHelp) {
+func goAddTransaction() {
 	Mutex.Lock()
-	goroutineBlock := *BlockTx.Block
+	goroutineBlock := BlockForTransaction
+	fmt.Println("====11=", goroutineBlock)
+	fmt.Println("====11=", goroutineBlock)
 	IsMining = true
 	Mutex.Unlock()
-	res := (&goroutineBlock).Accept(BreakMining)
+	res := (goroutineBlock).Accept(BreakMining)
 	Mutex.Lock()
+	//fmt.Println("=====", goroutineBlock.CurrHash)
+	//fmt.Println("=====", BlockForTransaction.CurrHash)
 	IsMining = false
-	if res == nil && strings.Compare(goroutineBlock.PrevHash, Block.PrevHash) != 0 {
-		err := Blockchain.AddBlock(&goroutineBlock)
+	if res == nil && strings.Compare(goroutineBlock.PrevHash, BlockForTransaction.PrevHash) == 0 {
+		fmt.Println("=====", 1)
+		err := Blockchain.AddBlock(goroutineBlock)
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println("=====", 2)
 		size, err := Blockchain.Size(goroutineBlock.ChainMaster)
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println("=====", 3)
 		help := BlockHelp{
-			Block:   &goroutineBlock,
+			Block:   goroutineBlock,
 			Address: ThisServe,
 			Size:    size,
 		}
-		err = PushBlockToNet(&help)
+		err = pushBlockToNet(&help)
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println("=====", 4)
+	}
+	fmt.Println("=====NOOOOOOOOOOOOOOOOOOOOO")
+	hash, err := Blockchain.LastHash("Start")
+	if err != nil {
+		log.Fatal(err)
+	}
+	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	if err != nil {
+		log.Fatal(err)
 	}
 	Mutex.Unlock()
 }
-func goCompare(address string, chainMaster string) {
-	err := CompareChains(address, chainMaster)
+func goCompare(address string) {
+	err := CompareChains(address)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func PushBlockToNet(block *BlockHelp) error {
+func pushBlockToNet(block *BlockHelp) error {
+	//err := Blockchain.AddBlock(block.Block)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 	var result resultStruct
 	var returnErr error
 	for _, addr := range OtherAddresses {
 		goAddr := addr.String()
-		goAddBlock(block, result, goAddr)
+		go goAddBlock(block, result, goAddr)
 	}
 	if returnErr != nil {
 		return returnErr
@@ -86,88 +107,109 @@ func AddBlock(pack *BlockHelp) (string, error) {
 	num := pack.Size
 	if currSize < num {
 		fmt.Println("inside")
-		goCompare(pack.Address, block.ChainMaster)
-		return "ok ", nil
+		go goCompare(pack.Address)
+		return "ok", nil
 	}
 	Mutex.Lock()
-	err = Blockchain.AddBlock(block)
-	if err != nil {
-		return "", err
-	}
+	fmt.Println("out")
+	//err = Blockchain.AddBlock(block)
+	//if err != nil {
+	//	return "", err
+	//}
 	Mutex.Unlock()
 	if IsMining {
 		BreakMining <- true
 		IsMining = false
 	}
-
+	hash, err := Blockchain.LastHash("Start")
+	if err != nil {
+		return "", nil
+	}
+	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	if err != nil {
+		return "", nil
+	}
 	return "ok", nil
 }
 
 func AddTransaction(BlockTx *TransactionHelp) (string, error) {
-	if BlockTx.Tx == nil || len(BlockTx.Block.Transactions) == Blockchain.TxsLimit {
+	if BlockTx.Tx == nil {
+		return "", errors.New("tx is empty")
+	}
+	if len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
 		return "", errors.New("transactions limit in blocks")
 	}
 	Mutex.Lock()
-	err := BlockTx.Block.AddTransaction(BlockTx.Tx)
+	err := BlockForTransaction.AddTransaction(BlockTx.Tx)
 	if err != nil {
 		return "", err
 	}
 	Mutex.Unlock()
-	if len(BlockTx.Block.Transactions) == Blockchain.TxsLimit {
-		goAddTransaction(BlockTx)
+	fmt.Println(len(BlockForTransaction.Transactions))
+	if len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
+		go goAddTransaction()
 	}
 	return "ok", nil
 }
 
-func CompareChains(address string, master string) error {
+func CompareChains(address string) error {
 	dbNode, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
-	dbCompare, err := gorm.Open(sqlite.Open("Database/CompareDb.db"), &gorm.Config{})
 	if err != nil {
 		return err
 	}
 	var blocksResponse []*Blockchain.Block
-	var masterSend MasterHelp
-	masterSend.Master = master
 	client := req.C().DevMode()
-	_, err = client.R().
-		SetBody(&masterSend).
-		SetSuccessResult(&blocksResponse).
-		Post(fmt.Sprintf("http://%s/getblock", strings.Trim(address, "\"")))
+	_, err = client.R().SetSuccessResult(&blocksResponse).
+		Get(fmt.Sprintf("http://%s/getdb", strings.Trim(address, "\"")))
 	if err != nil {
 		return err
 	}
-	fmt.Println("================================================================================")
-	genesis := blocksResponse[0]
-	if strings.Compare(genesis.CurrHash, genesis.Hash()) != 0 {
+	someGenesis := blocksResponse[0]
+	if strings.Compare(someGenesis.CurrHash, someGenesis.Hash()) != 0 {
 		return errors.New("hashes are not the same")
 	}
-	err = Blockchain.AddBlockCompare(genesis)
+	var arrayToMerge []*Blockchain.Chain
+	serializeGenesisBlock, err := Blockchain.SerializeBlock(someGenesis)
+	fmt.Println("--------00")
 	if err != nil {
 		return err
 	}
-	size, err := Blockchain.Size(master)
-	if err != nil {
-		return err
+	genesisBlock := Blockchain.Chain{
+		Id:    uuid.NewString(),
+		Hash:  someGenesis.CurrHash,
+		Block: serializeGenesisBlock,
 	}
-	//TODO ERROR
-	for i := uint64(1); i < size; i++ {
-		block := blocksResponse[i]
-		if block == nil {
-			return errors.New("block is nil")
-		}
-		errAddBlock := Blockchain.AddBlockCompare(block)
-		if errAddBlock != nil {
-			return errAddBlock
+	arrayToMerge = append(arrayToMerge, &genesisBlock)
+	for _, v := range blocksResponse {
+		if v != blocksResponse[0] {
+			fmt.Println("--------", v)
+			if v == nil {
+				return errors.New("block is nil")
+			}
+			fmt.Println("--------1")
+			serializeBlock, err := Blockchain.SerializeBlock(v)
+			fmt.Println("--------2")
+			if err != nil {
+				return err
+			}
+			fmt.Println("--------3")
+			block := Blockchain.Chain{
+				Id:    uuid.NewString(),
+				Hash:  v.CurrHash,
+				Block: serializeBlock,
+			}
+			arrayToMerge = append(arrayToMerge, &block)
+			fmt.Println("--------4")
 		}
 	}
 	Mutex.Lock()
-	var blocks []*Blockchain.Chain
-	dbCompare.Find(&blocks)
-	//errDelete := dbNode.Exec("DELETE FROM Chains")
-	//if errDelete.Error != nil {
-	//	return errDelete.Error
-	//}
-	for _, v := range blocks {
+	//var blocks []*Blockchain.Chain
+	//dbCompare.Find(&blocks)
+	errDelete := dbNode.Exec("DELETE FROM Chains WHERE Id != 0")
+	if errDelete.Error != nil {
+		return errDelete.Error
+	}
+	for _, v := range arrayToMerge {
 		errInsert := dbNode.Exec("INSERT INTO Chains (Id, Hash, Block) VALUES ($1, $2, $3)",
 			uuid.NewString(),
 			v.Hash,
@@ -181,14 +223,14 @@ func CompareChains(address string, master string) error {
 	//if errDelete.Error != nil {
 	//	return errDelete.Error
 	//}
-	//lastHash, err := Blockchain.LastHash(Block.ChainMaster)
-	//if err != nil {
-	//	return err
-	//}
-	//Block, err = Blockchain.NewBlock(Block.CurrHash, lastHash)
-	//if err != nil {
-	//	return err
-	//}
+	hash, err := Blockchain.LastHash("Start")
+	if err != nil {
+		log.Fatal(err)
+	}
+	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	if err != nil {
+		log.Fatal(err)
+	}
 	Mutex.Unlock()
 	if IsMining {
 		BreakMining <- true

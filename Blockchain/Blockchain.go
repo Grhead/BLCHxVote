@@ -377,7 +377,6 @@ func GenerateKey() (string, error) {
 }
 
 func GetFullChain(master string) ([]*Block, error) {
-	//db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
 	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
@@ -395,6 +394,41 @@ func GetFullChain(master string) ([]*Block, error) {
 		}
 	}
 	return resultMasterBlocks, nil
+}
+
+func GetFullDb() ([]*Block, error) {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	var blocks []*Chain
+	var resultMasterBlocks []*Block
+	db.Find(&blocks)
+	for _, v := range blocks {
+		desBlock, err := DeserializeBlock(v.Block)
+		if err != nil {
+			return nil, err
+		}
+		resultMasterBlocks = append(resultMasterBlocks, desBlock)
+	}
+	return resultMasterBlocks, nil
+}
+
+func DbSize() (uint64, error) {
+	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	if err != nil {
+		return 0, err
+	}
+	var index uint64
+	var blocks []*Chain
+	db.Find(&blocks)
+	for _, _ = range blocks {
+		if err != nil {
+			return 0, err
+		}
+		index++
+	}
+	return index, nil
 }
 
 func GetBlock(uuidR uuid.UUID) (uuid.UUID, *Block, error) {

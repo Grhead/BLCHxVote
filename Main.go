@@ -3,8 +3,6 @@ package main
 import (
 	"VOX2/Blockchain"
 	"fmt"
-	"github.com/imroc/req/v3"
-	"strings"
 )
 
 type BlockHelp struct {
@@ -17,16 +15,23 @@ type re struct {
 }
 
 func main() {
-	master := "bulk"
-	var blocksResponse []*Blockchain.Block
-	client := req.C().DevMode()
-	_, err := client.R().
-		SetBody(&master).
-		SetSuccessResult(&blocksResponse).
-		Post(fmt.Sprintf("http://%s/getblock", strings.Trim("localhost:9595", "\"")))
+	db, err := Blockchain.GetFullDb()
 	if err != nil {
-		panic(err)
+		return
 	}
+	for _, v := range db {
+		fmt.Println(v)
+	}
+	//master := "bulk"
+	//var blocksResponse []*Blockchain.Block
+	//client := req.C().DevMode()
+	//_, err := client.R().
+	//	SetBody(&master).
+	//	SetSuccessResult(&blocksResponse).
+	//	Post(fmt.Sprintf("http://%s/getblock", strings.Trim("localhost:9595", "\"")))
+	//if err != nil {
+	//	panic(err)
+	//}
 	/*viper.SetConfigFile("LowConf/config.env")
 	err9 := viper.ReadInConfig()
 	if err9 != nil {

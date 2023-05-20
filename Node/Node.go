@@ -28,8 +28,8 @@ type BlockHelp struct {
 	Address string            `form:"address" json:"address"`
 }
 type TransactionHelp struct {
-	Block *Blockchain.Block       `form:"block" json:"block"`
-	Tx    *Blockchain.Transaction `form:"transaction" json:"transaction"`
+	Master string                  `form:"block" json:"block"`
+	Tx     *Blockchain.Transaction `form:"transaction" json:"transaction"`
 }
 type ArrayBlockHelp struct {
 	Blocks []*Blockchain.Block `form:"blocks" json:"blocks"`
@@ -38,12 +38,11 @@ type ArrayBlockHelp struct {
 var Mutex sync.Mutex
 var IsMining bool
 var BreakMining = make(chan bool)
-var Block *Blockchain.Block
 var ThisServe string
 var OtherAddresses []*fastjson.Value
 
 func init() {
-	ThisServe = ":9595"
+	ThisServe = ":8585"
 	file, err := os.ReadFile("LowConf/addr.json")
 	if err != nil {
 		log.Fatalln(err)
@@ -213,7 +212,7 @@ func GinPushBlockToNet(c *gin.Context) {
 			gin.H{"error": err.Error()})
 		return
 	} else {
-		errBlock := PushBlockToNet(input)
+		errBlock := pushBlockToNet(input)
 		if errBlock != nil {
 			c.JSON(http.StatusBadRequest,
 				gin.H{"error": err.Error()})

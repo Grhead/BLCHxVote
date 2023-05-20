@@ -18,6 +18,8 @@ type resultStruct struct {
 	AddTxStatus string
 }
 
+var BlockForTransaction *Blockchain.Block
+
 func goAddBlock(block *BlockHelp, result resultStruct, goAddr string) {
 	client := req.C().DevMode()
 	_, err := client.R().
@@ -28,15 +30,15 @@ func goAddBlock(block *BlockHelp, result resultStruct, goAddr string) {
 		log.Fatal(err)
 	}
 }
-func goAddTransaction(BlockTx *TransactionHelp) {
+func goAddTransaction() {
 	Mutex.Lock()
-	goroutineBlock := *BlockTx.Block
+	goroutineBlock := *BlockForTransaction
 	IsMining = true
 	Mutex.Unlock()
 	res := (&goroutineBlock).Accept(BreakMining)
 	Mutex.Lock()
 	IsMining = false
-	if res == nil && strings.Compare(goroutineBlock.PrevHash, Block.PrevHash) != 0 {
+	if res == nil && strings.Compare(goroutineBlock.PrevHash, BlockForTransaction.PrevHash) != 0 {
 		err := Blockchain.AddBlock(&goroutineBlock)
 		if err != nil {
 			log.Fatal(err)
@@ -50,7 +52,7 @@ func goAddTransaction(BlockTx *TransactionHelp) {
 			Address: ThisServe,
 			Size:    size,
 		}
-		err = PushBlockToNet(&help)
+		err = pushBlockToNet(&help)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -64,7 +66,7 @@ func goCompare(address string, chainMaster string) {
 	}
 }
 
-func PushBlockToNet(block *BlockHelp) error {
+func pushBlockToNet(block *BlockHelp) error {
 	var result resultStruct
 	var returnErr error
 	for _, addr := range OtherAddresses {
@@ -90,6 +92,7 @@ func AddBlock(pack *BlockHelp) (string, error) {
 		return "ok ", nil
 	}
 	Mutex.Lock()
+	fmt.Println("out")
 	err = Blockchain.AddBlock(block)
 	if err != nil {
 		return "", err
@@ -99,22 +102,30 @@ func AddBlock(pack *BlockHelp) (string, error) {
 		BreakMining <- true
 		IsMining = false
 	}
-
+	BlockForTransaction = nil
 	return "ok", nil
 }
 
 func AddTransaction(BlockTx *TransactionHelp) (string, error) {
-	if BlockTx.Tx == nil || len(BlockTx.Block.Transactions) == Blockchain.TxsLimit {
+	if BlockTx.Tx == nil || len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
 		return "", errors.New("transactions limit in blocks")
 	}
+	hash, err := Blockchain.LastHash(BlockTx.Master)
+	if err != nil {
+		return "", err
+	}
+	BlockForTransaction, err = Blockchain.NewBlock(hash, BlockTx.Master)
+	if err != nil {
+		return "", err
+	}
 	Mutex.Lock()
-	err := BlockTx.Block.AddTransaction(BlockTx.Tx)
+	err = BlockForTransaction.AddTransaction(BlockTx.Tx)
 	if err != nil {
 		return "", err
 	}
 	Mutex.Unlock()
-	if len(BlockTx.Block.Transactions) == Blockchain.TxsLimit {
-		goAddTransaction(BlockTx)
+	if len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
+		goAddTransaction()
 	}
 	return "ok", nil
 }
@@ -126,15 +137,17 @@ func CompareChains(address string, master string) error {
 		return err
 	}
 	var blocksResponse []*Blockchain.Block
-	var masterSend MasterHelp
-	masterSend.Master = master
 	client := req.C().DevMode()
 	_, err = client.R().SetSuccessResult(&blocksResponse).
 		Get(fmt.Sprintf("http://%s/getdb", strings.Trim(address, "\"")))
 	if err != nil {
 		return err
 	}
-	fmt.Println("================================================================================")
+	size, err := Blockchain.DbSize()
+	if err != nil {
+		return err
+	}
+
 	someGenesis := blocksResponse[0]
 	if strings.Compare(someGenesis.CurrHash, someGenesis.Hash()) != 0 {
 		return errors.New("hashes are not the same")
@@ -143,11 +156,8 @@ func CompareChains(address string, master string) error {
 	if err != nil {
 		return err
 	}
-	size, err := Blockchain.DbSize()
-	if err != nil {
-		return err
-	}
 	for i := uint64(1); i < size; i++ {
+		fmt.Println("--------", i)
 		block := blocksResponse[i]
 		if block == nil {
 			return errors.New("block is nil")
@@ -178,14 +188,7 @@ func CompareChains(address string, master string) error {
 	if errDelete.Error != nil {
 		return errDelete.Error
 	}
-	//lastHash, err := Blockchain.LastHash(Block.ChainMaster)
-	//if err != nil {
-	//	return err
-	//}
-	//Block, err = Blockchain.NewBlock(Block.CurrHash, lastHash)
-	//if err != nil {
-	//	return err
-	//}
+	BlockForTransaction = nil
 	Mutex.Unlock()
 	if IsMining {
 		BreakMining <- true

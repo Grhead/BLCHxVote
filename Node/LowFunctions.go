@@ -13,34 +13,16 @@ import (
 	"strings"
 )
 
-func NewChain(chainMaster string, count uint64) (string, error) {
-	genesis, err := Blockchain.NewChain(count, chainMaster)
-	if err != nil {
-		return "", nil
-	}
-	return genesis.CurrHash, nil
-}
-
 func PushBlockToNet(block *Blockchain.Block) error {
 	serialBlock, err := Blockchain.SerializeBlock(block)
 	if err != nil {
 		return err
 	}
-	//chainSizeForMsg, err := Blockchain.Size(block.ChainMaster)
-	//if err != nil {
-	//	return err
-	//}
-	//var msg = ThisServe +
-	//	LowConf.Separator +
-	//	fmt.Sprintf("%s", block.ChainMaster) +
-	//	LowConf.Separator +
-	//	fmt.Sprintf("%d", chainSizeForMsg) +
-	//	LowConf.Separator +
-	//	serialBlock
 	for _, addr := range OtherAddresses {
 		goAddr := addr.String()
 		go func() {
-			resp, err := http.Post(fmt.Sprintf("https:/%s/addblock", goAddr),
+			fmt.Println("HERE")
+			resp, err := http.Post(fmt.Sprintf("http://%s/addblock", goAddr),
 				"application/json",
 				bytes.NewBuffer([]byte(serialBlock)))
 			if err != nil {
@@ -68,6 +50,7 @@ func AddBlock(pack *BlockHelp) (string, error) {
 		return "", err
 	}
 	num := pack.Size
+	fmt.Println("currSIZE")
 	if currSize < num {
 		go func() {
 			//err := CompareChains(pack.Address, block.ChainMaster)
@@ -80,20 +63,19 @@ func AddBlock(pack *BlockHelp) (string, error) {
 		}
 		return "ok ", nil
 	}
-
 	Mutex.Lock()
 	err = Blockchain.AddBlock(block)
 	if err != nil {
 		return "", err
 	}
-	lastHash, err := Blockchain.LastHash(block.ChainMaster)
-	if err != nil {
-		return "", err
-	}
-	Block, err = Blockchain.NewBlock(block.CurrHash, lastHash)
-	if err != nil {
-		return "", err
-	}
+	//lastHash, err := Blockchain.LastHash(block.ChainMaster)
+	//if err != nil {
+	//	return "", err
+	//}
+	//Block, err = Blockchain.NewBlock(block.CurrHash, lastHash)
+	//if err != nil {
+	//	return "", err
+	//}
 	Mutex.Unlock()
 	if IsMining {
 		BreakMining <- true
@@ -103,43 +85,43 @@ func AddBlock(pack *BlockHelp) (string, error) {
 	return "ok", nil
 }
 
-func AddTransaction(tx *Blockchain.Transaction) (string, error) {
-	if tx == nil || len(Block.Transactions) == Blockchain.TxsLimit {
+func AddTransaction(BlockTx *TransactionHelp) (string, error) {
+	if BlockTx.Tx == nil || len(BlockTx.Block.Transactions) == Blockchain.TxsLimit {
 		return "", errors.New("transactions limit in blocks")
 	}
 	Mutex.Lock()
-	err := Block.AddTransaction(tx)
+	err := BlockTx.Block.AddTransaction(BlockTx.Tx)
 	if err != nil {
 		return "", err
 	}
 	Mutex.Unlock()
-	if len(Block.Transactions) == Blockchain.TxsLimit {
+	if len(BlockTx.Block.Transactions) == Blockchain.TxsLimit {
 		go func() {
 			Mutex.Lock()
-			block := *Block
+			goroutineBlock := *BlockTx.Block
 			IsMining = true
 			Mutex.Unlock()
-			res := (&block).Accept(BreakMining)
+			res := (&goroutineBlock).Accept(BreakMining)
 			Mutex.Lock()
 			IsMining = false
-			if res == nil && strings.Compare(block.PrevHash, Block.PrevHash) != 0 {
-				err = Blockchain.AddBlock(&block)
+			if res == nil && strings.Compare(goroutineBlock.PrevHash, Block.PrevHash) != 0 {
+				err = Blockchain.AddBlock(&goroutineBlock)
 				if err != nil {
 					return
 				}
-				err := PushBlockToNet(&block)
+				err := PushBlockToNet(&goroutineBlock)
 				if err != nil {
 					return
 				}
 			}
-			lastHash, err := Blockchain.LastHash(Block.ChainMaster)
-			if err != nil {
-				return
-			}
-			Block, err = Blockchain.NewBlock(Block.CurrHash, lastHash)
-			if err != nil {
-				return
-			}
+			//lastHash, err := Blockchain.LastHash(Block.ChainMaster)
+			//if err != nil {
+			//	return
+			//}
+			//Block, err = Blockchain.NewBlock(Block.CurrHash, lastHash)
+			//if err != nil {
+			//	return
+			//}
 			Mutex.Unlock()
 		}()
 	}
@@ -153,7 +135,7 @@ func AddTransaction(tx *Blockchain.Transaction) (string, error) {
 		if err != nil {
 			return err
 		}
-		resp, err := http.Post(fmt.Sprintf("https:/%s/getblock", address),
+		resp, err := http.Post(fmt.Sprintf("http://%s/getblock", address),
 			"application/json",
 			bytes.NewBuffer([]byte(master)))
 		if err != nil {
@@ -249,6 +231,15 @@ func AddTransaction(tx *Blockchain.Transaction) (string, error) {
 		return nil
 	}
 */
+
+func NewChain(chainMaster string, count uint64) (string, error) {
+	genesis, err := Blockchain.NewChain(count, chainMaster)
+	if err != nil {
+		return "", nil
+	}
+	return genesis.CurrHash, nil
+}
+
 func GetBlocks(pack *MasterHelp) ([]*Blockchain.Block, error) {
 	blocks, err := Blockchain.GetFullChain(pack.Master)
 	if err != nil {
@@ -263,6 +254,7 @@ func GetBlocks(pack *MasterHelp) ([]*Blockchain.Block, error) {
 func GetLastHash(pack *MasterHelp) (string, error) {
 	return Blockchain.LastHash(pack.Master)
 }
+
 func GetBalance(pack *UserHelp) (string, error) {
 	log.Println("Get-Balance")
 	balance, err := Blockchain.Balance(pack.User)
@@ -271,6 +263,7 @@ func GetBalance(pack *UserHelp) (string, error) {
 	}
 	return strconv.FormatUint(balance, 10), nil
 }
+
 func GetChainSize(pack *MasterHelp) (string, error) {
 	size, err := Blockchain.Size(pack.Master)
 	if err != nil {

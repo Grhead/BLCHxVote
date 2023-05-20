@@ -154,7 +154,6 @@ func LastHash(master string) (string, error) {
 		return blocks[i].TimeStamp.AsTime().After(blocks[j].TimeStamp.AsTime())
 	})
 	for _, v := range blocks {
-		fmt.Println(v)
 		if v.ChainMaster == master {
 			hash = v.CurrHash
 			break

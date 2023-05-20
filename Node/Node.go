@@ -2,7 +2,7 @@ package main
 
 import (
 	"VOX2/Blockchain"
-	"fmt"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/valyala/fastjson"
 	"log"
@@ -23,9 +23,13 @@ type UserHelp struct {
 	User string `form:"user" json:"user"`
 }
 type BlockHelp struct {
-	Block   *Blockchain.Block `form:"user" json:"block"`
+	Block   *Blockchain.Block `form:"block" json:"block"`
 	Size    uint64            `form:"size" json:"size"`
 	Address string            `form:"address" json:"address"`
+}
+type TransactionHelp struct {
+	Block *Blockchain.Block       `form:"block" json:"block"`
+	Tx    *Blockchain.Transaction `form:"transaction" json:"transaction"`
 }
 
 var Mutex sync.Mutex
@@ -35,24 +39,8 @@ var Block *Blockchain.Block
 var ThisServe string
 var OtherAddresses []*fastjson.Value
 
-// TODO --CreateNewChain	// TODO NewChain
-// TODO --CompareChains		// TODO NewBlock
-// TODO --PushBlockToNet	// TODO NewTransaction
-// TODO --AddBlock			// TODO NewTransactionFromChain
-// TODO --AddTransaction	// TODO --LastHash
-// TODO --GetBlock_const	// TODO AddBlock
-// TODO --GetLastHash		// TODO NewDormantUser
-// TODO --GetBalance		// TODO LoadToEnterAlreadyUser
-// TODO --GetChainSize		// TODO NewPublicKeyItem
-// TODO __SelectBlock		// TODO NewCandidate
-// TODO __HashBlock			// TODO Size
-// TODO __CopyFile			// TODO Balance
-
-// TODO RegisterGeneratePrivate
-// TODO GenerateKey
-
 func init() {
-	ThisServe = ":7575"
+	ThisServe = ":8585"
 	file, err := os.ReadFile("LowConf/addr.json")
 	if err != nil {
 		log.Fatalln(err)
@@ -63,7 +51,6 @@ func init() {
 		log.Fatalln(err)
 	}
 	OtherAddresses = v.GetArray("addresses")
-	fmt.Println(OtherAddresses)
 	for i, v := range OtherAddresses {
 		if strings.Contains(v.String(), ThisServe) {
 			func(slice []*fastjson.Value, s int) []*fastjson.Value {
@@ -71,23 +58,17 @@ func init() {
 			}(OtherAddresses, i)
 		}
 	}
-	fmt.Println(OtherAddresses)
 }
 
 func main() {
 	router := gin.Default()
-	//router.Use(cors.New(cors.Config{
-	//	AllowAllOrigins:  true,
-	//	AllowMethods:     []string{"PUT", "PATCH", "POST", "GET", "DELETE"},
-	//	AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept-Encoding"},
-	//	ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials", "Access-Control-Allow-Headers", "Access-Control-Allow-Methods"},
-	//	AllowCredentials: true,
-	//}))
-	router.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
+	router.Use(cors.New(cors.Config{
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"PUT", "PATCH", "POST", "GET", "DELETE"},
+		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept-Encoding"},
+		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials", "Access-Control-Allow-Headers", "Access-Control-Allow-Methods"},
+		AllowCredentials: true,
+	}))
 	router.POST("/newchain", GinNewChain)
 	router.POST("/addblock", GinAddBlock)
 	router.POST("/addtx", GinAddTransaction)
@@ -97,10 +78,9 @@ func main() {
 	router.POST("/getchainsize", GinGetChainSize)
 
 	router.POST("/netpush", GinPushBlockToNet)
-	fmt.Println(strings.Trim(ThisServe, "\""))
-	err := router.Run(":8585")
-
+	err := router.Run(strings.Trim(ThisServe, "\""))
 	if err != nil {
+		log.Fatalln(err)
 		return
 	}
 }
@@ -140,7 +120,7 @@ func GinAddBlock(c *gin.Context) {
 }
 
 func GinAddTransaction(c *gin.Context) {
-	var input *Blockchain.Transaction
+	var input *TransactionHelp
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest,
 			gin.H{"error": err.Error()})

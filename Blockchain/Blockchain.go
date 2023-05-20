@@ -377,6 +377,7 @@ func GenerateKey() (string, error) {
 }
 
 func GetFullChain(master string) ([]*Block, error) {
+	//db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
 	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err

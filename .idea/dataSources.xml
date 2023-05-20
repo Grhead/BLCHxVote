@@ -22,5 +22,12 @@
       <jdbc-url>jdbc:sqlite:C:\Users\forda\GolandProjects\VOX2\Database\CompareDb.db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="CompareDb.db [2]" uuid="d6ed188a-6ff3-48b5-aa1b-2e9f48902c09">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:C:\Users\forda\Desktop\Новая папка (2)\Database\CompareDb.db</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

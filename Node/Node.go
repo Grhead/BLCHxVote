@@ -79,6 +79,7 @@ func main() {
 	router.POST("/getlasthash", GinGetLastHash)
 	router.POST("/getbalance", GinGetBalance)
 	router.POST("/getchainsize", GinGetChainSize)
+	router.GET("/getdb", GinGetDb)
 
 	router.POST("/netpush", GinPushBlockToNet)
 	err := router.Run(strings.Trim(ThisServe, "\""))
@@ -143,7 +144,6 @@ func GinGetBlocks(c *gin.Context) {
 			gin.H{"error": err.Error()})
 		return
 	} else {
-		//var blockArray ArrayBlockHelp
 		blocks, errGet := GetBlocks(input)
 		if errGet != nil {
 			c.JSON(http.StatusBadRequest,
@@ -152,6 +152,13 @@ func GinGetBlocks(c *gin.Context) {
 		}
 		c.JSON(200, blocks)
 	}
+}
+func GinGetDb(c *gin.Context) {
+	db, err := Blockchain.GetFullDb()
+	if err != nil {
+		return
+	}
+	c.JSON(200, db)
 }
 func GinGetLastHash(c *gin.Context) {
 	var input *MasterHelp

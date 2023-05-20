@@ -129,27 +129,24 @@ func CompareChains(address string, master string) error {
 	var masterSend MasterHelp
 	masterSend.Master = master
 	client := req.C().DevMode()
-	_, err = client.R().
-		SetBody(&masterSend).
-		SetSuccessResult(&blocksResponse).
-		Post(fmt.Sprintf("http://%s/getblock", strings.Trim(address, "\"")))
+	_, err = client.R().SetSuccessResult(&blocksResponse).
+		Get(fmt.Sprintf("http://%s/getdb", strings.Trim(address, "\"")))
 	if err != nil {
 		return err
 	}
 	fmt.Println("================================================================================")
-	genesis := blocksResponse[0]
-	if strings.Compare(genesis.CurrHash, genesis.Hash()) != 0 {
+	someGenesis := blocksResponse[0]
+	if strings.Compare(someGenesis.CurrHash, someGenesis.Hash()) != 0 {
 		return errors.New("hashes are not the same")
 	}
-	err = Blockchain.AddBlockCompare(genesis)
+	err = Blockchain.AddBlockCompare(someGenesis)
 	if err != nil {
 		return err
 	}
-	size, err := Blockchain.Size(master)
+	size, err := Blockchain.DbSize()
 	if err != nil {
 		return err
 	}
-	//TODO ERROR
 	for i := uint64(1); i < size; i++ {
 		block := blocksResponse[i]
 		if block == nil {
@@ -163,10 +160,10 @@ func CompareChains(address string, master string) error {
 	Mutex.Lock()
 	var blocks []*Blockchain.Chain
 	dbCompare.Find(&blocks)
-	//errDelete := dbNode.Exec("DELETE FROM Chains")
-	//if errDelete.Error != nil {
-	//	return errDelete.Error
-	//}
+	errDelete := dbNode.Exec("DELETE FROM Chains")
+	if errDelete.Error != nil {
+		return errDelete.Error
+	}
 	for _, v := range blocks {
 		errInsert := dbNode.Exec("INSERT INTO Chains (Id, Hash, Block) VALUES ($1, $2, $3)",
 			uuid.NewString(),
@@ -177,10 +174,10 @@ func CompareChains(address string, master string) error {
 			return errInsert.Error
 		}
 	}
-	//errDelete = dbCompare.Exec("DELETE FROM Chains")
-	//if errDelete.Error != nil {
-	//	return errDelete.Error
-	//}
+	errDelete = dbCompare.Exec("DELETE FROM Chains")
+	if errDelete.Error != nil {
+		return errDelete.Error
+	}
 	//lastHash, err := Blockchain.LastHash(Block.ChainMaster)
 	//if err != nil {
 	//	return err

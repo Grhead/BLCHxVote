@@ -38,7 +38,6 @@ func LastHashCompare(master string) (string, error) {
 }
 
 func AddBlockCompare(block *Block) error {
-	//db, err := gorm.Open(sqlite.Open("Database/CompareDb.db"), &gorm.Config{})
 	db, err := gorm.Open(sqlite.Open("Database/CompareDb.db"), &gorm.Config{})
 	if err != nil {
 		return err

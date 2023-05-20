@@ -2,43 +2,42 @@ package main
 
 import (
 	"VOX2/Blockchain"
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
+	"github.com/imroc/req/v3"
 	"log"
-	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 )
 
-func PushBlockToNet(block *Blockchain.Block) error {
-	serialBlock, err := Blockchain.SerializeBlock(block)
-	if err != nil {
-		return err
+func PushBlockToNet(block *BlockHelp) error {
+	type resultStruct struct {
+		AddTxStatus string
 	}
+	var result resultStruct
+	var returnErr error
 	for _, addr := range OtherAddresses {
 		goAddr := addr.String()
 		go func() {
-			fmt.Println("HERE")
-			resp, err := http.Post(fmt.Sprintf("http://%s/addblock", goAddr),
-				"application/json",
-				bytes.NewBuffer([]byte(serialBlock)))
-			if err != nil {
+			client := req.C().DevMode()
+			resp, err := client.R().
+				SetBody(&block).
+				SetSuccessResult(&result).
+				Post(fmt.Sprintf("http://%s/addblock", strings.Trim(goAddr, "\"")))
+			fmt.Println(resp.Status)
+			if err != nil && !strings.Contains(err.Error(), "No connection could be made because the target machine actively refused it.") {
+				returnErr = err
 				return
 			}
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				if err != nil {
-					return
-				}
-			}(resp.Body)
 		}()
 		//_, err := Network.Send(goAddr, &Network.Package{
 		//	Option: LowConf.AddBlockConst,
 		//	Data:   msg,
 		//})
+	}
+	if returnErr != nil {
+		return returnErr
 	}
 	return nil
 }
@@ -109,8 +108,17 @@ func AddTransaction(BlockTx *TransactionHelp) (string, error) {
 				if err != nil {
 					return
 				}
-				err := PushBlockToNet(&goroutineBlock)
+				size, err := Blockchain.Size(goroutineBlock.ChainMaster)
 				if err != nil {
+					return
+				}
+				help := BlockHelp{
+					Block:   &goroutineBlock,
+					Address: ThisServe,
+					Size:    size,
+				}
+				errPBTN := PushBlockToNet(&help)
+				if errPBTN != nil {
 					return
 				}
 			}

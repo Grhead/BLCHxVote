@@ -2,12 +2,19 @@ package main
 
 import (
 	"VOX2/Blockchain"
-	"bytes"
 	"fmt"
-	"github.com/valyala/fastjson"
-	"io"
-	"net/http"
+	"github.com/imroc/req/v3"
+	"log"
 )
+
+type BlockHelp struct {
+	Block   *Blockchain.Block `form:"block" json:"block"`
+	Size    uint64            `form:"size" json:"size"`
+	Address string            `form:"address" json:"address"`
+}
+type re struct {
+	AddTxStatus string
+}
 
 func main() {
 	/*viper.SetConfigFile("LowConf/config.env")
@@ -17,17 +24,17 @@ func main() {
 		return
 	}*/
 	item11, err := Blockchain.NewPublicKeyItem("motor")
-	err = Blockchain.NewDormantUser("pass1")
+	err = Blockchain.NewDormantUser("pass1333")
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
-	_, err = Blockchain.RegisterGeneratePrivate("pass1", "salt1", item11.Address())
+	_, err = Blockchain.RegisterGeneratePrivate("pass1333", "salt1", item11.Address())
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
-	tx1, err := Blockchain.NewTransactionFromChain("motor", item11, 1)
+	tx1, err := Blockchain.NewTransactionFromChain("motor", item11, 100)
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
@@ -51,27 +58,25 @@ func main() {
 	if err != nil {
 		return
 	}
-	serialBlock, err := Blockchain.SerializeBlock(block)
+	var qwe BlockHelp
+	qwe.Block = block
+	i, _ := Blockchain.Size("water")
+	qwe.Size = i
+	qwe.Address = "9595"
+	//client := req.C().DevMode()
+	var result re
+	client := req.C().DevMode()
+	resp, err := client.R().
+		SetBody(&qwe).
+		SetSuccessResult(&result).
+		Post("http://localhost:8585/addblock")
 	if err != nil {
-		fmt.Println(err)
-		panic(err)
+		log.Fatal(err)
 	}
-	jsonBody := []byte(serialBlock)
-	bodyReader := bytes.NewReader(jsonBody)
-
-	requestURL := fmt.Sprintf("http://%s/addblock", ":8585")
-	req, err := http.NewRequest(http.MethodPost, requestURL, bodyReader)
-
-	var p fastjson.Parser
-	body, err := io.ReadAll(req.Body)
-	res0, err := p.Parse(string(body))
-	fmt.Println(res0.GetStringBytes("BlockAddStatus"))
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			return
-		}
-	}(req.Body)
+	if !resp.IsSuccessState() {
+		fmt.Println("bad response status:", resp.Status)
+		return
+	}
 	//balance, err := Basic.PrintBalance("895838c26839afb0b9998236edf80ad335f4d5607c3e709b019193d9e6c55cde")
 	//if err != nil {
 	//	fmt.Println(balance, err)

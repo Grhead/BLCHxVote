@@ -40,7 +40,7 @@ var ThisServe string
 var OtherAddresses []*fastjson.Value
 
 func init() {
-	ThisServe = ":8585"
+	ThisServe = ":9595"
 	file, err := os.ReadFile("LowConf/addr.json")
 	if err != nil {
 		log.Fatalln(err)
@@ -196,7 +196,7 @@ func GinGetChainSize(c *gin.Context) {
 	}
 }
 func GinPushBlockToNet(c *gin.Context) {
-	var input *Blockchain.Block
+	var input *BlockHelp
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest,
 			gin.H{"error": err.Error()})

@@ -31,6 +31,9 @@ type TransactionHelp struct {
 	Block *Blockchain.Block       `form:"block" json:"block"`
 	Tx    *Blockchain.Transaction `form:"transaction" json:"transaction"`
 }
+type ArrayBlockHelp struct {
+	Blocks []*Blockchain.Block `form:"blocks" json:"blocks"`
+}
 
 var Mutex sync.Mutex
 var IsMining bool
@@ -140,6 +143,7 @@ func GinGetBlocks(c *gin.Context) {
 			gin.H{"error": err.Error()})
 		return
 	} else {
+		//var blockArray ArrayBlockHelp
 		blocks, errGet := GetBlocks(input)
 		if errGet != nil {
 			c.JSON(http.StatusBadRequest,

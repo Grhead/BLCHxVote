@@ -15,5 +15,12 @@
       <jdbc-url>jdbc:sqlite:C:\Users\forda\Desktop\Новая папка (2)\Database\NodeDb.db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="CompareDb.db" uuid="85f9f42e-23dd-42c7-abd1-5888c822f204">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:C:\Users\forda\GolandProjects\VOX2\Database\CompareDb.db</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

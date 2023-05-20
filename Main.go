@@ -4,7 +4,7 @@ import (
 	"VOX2/Blockchain"
 	"fmt"
 	"github.com/imroc/req/v3"
-	"log"
+	"strings"
 )
 
 type BlockHelp struct {
@@ -17,66 +17,76 @@ type re struct {
 }
 
 func main() {
+	master := "bulk"
+	var blocksResponse []*Blockchain.Block
+	client := req.C().DevMode()
+	_, err := client.R().
+		SetBody(&master).
+		SetSuccessResult(&blocksResponse).
+		Post(fmt.Sprintf("http://%s/getblock", strings.Trim("localhost:9595", "\"")))
+	if err != nil {
+		panic(err)
+	}
 	/*viper.SetConfigFile("LowConf/config.env")
 	err9 := viper.ReadInConfig()
 	if err9 != nil {
 		fmt.Println(err9)
 		return
 	}*/
-	item11, err := Blockchain.NewPublicKeyItem("motor")
-	err = Blockchain.NewDormantUser("pass1333")
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	}
-	_, err = Blockchain.RegisterGeneratePrivate("pass1333", "salt1", item11.Address())
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	}
-	tx1, err := Blockchain.NewTransactionFromChain("motor", item11, 100)
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	}
-
-	lh, err := Blockchain.LastHash("water")
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	}
-	block, err := Blockchain.NewBlock(lh, "water")
-	if err != nil {
-		fmt.Println(err)
-		panic(err)
-	}
-	err = block.AddTransaction(tx1)
-	if err != nil {
-		return
-	}
-	err = block.Accept(make(chan bool))
-	if err != nil {
-		return
-	}
-	var qwe BlockHelp
-	qwe.Block = block
-	i, _ := Blockchain.Size("water")
-	qwe.Size = i
-	qwe.Address = "9595"
+	//item11, err := Blockchain.NewPublicKeyItem("motor")
+	//err = Blockchain.NewDormantUser("pass1333")
+	//if err != nil {
+	//	fmt.Println(err)
+	//	panic(err)
+	//}
+	//_, err = Blockchain.RegisterGeneratePrivate("pass1333", "salt1", item11.Address())
+	//if err != nil {
+	//	fmt.Println(err)
+	//	panic(err)
+	//}
+	//tx1, err := Blockchain.NewTransactionFromChain("motor", item11, 100)
+	//if err != nil {
+	//	fmt.Println(err)
+	//	panic(err)
+	//}
+	//
+	//lh, err := Blockchain.LastHash("water")
+	//if err != nil {
+	//	fmt.Println(err)
+	//	panic(err)
+	//}
+	//block, err := Blockchain.NewBlock(lh, "water")
+	//if err != nil {
+	//	fmt.Println(err)
+	//	panic(err)
+	//}
+	//err = block.AddTransaction(tx1)
+	//if err != nil {
+	//	return
+	//}
+	//err = block.Accept(make(chan bool))
+	//if err != nil {
+	//	return
+	//}
+	//var qwe BlockHelp
+	//qwe.Block = block
+	//i, _ := Blockchain.Size("water")
+	//qwe.Size = i
+	//qwe.Address = "9595"
+	////client := req.C().DevMode()
+	//var result re
 	//client := req.C().DevMode()
-	var result re
-	client := req.C().DevMode()
-	resp, err := client.R().
-		SetBody(&qwe).
-		SetSuccessResult(&result).
-		Post("http://localhost:8585/addblock")
-	if err != nil {
-		log.Fatal(err)
-	}
-	if !resp.IsSuccessState() {
-		fmt.Println("bad response status:", resp.Status)
-		return
-	}
+	//resp, err := client.R().
+	//	SetBody(&qwe).
+	//	SetSuccessResult(&result).
+	//	Post("http://localhost:8585/addblock")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//if !resp.IsSuccessState() {
+	//	fmt.Println("bad response status:", resp.Status)
+	//	return
+	//}
 	//balance, err := Basic.PrintBalance("895838c26839afb0b9998236edf80ad335f4d5607c3e709b019193d9e6c55cde")
 	//if err != nil {
 	//	fmt.Println(balance, err)

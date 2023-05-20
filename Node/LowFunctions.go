@@ -69,7 +69,7 @@ func PushBlockToNet(block *BlockHelp) error {
 	var returnErr error
 	for _, addr := range OtherAddresses {
 		goAddr := addr.String()
-		go goAddBlock(block, result, goAddr)
+		goAddBlock(block, result, goAddr)
 	}
 	if returnErr != nil {
 		return returnErr
@@ -84,9 +84,9 @@ func AddBlock(pack *BlockHelp) (string, error) {
 		return "", err
 	}
 	num := pack.Size
-	fmt.Println("currSIZE")
 	if currSize < num {
-		go goCompare(pack.Address, block.ChainMaster)
+		fmt.Println("inside")
+		goCompare(pack.Address, block.ChainMaster)
 		return "ok ", nil
 	}
 	Mutex.Lock()
@@ -114,7 +114,7 @@ func AddTransaction(BlockTx *TransactionHelp) (string, error) {
 	}
 	Mutex.Unlock()
 	if len(BlockTx.Block.Transactions) == Blockchain.TxsLimit {
-		go goAddTransaction(BlockTx)
+		goAddTransaction(BlockTx)
 	}
 	return "ok", nil
 }
@@ -126,11 +126,16 @@ func CompareChains(address string, master string) error {
 		return err
 	}
 	var blocksResponse []*Blockchain.Block
+	var masterSend MasterHelp
+	masterSend.Master = master
 	client := req.C().DevMode()
 	_, err = client.R().
-		SetBody(&master).
+		SetBody(&masterSend).
 		SetSuccessResult(&blocksResponse).
 		Post(fmt.Sprintf("http://%s/getblock", strings.Trim(address, "\"")))
+	if err != nil {
+		return err
+	}
 	fmt.Println("================================================================================")
 	genesis := blocksResponse[0]
 	if strings.Compare(genesis.CurrHash, genesis.Hash()) != 0 {
@@ -158,10 +163,10 @@ func CompareChains(address string, master string) error {
 	Mutex.Lock()
 	var blocks []*Blockchain.Chain
 	dbCompare.Find(&blocks)
-	errDelete := dbNode.Exec("DELETE FROM Chains")
-	if errDelete.Error != nil {
-		return errDelete.Error
-	}
+	//errDelete := dbNode.Exec("DELETE FROM Chains")
+	//if errDelete.Error != nil {
+	//	return errDelete.Error
+	//}
 	for _, v := range blocks {
 		errInsert := dbNode.Exec("INSERT INTO Chains (Id, Hash, Block) VALUES ($1, $2, $3)",
 			uuid.NewString(),
@@ -172,10 +177,10 @@ func CompareChains(address string, master string) error {
 			return errInsert.Error
 		}
 	}
-	errDelete = dbCompare.Exec("DELETE FROM Chains")
-	if errDelete.Error != nil {
-		return errDelete.Error
-	}
+	//errDelete = dbCompare.Exec("DELETE FROM Chains")
+	//if errDelete.Error != nil {
+	//	return errDelete.Error
+	//}
 	//lastHash, err := Blockchain.LastHash(Block.ChainMaster)
 	//if err != nil {
 	//	return err
@@ -216,7 +221,6 @@ func GetLastHash(pack *MasterHelp) (string, error) {
 }
 
 func GetBalance(pack *UserHelp) (string, error) {
-	log.Println("Get-Balance")
 	balance, err := Blockchain.Balance(pack.User)
 	if err != nil {
 		return "", err

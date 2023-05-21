@@ -31,9 +31,10 @@ type TransactionHelp struct {
 	Master string                  `form:"master" json:"master"`
 	Tx     *Blockchain.Transaction `form:"transaction" json:"transaction"`
 }
-type ArrayBlockHelp struct {
-	Blocks []*Blockchain.Block `form:"blocks" json:"blocks"`
-}
+
+//type ArrayBlockHelp struct {
+//	Blocks []*Blockchain.Block `form:"blocks" json:"blocks"`
+//}
 
 var Mutex sync.Mutex
 var IsMining bool

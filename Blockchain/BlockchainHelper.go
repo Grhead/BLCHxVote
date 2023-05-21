@@ -168,7 +168,6 @@ func ProofOfWork(blockHash string, difficulty uint8, ch chan bool) uint64 {
 			hash = HashSum(strconv.FormatUint(nonce, 10) + blockHash)
 			if true {
 				fmt.Printf("\rMining: %v", hash)
-
 			}
 			decodeString, err := hex.DecodeString(hash)
 			if err != nil {

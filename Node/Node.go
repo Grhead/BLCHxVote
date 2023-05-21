@@ -41,6 +41,7 @@ var BreakMining = make(chan bool)
 var ThisServe string
 var OtherAddresses []*fastjson.Value
 var BlockForTransaction *Blockchain.Block
+var WaitTransaction []*Blockchain.Transaction
 
 func init() {
 	ThisServe = ":9595"
@@ -48,7 +49,7 @@ func init() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	BlockForTransaction, err = Blockchain.NewBlock(hash, "Start")
 	if err != nil {
 		log.Fatalln(err)
 	}

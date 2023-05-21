@@ -31,14 +31,15 @@ func goAddBlock(block *BlockHelp, result resultStruct, goAddr string) {
 func goAddTransaction() {
 	Mutex.Lock()
 	goroutineBlock := BlockForTransaction
-	fmt.Println("====11=", goroutineBlock)
-	fmt.Println("====11=", goroutineBlock)
 	IsMining = true
 	Mutex.Unlock()
+
+	/*if IsMining &&  {
+
+	}*/
+
 	res := (goroutineBlock).Accept(BreakMining)
 	Mutex.Lock()
-	//fmt.Println("=====", goroutineBlock.CurrHash)
-	//fmt.Println("=====", BlockForTransaction.CurrHash)
 	IsMining = false
 	if res == nil && strings.Compare(goroutineBlock.PrevHash, BlockForTransaction.PrevHash) == 0 {
 		fmt.Println("=====", 1)
@@ -68,7 +69,7 @@ func goAddTransaction() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	BlockForTransaction, err = Blockchain.NewBlock(hash, "Start")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -125,7 +126,7 @@ func AddBlock(pack *BlockHelp) (string, error) {
 	if err != nil {
 		return "", nil
 	}
-	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	BlockForTransaction, err = Blockchain.NewBlock(hash, "Start")
 	if err != nil {
 		return "", nil
 	}
@@ -137,7 +138,8 @@ func AddTransaction(BlockTx *TransactionHelp) (string, error) {
 		return "", errors.New("tx is empty")
 	}
 	if len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
-		return "", errors.New("transactions limit in blocks")
+		WaitTransaction = append(WaitTransaction, BlockTx.Tx)
+		//return "", errors.New("transactions limit in blocks")
 	}
 	Mutex.Lock()
 	err := BlockForTransaction.AddTransaction(BlockTx.Tx)
@@ -145,9 +147,21 @@ func AddTransaction(BlockTx *TransactionHelp) (string, error) {
 		return "", err
 	}
 	Mutex.Unlock()
-	fmt.Println(len(BlockForTransaction.Transactions))
+	//fmt.Println(len(BlockForTransaction.Transactions))
+
 	if len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
 		go goAddTransaction()
+	}
+	if len(WaitTransaction) != 0 ** {
+		Mutex.Lock()
+		err := BlockForTransaction.AddTransaction(BlockTx.Tx)
+		if err != nil {
+			return "", err
+		}
+		Mutex.Unlock()
+		if len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
+			go goAddTransaction()
+		}
 	}
 	return "ok", nil
 }
@@ -227,7 +241,7 @@ func CompareChains(address string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	BlockForTransaction, err = Blockchain.NewBlock(hash, "Start")
 	if err != nil {
 		log.Fatal(err)
 	}

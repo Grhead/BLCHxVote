@@ -68,7 +68,7 @@ func goAddTransaction() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	BlockForTransaction, err = Blockchain.NewBlock(hash, "Start")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func AddBlock(pack *BlockHelp) (string, error) {
 	if err != nil {
 		return "", nil
 	}
-	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	BlockForTransaction, err = Blockchain.NewBlock(hash, "Start")
 	if err != nil {
 		return "", nil
 	}
@@ -227,7 +227,7 @@ func CompareChains(address string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	BlockForTransaction, err = Blockchain.NewBlock("Start", hash)
+	BlockForTransaction, err = Blockchain.NewBlock(hash, "Start")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -138,8 +138,7 @@ func AddTransaction(BlockTx *TransactionHelp) (string, error) {
 		return "", errors.New("tx is empty")
 	}
 	if len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
-		WaitTransaction = append(WaitTransaction, BlockTx.Tx)
-		//return "", errors.New("transactions limit in blocks")
+		return "", errors.New("transactions limit in blocks")
 	}
 	Mutex.Lock()
 	err := BlockForTransaction.AddTransaction(BlockTx.Tx)
@@ -147,21 +146,9 @@ func AddTransaction(BlockTx *TransactionHelp) (string, error) {
 		return "", err
 	}
 	Mutex.Unlock()
-	//fmt.Println(len(BlockForTransaction.Transactions))
-
+	fmt.Println(len(BlockForTransaction.Transactions))
 	if len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
 		go goAddTransaction()
-	}
-	if len(WaitTransaction) != 0 ** {
-		Mutex.Lock()
-		err := BlockForTransaction.AddTransaction(BlockTx.Tx)
-		if err != nil {
-			return "", err
-		}
-		Mutex.Unlock()
-		if len(BlockForTransaction.Transactions) == Blockchain.TxsLimit {
-			go goAddTransaction()
-		}
 	}
 	return "ok", nil
 }

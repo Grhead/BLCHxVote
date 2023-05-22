@@ -34,7 +34,10 @@ func NewChain(VotesCount uint64, ChainMaster string) (*Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	curTime, err := GetTime()
+	curTime, errGetTime := GetTime()
+	if errGetTime != nil {
+		return nil, errGetTime
+	}
 	var blocks []*Chain
 	db.Find(&blocks)
 	for _, v := range blocks {
@@ -86,6 +89,9 @@ func NewTransaction(
 	value uint64) (*Transaction, error) {
 	VarConf := viper.GetString("RAND_BYTES")
 	VarConfConversion, err := strconv.Atoi(VarConf)
+	if err != nil {
+		return nil, err
+	}
 	randBytes, err := GenerateRandomBytes(uint64(VarConfConversion))
 	if err != nil {
 		return nil, err
@@ -111,6 +117,9 @@ func NewTransactionFromChain(
 	value uint64) (*Transaction, error) {
 	VarConf := viper.GetString("RAND_BYTES")
 	VarConfConversion, err := strconv.Atoi(VarConf)
+	if err != nil {
+		return nil, err
+	}
 	randBytes, err := GenerateRandomBytes(uint64(VarConfConversion))
 	if err != nil {
 		return nil, err
@@ -273,7 +282,10 @@ func NewCandidate(description string, affiliation string) (*Candidate, error) {
 		return nil, err
 	}
 	tempUUID := uuid.New()
-	tempKey, err := GenerateKey()
+	tempKey, errKeyGen := GenerateKey()
+	if errKeyGen != nil {
+		return nil, errKeyGen
+	}
 	db.Exec("INSERT INTO ElectionSubjects (Id, PublicKey,Description, VotingAffiliation) VALUES ($1, $2, $3, $4)",
 		tempUUID,
 		tempKey,
@@ -422,7 +434,7 @@ func DbSize() (uint64, error) {
 	var index uint64
 	var blocks []*Chain
 	db.Find(&blocks)
-	for _, _ = range blocks {
+	for range blocks {
 		if err != nil {
 			return 0, err
 		}

@@ -5,14 +5,14 @@ import (
 	"fmt"
 )
 
-type BlockHelp struct {
-	Block   *Blockchain.Block `form:"block" json:"block"`
-	Size    uint64            `form:"size" json:"size"`
-	Address string            `form:"address" json:"address"`
-}
-type re struct {
-	AddTxStatus string
-}
+//type BlockHelp struct {
+//	Block   *Blockchain.Block `form:"block" json:"block"`
+//	Size    uint64            `form:"size" json:"size"`
+//	Address string            `form:"address" json:"address"`
+//}
+//type re struct {
+//	AddTxStatus string
+//}
 
 func main() {
 	db, err := Blockchain.GetFullDb()

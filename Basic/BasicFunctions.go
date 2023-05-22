@@ -1,12 +1,9 @@
 package Basic
 
 import (
-	"VOX2/LowConf"
-	"VOX2/Transport/Network"
 	"fmt"
 	"github.com/valyala/fastjson"
 	"os"
-	"strings"
 )
 
 func PrintBalance(moneyMan string) (string, error) {
@@ -24,7 +21,7 @@ func PrintBalance(moneyMan string) (string, error) {
 		//		Option: LowConf.GetBalanceConst,
 		//		Data:   moneyMan,
 		//	})
-		response, errSend := Network.Send(
+		/*response, errSend := Network.Send(
 			":7575",
 			&Network.Package{
 				Option: LowConf.GetBalanceConst,
@@ -36,7 +33,7 @@ func PrintBalance(moneyMan string) (string, error) {
 		if errSend != nil && !strings.Contains(errSend.Error(), "No connection could be made because the target machine actively refused it.") {
 			return "", errSend
 		}
-		manBalance = fmt.Sprintf("%v", response.Data)
+		manBalance = fmt.Sprintf("%v", response.Data)*/
 	}
 	return manBalance, nil
 }

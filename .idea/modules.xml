@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$USER_HOME$/Desktop/Курсовая/VOX 2.0/BLCHxVote/.idea/BLCHxVote.iml" filepath="$USER_HOME$/Desktop/Курсовая/VOX 2.0/BLCHxVote/.idea/BLCHxVote.iml" />
       <module fileurl="file://$USER_HOME$/Desktop/VOX 2.0/.idea/VOX 2.0.iml" filepath="$USER_HOME$/Desktop/VOX 2.0/.idea/VOX 2.0.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/VOX2.iml" filepath="$PROJECT_DIR$/.idea/VOX2.iml" />
     </modules>

@@ -44,25 +44,6 @@ func DeserializeBlock(data string) (*Block, error) {
 	return &block, nil
 }
 
-// SerializeTX TODO Rewrite
-func SerializeTX(tx *Transaction) (string, error) {
-	jsonData, err := json.MarshalIndent(*tx, "", "\t")
-	if err != nil {
-		return "", err
-	}
-	return string(jsonData), nil
-}
-
-// DeserializeTX TODO Rewrite
-func DeserializeTX(data string) (*Transaction, error) {
-	var tx Transaction
-	err := json.Unmarshal([]byte(data), &tx)
-	if err != nil {
-		return nil, err
-	}
-	return &tx, nil
-}
-
 func GetTime() (*timestamp.Timestamp, error) {
 	TimeUrl := viper.GetString("TIME_URL")
 	resp, err := http.Get(TimeUrl)

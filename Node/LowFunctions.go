@@ -64,7 +64,6 @@ func goAddTransaction() {
 		}
 		fmt.Println("=====", 4)
 	}
-	fmt.Println("=====NOOOOOOOOOOOOOOOOOOOOO")
 	hash, err := Blockchain.LastHash("Start")
 	if err != nil {
 		log.Fatal(err)

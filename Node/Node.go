@@ -2,6 +2,7 @@ package main
 
 import (
 	"VOX2/Blockchain"
+	"errors"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/valyala/fastjson"
@@ -32,10 +33,6 @@ type TransactionHelp struct {
 	Tx     *Blockchain.Transaction `form:"transaction" json:"transaction"`
 }
 
-//type ArrayBlockHelp struct {
-//	Blocks []*Blockchain.Block `form:"blocks" json:"blocks"`
-//}
-
 var Mutex sync.Mutex
 var IsMining bool
 var BreakMining = make(chan bool)
@@ -43,8 +40,11 @@ var ThisServe string
 var OtherAddresses []*fastjson.Value
 var BlockForTransaction *Blockchain.Block
 
+func SetAddress(server string) {
+	ThisServe = ":" + server
+}
+
 func init() {
-	ThisServe = ":9595"
 	hash, err := Blockchain.LastHash("Start")
 	if err != nil {
 		log.Fatalln(err)
@@ -73,10 +73,15 @@ func init() {
 }
 
 func main() {
+	rootCmd.Flags().StringVarP(&option, "set", "s", "", "Set address")
+	Execute()
+	if ThisServe == "" {
+		panic(errors.New("empty address"))
+	}
 	router := gin.Default()
 	router.Use(cors.New(cors.Config{
 		AllowAllOrigins:  true,
-		AllowMethods:     []string{"PUT", "PATCH", "POST", "GET", "DELETE"},
+		AllowMethods:     []string{"POST", "GET"},
 		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type", "Accept-Encoding"},
 		ExposeHeaders:    []string{"Content-Length", "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials", "Access-Control-Allow-Headers", "Access-Control-Allow-Methods"},
 		AllowCredentials: true,

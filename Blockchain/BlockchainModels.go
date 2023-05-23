@@ -1,7 +1,6 @@
 package Blockchain
 
 import (
-	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -33,15 +32,15 @@ type Block struct {
 }
 
 type User struct {
-	Uuid        uuid.UUID
-	PublicKey   string
-	IsUsed      bool
-	Affiliation string
+	Id          string `json:"uuid"`
+	PublicKey   string `json:"publicKey"`
+	IsUsed      bool   `json:"isUsed"`
+	Affiliation string `json:"affiliation"`
 }
 
-type Candidate struct {
-	Uuid              uuid.UUID
-	PublicKey         string
-	Description       string
-	VotingAffiliation string
+type ElectionSubjects struct {
+	Id                string `json:"uuid" gorm:"Id"`
+	PublicKey         string `json:"publicKey" gorm:"PublicKey"`
+	Description       string `json:"description" gorm:"Description"`
+	VotingAffiliation string `json:"votingAffiliation" gorm:"VotingAffiliation"`
 }

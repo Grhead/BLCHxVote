@@ -33,11 +33,6 @@ func goAddTransaction() {
 	goroutineBlock := BlockForTransaction
 	IsMining = true
 	Mutex.Unlock()
-
-	/*if IsMining &&  {
-
-	}*/
-
 	res := (goroutineBlock).Accept(BreakMining)
 	Mutex.Lock()
 	IsMining = false
@@ -176,29 +171,22 @@ func CompareChains(address string) error {
 	arrayToMerge = append(arrayToMerge, &genesisBlock)
 	for _, v := range blocksResponse {
 		if v != blocksResponse[0] {
-			fmt.Println("--------", v)
 			if v == nil {
 				return errors.New("block is nil")
 			}
-			fmt.Println("--------1")
 			serializeBlock, err := Blockchain.SerializeBlock(v)
-			fmt.Println("--------2")
 			if err != nil {
 				return err
 			}
-			fmt.Println("--------3")
 			block := Blockchain.Chain{
 				Id:    uuid.NewString(),
 				Hash:  v.CurrHash,
 				Block: serializeBlock,
 			}
 			arrayToMerge = append(arrayToMerge, &block)
-			fmt.Println("--------4")
 		}
 	}
 	Mutex.Lock()
-	//var blocks []*Blockchain.Chain
-	//dbCompare.Find(&blocks)
 	errDelete := dbNode.Exec("DELETE FROM Chains WHERE Id != 0")
 	if errDelete.Error != nil {
 		return errDelete.Error
@@ -213,10 +201,6 @@ func CompareChains(address string) error {
 			return errInsert.Error
 		}
 	}
-	//errDelete = dbCompare.Exec("DELETE FROM Chains")
-	//if errDelete.Error != nil {
-	//	return errDelete.Error
-	//}
 	hash, err := Blockchain.LastHash("Start")
 	if err != nil {
 		log.Fatal(err)

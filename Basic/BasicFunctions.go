@@ -5,29 +5,59 @@ import (
 	"errors"
 	"fmt"
 	"github.com/valyala/fastjson"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 	"os"
+	"strconv"
 )
 
-func CreateVoters(voter interface{}, master string) (string, error) {
-	addresses, err := readAddresses()
-	if err != nil {
-		return "", err
-	}
-	switch v := voter.(type) {
+func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, error) {
+	var resultItems []*Blockchain.User
+	switch voter.(type) {
 	case int:
-		item, err := Blockchain.NewPublicKeyItem(master)
+		max, err := strconv.Atoi(fmt.Sprintf("%v", voter))
 		if err != nil {
-			return "", err
+			return nil, err
+		}
+		for i := 0; i < max; i++ {
+			item, errNewPublicKey := Blockchain.NewPublicKeyItem(master)
+			if errNewPublicKey != nil {
+				return nil, errNewPublicKey
+			}
+			resultItems = append(resultItems, item)
 		}
 	case string:
 		err := Blockchain.NewDormantUser(fmt.Sprintf("%v", voter))
 		if err != nil {
-			return "", err
+			return nil, err
 		}
+		item, err := Blockchain.NewPublicKeyItem(master)
+		if err != nil {
+			return nil, err
+		}
+		resultItems = append(resultItems, item)
 	default:
-		return "", errors.New("invalid type")
+		return nil, errors.New("invalid type")
 	}
-	return "ok", nil
+	return resultItems, nil
+}
+
+func CallViewCandidates() ([]*Blockchain.ElectionSubjects, error) {
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	var Candidates []*Blockchain.ElectionSubjects
+	db.Table("ElectionSubjects").Find(&Candidates)
+	return Candidates, nil
+}
+
+func CallNewCandidate(description string, affiliation string) (*Blockchain.ElectionSubjects, error) {
+	candidate, err := Blockchain.NewCandidate(description, affiliation)
+	if err != nil {
+		return nil, err
+	}
+	return candidate, nil
 }
 
 func readAddresses() ([]*fastjson.Value, error) {
@@ -42,6 +72,11 @@ func readAddresses() ([]*fastjson.Value, error) {
 	}
 	return v.GetArray("addresses"), nil
 }
+
+//addresses, err := readAddresses()
+//if err != nil {
+//return "", err
+//}
 
 //client := req.C().DevMode()
 //_, err := client.R().

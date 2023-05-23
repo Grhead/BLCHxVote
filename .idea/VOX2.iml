@@ -10,5 +10,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="VOX 2.0" />
+    <orderEntry type="module" module-name="VOX 1.0" />
   </component>
 </module>

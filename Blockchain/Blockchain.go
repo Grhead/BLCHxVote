@@ -267,14 +267,14 @@ func NewPublicKeyItem(affiliation string) (*User, error) {
 		false,
 		affiliation)
 	return &User{
-		Uuid:        tempUUID,
+		Id:          tempUUID.String(),
 		PublicKey:   tempKey,
 		IsUsed:      false,
 		Affiliation: affiliation,
 	}, nil
 }
 
-func NewCandidate(description string, affiliation string) (*Candidate, error) {
+func NewCandidate(description string, affiliation string) (*ElectionSubjects, error) {
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
@@ -289,8 +289,8 @@ func NewCandidate(description string, affiliation string) (*Candidate, error) {
 		tempKey,
 		description,
 		affiliation)
-	return &Candidate{
-		Uuid:              tempUUID,
+	return &ElectionSubjects{
+		Id:                tempUUID.String(),
 		PublicKey:         tempKey,
 		Description:       description,
 		VotingAffiliation: affiliation,

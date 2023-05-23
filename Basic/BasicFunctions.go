@@ -1,21 +1,34 @@
 package Basic
 
 import (
+	"VOX2/Blockchain"
+	"errors"
+	"fmt"
 	"github.com/valyala/fastjson"
 	"os"
 )
 
-//func CreateVoters(voter interface{}) (string, error) {
-//	switch v := voter.(type) {
-//	case int:
-//		fmt.Printf("Integer: %v", v)
-//	case string:
-//		fmt.Printf("String: %v", v)
-//	default:
-//		fmt.Printf("I don't know, ask stackoverflow.")
-//	}
-//	return
-//}
+func CreateVoters(voter interface{}, master string) (string, error) {
+	addresses, err := readAddresses()
+	if err != nil {
+		return "", err
+	}
+	switch v := voter.(type) {
+	case int:
+		item, err := Blockchain.NewPublicKeyItem(master)
+		if err != nil {
+			return "", err
+		}
+	case string:
+		err := Blockchain.NewDormantUser(fmt.Sprintf("%v", voter))
+		if err != nil {
+			return "", err
+		}
+	default:
+		return "", errors.New("invalid type")
+	}
+	return "ok", nil
+}
 
 func readAddresses() ([]*fastjson.Value, error) {
 	file, err := os.ReadFile("LowConf/addr.json")
@@ -29,3 +42,9 @@ func readAddresses() ([]*fastjson.Value, error) {
 	}
 	return v.GetArray("addresses"), nil
 }
+
+//client := req.C().DevMode()
+//_, err := client.R().
+//SetBody(&block).
+//SetSuccessResult(&result).
+//Post(fmt.Sprintf("http://%s/addblock", strings.Trim(goAddr, "\"")))

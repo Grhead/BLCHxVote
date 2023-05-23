@@ -73,12 +73,10 @@ func NewBlock(prevHash string, chainMaster string) (*Block, error) {
 		return nil, err
 	}
 	return &Block{
-		Difficulty: uint64(difficulty),
-		PrevHash:   prevHash,
-		BalanceMap: make(map[string]uint64),
-		//Miner:       miner,
+		Difficulty:  uint64(difficulty),
+		PrevHash:    prevHash,
+		BalanceMap:  make(map[string]uint64),
 		ChainMaster: chainMaster,
-		//TimeStamp:   curTime,
 	}, nil
 }
 
@@ -193,7 +191,7 @@ func AddBlock(block *Block) error {
 
 // NewDormantUser same with AddPass (BLCHxVote)
 func NewDormantUser(passport string) error {
-	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return err
 	}
@@ -209,7 +207,7 @@ func NewDormantUser(passport string) error {
 }
 
 func LoadToEnterAlreadyUser(privateKey string) (*User, error) {
-	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +223,7 @@ func LoadToEnterAlreadyUser(privateKey string) (*User, error) {
 }
 
 func FindByEnterUserWithLogin(publicKey string) (*User, error) {
-	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +252,7 @@ func FindByEnterUserWithLogin(publicKey string) (*User, error) {
 
 // NewPublicKeyItem Same with NewUser(BLCHxVote)
 func NewPublicKeyItem(affiliation string) (*User, error) {
-	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +275,7 @@ func NewPublicKeyItem(affiliation string) (*User, error) {
 }
 
 func NewCandidate(description string, affiliation string) (*Candidate, error) {
-	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +339,7 @@ func Balance(moneyMan string) (uint64, error) {
 }
 
 func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (string, error) {
-	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return "", err
 	}

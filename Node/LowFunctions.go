@@ -42,17 +42,14 @@ func goAddTransaction() {
 	Mutex.Lock()
 	IsMining = false
 	if res == nil && strings.Compare(goroutineBlock.PrevHash, BlockForTransaction.PrevHash) == 0 {
-		fmt.Println("=====", 1)
 		err := Blockchain.AddBlock(goroutineBlock)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("=====", 2)
 		size, err := Blockchain.Size(goroutineBlock.ChainMaster)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("=====", 3)
 		help := BlockHelp{
 			Block:   goroutineBlock,
 			Address: ThisServe,
@@ -62,7 +59,6 @@ func goAddTransaction() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("=====", 4)
 	}
 	hash, err := Blockchain.LastHash("Start")
 	if err != nil {
@@ -111,7 +107,6 @@ func AddBlock(pack *BlockHelp) (string, error) {
 		return "ok", nil
 	}
 	Mutex.Lock()
-	fmt.Println("out")
 	//err = Blockchain.AddBlock(block)
 	//if err != nil {
 	//	return "", err
@@ -170,7 +165,6 @@ func CompareChains(address string) error {
 	}
 	var arrayToMerge []*Blockchain.Chain
 	serializeGenesisBlock, err := Blockchain.SerializeBlock(someGenesis)
-	fmt.Println("--------00")
 	if err != nil {
 		return err
 	}

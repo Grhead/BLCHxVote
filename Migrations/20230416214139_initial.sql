@@ -25,13 +25,6 @@ CREATE TABLE IF NOT EXISTS ElectionSubjects (
                                                 VotingAffiliation CHAR(64) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS Chains (
-                                                Id CHAR(36) PRIMARY KEY,
-                                                Hash VARCHAR(44) UNIQUE,
-                                                Block TEXT
-
-);
-
 -- +goose Down
 DROP TABLE KeyLinks;
 DROP TABLE RelationPatterns;

@@ -145,6 +145,24 @@ func GetPartOfChain(master string) ([]*Blockchain.Block, error) {
 	return partOfChain, nil
 }
 
+func GetFullChain() ([]*Blockchain.Block, error) {
+	addresses, err := readAddresses()
+	if err != nil {
+		return nil, err
+	}
+	var fullChain []*Blockchain.Block
+	client := req.C().DevMode()
+	resp, err := client.R().SetSuccessResult(&fullChain).
+		Get(fmt.Sprintf("http://%s/getdb", strings.Trim(addresses[0].String(), "\"")))
+	if err != nil {
+		return nil, err
+	}
+	if resp.Body == nil {
+		return nil, errors.New("empty response")
+	}
+	return fullChain, nil
+}
+
 func readAddresses() ([]*fastjson.Value, error) {
 	file, err := os.ReadFile("LowConf/addr.json")
 	if err != nil {

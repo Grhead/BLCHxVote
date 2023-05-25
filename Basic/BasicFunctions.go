@@ -15,19 +15,6 @@ import (
 	"strings"
 )
 
-type UserHelp struct {
-	UserAddress string `form:"user" json:"user"`
-}
-type BalanceHelp struct {
-	Balance string `form:"balance" json:"balance"`
-}
-type MasterHelp struct {
-	Master string `form:"master" json:"master"`
-}
-type SizeHelp struct {
-	ChainSize string `form:"chainSize" json:"chainSize"`
-}
-
 func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, error) {
 	var resultItems []*Blockchain.User
 	switch voter.(type) {
@@ -77,15 +64,15 @@ func CallNewCandidate(description string, affiliation string) (*Blockchain.Elect
 	return candidate, nil
 }
 
-func GetBalance(userAddress string) (*BalanceHelp, error) {
+func GetBalance(userAddress string) (*Transport.BalanceHelp, error) {
 	addresses, err := readAddresses()
 	if err != nil {
 		return nil, err
 	}
-	userAddressStruct := UserHelp{
-		UserAddress: userAddress,
+	userAddressStruct := Transport.UserHelp{
+		User: userAddress,
 	}
-	var userBalance *BalanceHelp
+	var userBalance Transport.BalanceHelp
 	client := req.C().DevMode()
 	for _, addr := range addresses {
 		resp, errReq := client.R().
@@ -101,7 +88,7 @@ func GetBalance(userAddress string) (*BalanceHelp, error) {
 			}
 		}
 	}
-	return userBalance, nil
+	return &userBalance, nil
 }
 
 func ChainSize(master string) (string, error) {
@@ -109,8 +96,8 @@ func ChainSize(master string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	masterChain := MasterHelp{Master: master}
-	var chainSize SizeHelp
+	masterChain := Transport.MasterHelp{Master: master}
+	var chainSize Transport.SizeHelp
 	client := req.C().DevMode()
 	resp, err := client.R().
 		SetBody(&masterChain).
@@ -207,6 +194,69 @@ func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
 		return nil, errors.New("zero balance")
 	}
 	return UserPublic, nil
+}
+
+func ChainTXBlock(receiver string, master string, num uint64) (string, error) {
+	addresses, err := readAddresses()
+	if err != nil {
+		return "", err
+	}
+	input := Transport.MasterHelp{
+		Master: master,
+	}
+	var lastHash Transport.LastHashHelp
+	var txStatus Transport.TransactionResponseHelp
+	for _, addr := range addresses {
+		client := req.C().DevMode()
+		resp, errReq := client.R().
+			SetBody(&input).
+			SetSuccessResult(&lastHash).
+			Post(fmt.Sprintf("http://%s/getlasthash", strings.Trim(addr.String(), "\"")))
+		if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+			return "", errReq
+		}
+		if errReq == nil {
+			if resp.Body == nil {
+				continue
+			}
+		}
+		balance, errBalance := GetBalance(master)
+		if errBalance != nil {
+			return "", errBalance
+		}
+		chainBalance, errConversion := strconv.Atoi(balance.Balance)
+		if errConversion != nil {
+			return "", errConversion
+		}
+		if uint64(chainBalance) < num {
+			return "", errors.New("not enough chain founds")
+		}
+		public, errLoad := Blockchain.LoadToEnterAlreadyUserPublic(receiver)
+		if errLoad != nil {
+			return "", errLoad
+		}
+		tx, errNewTx := Blockchain.NewTransactionFromChain(master, public, num)
+		transactionToNet := Transport.TransactionHelp{
+			Master: master,
+			Tx:     tx,
+		}
+		if errNewTx != nil {
+			return "", errNewTx
+		}
+		resp, errReq = client.R().
+			SetBody(&transactionToNet).
+			SetSuccessResult(&txStatus).
+			Post(fmt.Sprintf("http://%s/addtx", strings.Trim(addr.String(), "\"")))
+		if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+			return "", errReq
+		}
+		if errReq == nil {
+			if resp.Body == nil {
+				continue
+			}
+		}
+	}
+	return txStatus.TransactionStatus, nil
 }
 
 func readAddresses() ([]*fastjson.Value, error) {

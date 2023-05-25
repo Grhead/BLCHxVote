@@ -9,6 +9,12 @@ type ChainHelp struct {
 type MasterHelp struct {
 	Master string `form:"master" json:"master"`
 }
+type LastHashHelp struct {
+	Hash string `form:"hash" json:"hash"`
+}
+type TransactionResponseHelp struct {
+	TransactionStatus string `form:"status" json:"status"`
+}
 type UserHelp struct {
 	User string `form:"user" json:"user"`
 }

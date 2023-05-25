@@ -188,7 +188,7 @@ func GinGetBalance(c *gin.Context) {
 		responseBalance := Transport.BalanceHelp{
 			Balance: balance,
 		}
-		c.JSON(200, gin.H{"Balance": responseBalance})
+		c.JSON(200, gin.H{"Balance": responseBalance.Balance})
 	}
 }
 func GinGetChainSize(c *gin.Context) {

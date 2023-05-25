@@ -150,9 +150,9 @@ func LastHash(master string) (string, error) {
 	var blocks []*Block
 	db.Find(&chain)
 	for _, v := range chain {
-		deserializedBlock, err := DeserializeBlock(v.Block)
-		if err != nil {
-			return "", err
+		deserializedBlock, errDes := DeserializeBlock(v.Block)
+		if errDes != nil {
+			return "", errDes
 		}
 		blocks = append(blocks, deserializedBlock)
 	}
@@ -211,7 +211,7 @@ func NewDormantUser(identifier string) error {
 	return nil
 }
 
-func LoadToEnterAlreadyUser(privateKey string) (*User, error) {
+func LoadToEnterAlreadyUserPrivate(privateKey string) (*User, error) {
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
@@ -220,23 +220,31 @@ func LoadToEnterAlreadyUser(privateKey string) (*User, error) {
 	var LoadedUser *User
 	db.Raw("SELECT PublicKey FROM KeyLinks WHERE PrivateKey = $1",
 		privateKey).Scan(&publicKey)
-	errWhere := db.Where("PublicKey = ?", publicKey).First(&LoadedUser)
+	var affiliation string
+	errWhere := db.Table("KeyLinks").Where("PublicKey = ?", publicKey).First(&LoadedUser)
 	if errWhere.Error != nil {
 		return nil, errWhere.Error
 	}
+	db.Raw("SELECT VotingAffiliation FROM PublicKeySets WHERE PublicKey = $1",
+		LoadedUser.Address()).Scan(&affiliation)
+	LoadedUser.Affiliation = affiliation
 	return LoadedUser, nil
 }
 
-func FindByEnterUserWithLogin(publicKey string) (*User, error) {
+func LoadToEnterAlreadyUserPublic(publicKey string) (*User, error) {
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 	var LoadedUser *User
-	errWhere := db.Where("PublicKey = ?", publicKey).First(&LoadedUser)
+	errWhere := db.Table("KeyLinks").Where("PublicKey = ?", publicKey).First(&LoadedUser)
 	if errWhere.Error != nil {
 		return nil, errWhere.Error
 	}
+	var affiliation string
+	db.Raw("SELECT VotingAffiliation FROM PublicKeySets WHERE PublicKey = $1",
+		publicKey).Scan(&affiliation)
+	LoadedUser.Affiliation = affiliation
 	return LoadedUser, nil
 }
 
@@ -348,10 +356,16 @@ func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (st
 	if err != nil {
 		return "", err
 	}
-	var template string
+	var checkPublicKey string
+	db.Raw("SELECT Id FROM PublicKeySets WHERE PublicKey = $1",
+		PublicKey).Scan(&checkPublicKey)
+	if checkPublicKey == "" {
+		return "", errors.New("public key is invalid")
+	}
+	var checkTemplate string
 	db.Raw("SELECT PrivateKeyTemplate FROM RelationPatterns WHERE PersonIdentifier = $1",
-		HashSum(passport)).Scan(&template)
-	if template == "" {
+		HashSum(passport)).Scan(&checkTemplate)
+	if checkTemplate == "" {
 		return "", errors.New("identifier does not exist")
 	}
 	var checkIsUsed bool
@@ -370,7 +384,7 @@ func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (st
 	if errExec.Error != nil {
 		return "", errExec.Error
 	}
-	hash := sha256.Sum256([]byte(template + salt))
+	hash := sha256.Sum256([]byte(checkTemplate + salt))
 	err = ImportToDB(fmt.Sprintf("%x", hash[:]), PublicKey)
 	if err != nil {
 		return "", err

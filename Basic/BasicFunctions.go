@@ -10,12 +10,13 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 )
 
 type UserHelp struct {
-	User string `form:"user" json:"user"`
+	UserAddress string `form:"user" json:"user"`
 }
 type BalanceHelp struct {
 	Balance string `form:"balance" json:"balance"`
@@ -76,13 +77,13 @@ func CallNewCandidate(description string, affiliation string) (*Blockchain.Elect
 	return candidate, nil
 }
 
-func GetBalance(userAddress string) (string, error) {
+func GetBalance(userAddress string) (*BalanceHelp, error) {
 	addresses, err := readAddresses()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	userAddressStruct := UserHelp{
-		User: userAddress,
+		UserAddress: userAddress,
 	}
 	var userBalance *BalanceHelp
 	client := req.C().DevMode()
@@ -91,14 +92,16 @@ func GetBalance(userAddress string) (string, error) {
 			SetBody(&userAddressStruct).
 			SetSuccessResult(&userBalance).
 			Post(fmt.Sprintf("http://%s/getbalance", strings.Trim(addr.String(), "\"")))
-		if errReq != nil {
-			return "", errReq
+		if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+			return nil, errReq
 		}
-		if resp.Body == nil {
-			continue
+		if errReq == nil {
+			if resp.Body == nil {
+				continue
+			}
 		}
 	}
-	return userBalance.Balance, nil
+	return userBalance, nil
 }
 
 func ChainSize(master string) (string, error) {
@@ -164,6 +167,7 @@ func GetFullChain() ([]*Blockchain.Block, error) {
 }
 
 func AcceptNewUser(Pass string, salt string, PublicKey string) (string, error) {
+	//TODO add time verification
 	//t, _ := time.ParseDuration(EndTime)
 	//t1, _ := time.ParseDuration(LimitTime())
 	//if t1 > t {
@@ -174,6 +178,35 @@ func AcceptNewUser(Pass string, salt string, PublicKey string) (string, error) {
 		return "", err
 	}
 	return private, nil
+}
+
+func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
+	//TODO add time verification
+	//t, _ := time.ParseDuration(EndTime)
+	//t1, _ := time.ParseDuration(LimitTime())
+	//if t1 > t {
+	//	return "2"
+	//}
+	UserPrivate, err := Blockchain.LoadToEnterAlreadyUserPrivate(PrivateK)
+	if err != nil {
+		return nil, err
+	}
+	UserPublic, err := Blockchain.LoadToEnterAlreadyUserPublic(PublicK)
+	if err != nil {
+		return nil, err
+	}
+	if UserPublic.PublicKey != PublicK || UserPrivate.PublicKey != PublicK || !reflect.DeepEqual(UserPrivate, UserPublic) {
+		return nil, errors.New("invalid input")
+	}
+	bal, err := GetBalance(UserPublic.Address())
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(bal)
+	if bal == nil {
+		return nil, errors.New("zero balance")
+	}
+	return UserPublic, nil
 }
 
 func readAddresses() ([]*fastjson.Value, error) {

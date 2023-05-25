@@ -2,6 +2,7 @@ package Basic
 
 import (
 	"VOX2/Blockchain"
+	"VOX2/Transport"
 	"errors"
 	"fmt"
 	"github.com/imroc/req/v3"
@@ -119,6 +120,29 @@ func ChainSize(master string) (string, error) {
 		return "", errors.New("empty response")
 	}
 	return chainSize.ChainSize, nil
+}
+
+func GetPartOfChain(master string) ([]*Blockchain.Block, error) {
+	addresses, err := readAddresses()
+	if err != nil {
+		return nil, err
+	}
+	var partOfChain []*Blockchain.Block
+	ChainMaster := Transport.MasterHelp{
+		Master: master,
+	}
+	client := req.C().DevMode()
+	resp, err := client.R().
+		SetBody(&ChainMaster).
+		SetSuccessResult(&partOfChain).
+		Post(fmt.Sprintf("http://%s/getblock", strings.Trim(addresses[0].String(), "\"")))
+	if err != nil {
+		return nil, err
+	}
+	if resp.Body == nil {
+		return nil, errors.New("empty response")
+	}
+	return partOfChain, nil
 }
 
 func readAddresses() ([]*fastjson.Value, error) {

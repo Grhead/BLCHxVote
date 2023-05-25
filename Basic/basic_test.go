@@ -64,13 +64,13 @@ func TestNewCandidate(t *testing.T) {
 		"TEST1",
 		"Master")
 	candidate := Blockchain.ElectionSubjects{
-		Uuid:              tempUUID,
+		Id:                tempUUID.String(),
 		PublicKey:         tempKey,
 		Description:       "TEST1",
 		VotingAffiliation: "Master",
 	}
 	assert.Equal(t, candidate, Blockchain.ElectionSubjects{
-		Uuid:              tempUUID,
+		Id:                tempUUID.String(),
 		PublicKey:         tempKey,
 		Description:       "TEST1",
 		VotingAffiliation: "Master",

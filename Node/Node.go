@@ -2,6 +2,7 @@ package main
 
 import (
 	"VOX2/Blockchain"
+	"VOX2/Transport"
 	"errors"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -12,32 +13,6 @@ import (
 	"strings"
 	"sync"
 )
-
-type ChainHelp struct {
-	Master string `form:"master" json:"master"`
-	Count  uint64 `form:"count" json:"count"`
-}
-type MasterHelp struct {
-	Master string `form:"master" json:"master"`
-}
-type UserHelp struct {
-	User string `form:"user" json:"user"`
-}
-type BlockHelp struct {
-	Block   *Blockchain.Block `form:"block" json:"block"`
-	Size    uint64            `form:"size" json:"size"`
-	Address string            `form:"address" json:"address"`
-}
-type TransactionHelp struct {
-	Master string                  `form:"master" json:"master"`
-	Tx     *Blockchain.Transaction `form:"transaction" json:"transaction"`
-}
-type BalanceHelp struct {
-	Balance string `form:"balance" json:"balance"`
-}
-type SizeHelp struct {
-	ChainSize string `form:"chainSize" json:"chainSize"`
-}
 
 var Mutex sync.Mutex
 var IsMining bool
@@ -100,7 +75,6 @@ func main() {
 	router.POST("/getbalance", GinGetBalance)
 	router.POST("/getchainsize", GinGetChainSize)
 	router.GET("/getdb", GinGetDb)
-
 	router.POST("/netpush", GinPushBlockToNet)
 	err := router.Run(strings.Trim(ThisServe, "\""))
 	if err != nil {
@@ -110,7 +84,7 @@ func main() {
 }
 
 func GinNewChain(c *gin.Context) {
-	var input *ChainHelp
+	var input *Transport.ChainHelp
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest,
 			gin.H{"error": err.Error()})
@@ -127,7 +101,7 @@ func GinNewChain(c *gin.Context) {
 }
 
 func GinAddBlock(c *gin.Context) {
-	var input *BlockHelp
+	var input *Transport.BlockHelp
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest,
 			gin.H{"error": err.Error()})
@@ -144,7 +118,7 @@ func GinAddBlock(c *gin.Context) {
 }
 
 func GinAddTransaction(c *gin.Context) {
-	var input *TransactionHelp
+	var input *Transport.TransactionHelp
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest,
 			gin.H{"error": err.Error()})
@@ -160,7 +134,7 @@ func GinAddTransaction(c *gin.Context) {
 	}
 }
 func GinGetBlocks(c *gin.Context) {
-	var input *MasterHelp
+	var input *Transport.MasterHelp
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest,
 			gin.H{"error": err.Error()})
@@ -183,7 +157,7 @@ func GinGetDb(c *gin.Context) {
 	c.JSON(200, db)
 }
 func GinGetLastHash(c *gin.Context) {
-	var input *MasterHelp
+	var input *Transport.MasterHelp
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest,
 			gin.H{"error": err.Error()})
@@ -199,7 +173,7 @@ func GinGetLastHash(c *gin.Context) {
 	}
 }
 func GinGetBalance(c *gin.Context) {
-	var input *UserHelp
+	var input *Transport.UserHelp
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest,
 			gin.H{"error": err.Error()})
@@ -211,14 +185,14 @@ func GinGetBalance(c *gin.Context) {
 				gin.H{"error": err.Error()})
 			return
 		}
-		responseBalance := BalanceHelp{
+		responseBalance := Transport.BalanceHelp{
 			Balance: balance,
 		}
 		c.JSON(200, gin.H{"Balance": responseBalance})
 	}
 }
 func GinGetChainSize(c *gin.Context) {
-	var input *MasterHelp
+	var input *Transport.MasterHelp
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest,
 			gin.H{"error": err.Error()})
@@ -228,14 +202,14 @@ func GinGetChainSize(c *gin.Context) {
 		if errChainSize != nil {
 			return
 		}
-		responseSize := SizeHelp{
+		responseSize := Transport.SizeHelp{
 			ChainSize: size,
 		}
 		c.JSON(200, gin.H{"ChainSize": responseSize.ChainSize})
 	}
 }
 func GinPushBlockToNet(c *gin.Context) {
-	var input *BlockHelp
+	var input *Transport.BlockHelp
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest,
 			gin.H{"error": err.Error()})

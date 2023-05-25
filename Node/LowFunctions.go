@@ -2,6 +2,7 @@ package main
 
 import (
 	"VOX2/Blockchain"
+	"VOX2/Transport"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -18,7 +19,7 @@ type resultStruct struct {
 	AddTxStatus string
 }
 
-func goAddBlock(block *BlockHelp, result resultStruct, goAddr string) {
+func goAddBlock(block *Transport.BlockHelp, result resultStruct, goAddr string) {
 	client := req.C().DevMode()
 	_, err := client.R().
 		SetBody(&block).
@@ -45,7 +46,7 @@ func goAddTransaction() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		help := BlockHelp{
+		help := Transport.BlockHelp{
 			Block:   goroutineBlock,
 			Address: ThisServe,
 			Size:    size,
@@ -72,7 +73,7 @@ func goCompare(address string) {
 	}
 }
 
-func pushBlockToNet(block *BlockHelp) error {
+func pushBlockToNet(block *Transport.BlockHelp) error {
 	//err := Blockchain.AddBlock(block.Block)
 	//if err != nil {
 	//	log.Fatal(err)
@@ -89,7 +90,7 @@ func pushBlockToNet(block *BlockHelp) error {
 	return nil
 }
 
-func AddBlock(pack *BlockHelp) (string, error) {
+func AddBlock(pack *Transport.BlockHelp) (string, error) {
 	block := pack.Block
 	currSize, err := Blockchain.Size(block.ChainMaster)
 	if err != nil {
@@ -122,7 +123,7 @@ func AddBlock(pack *BlockHelp) (string, error) {
 	return "ok", nil
 }
 
-func AddTransaction(BlockTx *TransactionHelp) (string, error) {
+func AddTransaction(BlockTx *Transport.TransactionHelp) (string, error) {
 	if BlockTx.Tx == nil {
 		return "", errors.New("tx is empty")
 	}
@@ -226,7 +227,7 @@ func NewChain(chainMaster string, count uint64) (string, error) {
 	return genesis.CurrHash, nil
 }
 
-func GetBlocks(pack *MasterHelp) ([]*Blockchain.Block, error) {
+func GetBlocks(pack *Transport.MasterHelp) ([]*Blockchain.Block, error) {
 	blocks, err := Blockchain.GetFullChain(pack.Master)
 	if err != nil {
 		return nil, err
@@ -237,11 +238,11 @@ func GetBlocks(pack *MasterHelp) ([]*Blockchain.Block, error) {
 	return blocks, nil
 }
 
-func GetLastHash(pack *MasterHelp) (string, error) {
+func GetLastHash(pack *Transport.MasterHelp) (string, error) {
 	return Blockchain.LastHash(pack.Master)
 }
 
-func GetBalance(pack *UserHelp) (string, error) {
+func GetBalance(pack *Transport.UserHelp) (string, error) {
 	balance, err := Blockchain.Balance(pack.User)
 	if err != nil {
 		return "", err
@@ -249,7 +250,7 @@ func GetBalance(pack *UserHelp) (string, error) {
 	return strconv.FormatUint(balance, 10), nil
 }
 
-func GetChainSize(pack *MasterHelp) (string, error) {
+func GetChainSize(pack *Transport.MasterHelp) (string, error) {
 	size, err := Blockchain.Size(pack.Master)
 	if err != nil {
 		return "", err

@@ -68,7 +68,6 @@ func NewChain(VotesCount uint64, ChainMaster string) (*Block, error) {
 func NewBlock(prevHash string, chainMaster string) (*Block, error) {
 	VarConf := viper.GetString("DIFFICULTY")
 	difficulty, err := strconv.Atoi(VarConf)
-	//curTime, err := GetTime()
 	if err != nil {
 		return nil, err
 	}
@@ -326,9 +325,9 @@ func Balance(moneyMan string) (uint64, error) {
 	var blocks []*Chain
 	db.Find(&blocks)
 	for _, v := range blocks {
-		desBlock, err := DeserializeBlock(v.Block)
-		if err != nil {
-			return 0, err
+		desBlock, errDes := DeserializeBlock(v.Block)
+		if errDes != nil {
+			return 0, errDes
 		}
 		if value, ok := desBlock.BalanceMap[moneyMan]; ok {
 			balance = value
@@ -395,9 +394,9 @@ func GetFullChain(master string) ([]*Block, error) {
 	var resultMasterBlocks []*Block
 	db.Find(&blocks)
 	for _, v := range blocks {
-		desBlock, err := DeserializeBlock(v.Block)
-		if err != nil {
-			return nil, err
+		desBlock, errDes := DeserializeBlock(v.Block)
+		if errDes != nil {
+			return nil, errDes
 		}
 		if desBlock.ChainMaster == master {
 			resultMasterBlocks = append(resultMasterBlocks, desBlock)

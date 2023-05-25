@@ -130,6 +130,7 @@ func AddTransaction(BlockTx *TransactionHelp) (string, error) {
 		return "", errors.New("transactions limit in blocks")
 	}
 	Mutex.Lock()
+	BlockForTransaction.ChainMaster = BlockTx.Master
 	err := BlockForTransaction.AddTransaction(BlockTx.Tx)
 	if err != nil {
 		return "", err

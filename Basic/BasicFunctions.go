@@ -4,12 +4,27 @@ import (
 	"VOX2/Blockchain"
 	"errors"
 	"fmt"
+	"github.com/imroc/req/v3"
 	"github.com/valyala/fastjson"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"os"
 	"strconv"
+	"strings"
 )
+
+type UserHelp struct {
+	User string `form:"user" json:"user"`
+}
+type BalanceHelp struct {
+	Balance string `form:"balance" json:"balance"`
+}
+type MasterHelp struct {
+	Master string `form:"master" json:"master"`
+}
+type SizeHelp struct {
+	ChainSize string `form:"chainSize" json:"chainSize"`
+}
 
 func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, error) {
 	var resultItems []*Blockchain.User
@@ -58,6 +73,52 @@ func CallNewCandidate(description string, affiliation string) (*Blockchain.Elect
 		return nil, err
 	}
 	return candidate, nil
+}
+
+func GetBalance(userAddress string) (string, error) {
+	addresses, err := readAddresses()
+	if err != nil {
+		return "", err
+	}
+	userAddressStruct := UserHelp{
+		User: userAddress,
+	}
+	var userBalance *BalanceHelp
+	client := req.C().DevMode()
+	for _, addr := range addresses {
+		resp, errReq := client.R().
+			SetBody(&userAddressStruct).
+			SetSuccessResult(&userBalance).
+			Post(fmt.Sprintf("http://%s/getbalance", strings.Trim(addr.String(), "\"")))
+		if errReq != nil {
+			return "", errReq
+		}
+		if resp.Body == nil {
+			continue
+		}
+	}
+	return userBalance.Balance, nil
+}
+
+func ChainSize(master string) (string, error) {
+	addresses, err := readAddresses()
+	if err != nil {
+		return "", err
+	}
+	masterChain := MasterHelp{Master: master}
+	var chainSize SizeHelp
+	client := req.C().DevMode()
+	resp, err := client.R().
+		SetBody(&masterChain).
+		SetSuccessResult(&chainSize).
+		Post(fmt.Sprintf("http://%s/getchainsize", strings.Trim(addresses[0].String(), "\"")))
+	if err != nil {
+		return "", err
+	}
+	if resp.Body == nil {
+		return "", errors.New("empty response")
+	}
+	return chainSize.ChainSize, nil
 }
 
 func readAddresses() ([]*fastjson.Value, error) {

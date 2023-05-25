@@ -32,6 +32,12 @@ type TransactionHelp struct {
 	Master string                  `form:"master" json:"master"`
 	Tx     *Blockchain.Transaction `form:"transaction" json:"transaction"`
 }
+type BalanceHelp struct {
+	Balance string `form:"balance" json:"balance"`
+}
+type SizeHelp struct {
+	ChainSize string `form:"chainSize" json:"chainSize"`
+}
 
 var Mutex sync.Mutex
 var IsMining bool
@@ -205,7 +211,10 @@ func GinGetBalance(c *gin.Context) {
 				gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(200, gin.H{"Balance": balance})
+		responseBalance := BalanceHelp{
+			Balance: balance,
+		}
+		c.JSON(200, gin.H{"Balance": responseBalance})
 	}
 }
 func GinGetChainSize(c *gin.Context) {
@@ -219,7 +228,10 @@ func GinGetChainSize(c *gin.Context) {
 		if errChainSize != nil {
 			return
 		}
-		c.JSON(200, gin.H{"ChainSize": size})
+		responseSize := SizeHelp{
+			ChainSize: size,
+		}
+		c.JSON(200, gin.H{"ChainSize": responseSize.ChainSize})
 	}
 }
 func GinPushBlockToNet(c *gin.Context) {

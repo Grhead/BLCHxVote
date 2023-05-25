@@ -86,7 +86,7 @@ func GetTime() (*timestamp.Timestamp, error) {
 //}
 
 func ImportToDB(PrivateKey string, PublicKey string) error {
-	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return err
 	}

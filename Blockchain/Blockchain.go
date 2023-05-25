@@ -189,7 +189,7 @@ func AddBlock(block *Block) error {
 }
 
 // NewDormantUser same with AddPass (BLCHxVote)
-func NewDormantUser(passport string) error {
+func NewDormantUser(identifier string) error {
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return err
@@ -198,9 +198,15 @@ func NewDormantUser(passport string) error {
 	if err != nil {
 		return err
 	}
+	var isUsed string
+	db.Raw("SELECT Id FROM RelationPatterns WHERE PersonIdentifier = $1",
+		identifier).Scan(&isUsed)
+	if isUsed != "" {
+		return errors.New("identifier not allowed")
+	}
 	db.Exec("INSERT INTO RelationPatterns (Id, PersonIdentifier, PrivateKeyTemplate) VALUES ($1, $2, $3)",
 		uuid.NewString(),
-		HashSum(passport),
+		HashSum(identifier),
 		privateGenKey)
 	return nil
 }
@@ -347,6 +353,18 @@ func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (st
 		HashSum(passport)).Scan(&template)
 	if template == "" {
 		return "", errors.New("identifier does not exist")
+	}
+	var checkIsUsed bool
+	db.Raw("SELECT isUsed FROM PublicKeySets WHERE PublicKey = $1",
+		PublicKey).Scan(&checkIsUsed)
+	if checkIsUsed == true {
+		return "", errors.New("public key is already used")
+	}
+	var checkIsCandidate string
+	db.Raw("SELECT Id FROM ElectionSubjects WHERE PublicKey = $1",
+		PublicKey).Scan(&checkIsCandidate)
+	if checkIsCandidate != "" {
+		return "", errors.New("public key is not allowed")
 	}
 	errExec := db.Exec("UPDATE PublicKeySets SET isUsed = 1 WHERE PublicKey = $1", PublicKey)
 	if errExec.Error != nil {

@@ -13,7 +13,7 @@ func (user *User) Address() string {
 
 func (user *User) Private() (string, error) {
 	var PrivateKey string
-	db, err := gorm.Open(sqlite.Open("Database/NodeDb.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return "", err
 	}

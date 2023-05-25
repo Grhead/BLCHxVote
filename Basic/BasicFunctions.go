@@ -163,6 +163,19 @@ func GetFullChain() ([]*Blockchain.Block, error) {
 	return fullChain, nil
 }
 
+func AcceptNewUser(Pass string, salt string, PublicKey string) (string, error) {
+	//t, _ := time.ParseDuration(EndTime)
+	//t1, _ := time.ParseDuration(LimitTime())
+	//if t1 > t {
+	//	return "time"
+	//}
+	private, err := Blockchain.RegisterGeneratePrivate(Pass, salt, PublicKey)
+	if err != nil {
+		return "", err
+	}
+	return private, nil
+}
+
 func readAddresses() ([]*fastjson.Value, error) {
 	file, err := os.ReadFile("LowConf/addr.json")
 	if err != nil {

@@ -1,5 +1,10 @@
 package main
 
+import (
+	"VOX2/Basic"
+	"fmt"
+)
+
 func main() {
 	//candidates, err := Basic.CallViewCandidates()
 	//var Candidates, _ = Basic.CallViewCandidates()
@@ -17,4 +22,12 @@ func main() {
 	//for _, v := range chain {
 	//	fmt.Printf("%v\n", v)
 	//}
+	_, err := Basic.CallCreateVoters("voter1", "water")
+	if err != nil {
+		fmt.Println(err)
+	}
+	//for _, v := range voters {
+	//	fmt.Printf("%v\n", v)
+	//}
+	fmt.Println(Basic.AcceptNewUser("voter1", "hello", "a4ec71ba4f871f739ac2ca565a16a24577c3d29823b8b0d245124b6b5ec79ea0"))
 }

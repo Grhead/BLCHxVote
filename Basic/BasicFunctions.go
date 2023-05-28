@@ -286,6 +286,14 @@ func ChainTXBlock(receiver string, master string, num uint64) (string, error) {
 		if len(TransactionsArray) >= 4 {
 			log.Println("11")
 			for _, addr := range addresses {
+				_, errNode = client.R().SetSuccessResult(&MiningResponse).
+					Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
+				if errNode != nil {
+					if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
+						fmt.Println("aaaaaaaaaaaaa")
+						continue
+					}
+				}
 				log.Println("addr", addr)
 				for i := 0; i < 4; i++ {
 					log.Println("tra", i)

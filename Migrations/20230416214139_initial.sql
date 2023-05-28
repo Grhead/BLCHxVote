@@ -25,6 +25,11 @@ CREATE TABLE IF NOT EXISTS ElectionSubjects (
                                                 VotingAffiliation CHAR(64) NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS TransactionQueue (
+                                                Id INT PRIMARY KEY,
+                                                Transactions TEXT NOT NULL
+);
+
 -- +goose Down
 DROP TABLE KeyLinks;
 DROP TABLE RelationPatterns;

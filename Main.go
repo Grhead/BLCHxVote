@@ -29,11 +29,28 @@ func main() {
 	//for _, v := range voters {
 	//	fmt.Printf("%v\n", v)
 	//}
-	//fmt.Println(Basic.AcceptNewUser("voter1", "hello", "02d3cbd38ba1e5b21eeba1c4985a89c4fd550612640f3f1f9828ebcf19b605a5"))
-	//fmt.Println(Basic.AcceptLoadUser("02d3cbd38ba1e5b21eeba1c4985a89c4fd550612640f3f1f9828ebcf19b605a5", "4a860dcc29c11ec1c03903b9e6d80c33628946bec853ee4ca5f05a4a8fbca7ae"))
-	block, err := Basic.ChainTXBlock("02d3cbd38ba1e5b21eeba1c4985a89c4fd550612640f3f1f9828ebcf19b605a5", "water", 1)
+	//fmt.Println(Basic.AcceptNewUser("voter1", "hello", "18aa8c378b646d706aac848373851c8eb666e676dff461aeef97b0861c4d45d3"))
+	//fmt.Println(Basic.AcceptLoadUser("18aa8c378b646d706aac848373851c8eb666e676dff461aeef97b0861c4d45d3", "6378bd543591aa66bab5804baa60d372221a49c24658127a20f634ea75726dd5"))
+	//
+	block, err := Basic.ChainTXBlock("18aa8c378b646d706aac848373851c8eb666e676dff461aeef97b0861c4d45d3", "water", 1)
 	if err != nil {
 		fmt.Println(err)
 	}
 	fmt.Println(block)
+
+	//addresses, err := Basic.ReadAddresses()
+	//if err != nil {
+	//	log.Println(err)
+	//}
+	//
+	//client := req.C().DevMode()
+
+	//s1 := gocron.NewScheduler(time.UTC)
+	//s1.Every(1).Seconds().Do(task)
+	//s1.StartAsync()
+	//time.Sleep(time.Second * 10)
+}
+
+func task() {
+	fmt.Println("I am running task.")
 }

@@ -41,9 +41,9 @@ func NewChain(VotesCount uint64, ChainMaster string) (*Block, error) {
 	var blocks []*Chain
 	db.Find(&blocks)
 	for _, v := range blocks {
-		desBlock, err := DeserializeBlock(v.Block)
-		if err != nil {
-			return nil, err
+		desBlock, errDes := DeserializeBlock(v.Block)
+		if errDes != nil {
+			return nil, errDes
 		}
 		if desBlock.ChainMaster == ChainMaster {
 			return nil, errors.New("affiliation already exist")

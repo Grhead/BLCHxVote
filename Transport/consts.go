@@ -33,3 +33,6 @@ type BalanceHelp struct {
 type SizeHelp struct {
 	ChainSize string `form:"chainSize" json:"chainSize"`
 }
+type CheckHelp struct {
+	AddTxStatus string `form:"addTxStatus" json:"addTxStatus"`
+}

@@ -52,7 +52,6 @@ func init() {
 		}
 	}
 }
-
 func main() {
 	rootCmd.Flags().StringVarP(&option, "set", "s", "", "Set address")
 	Execute()
@@ -76,6 +75,7 @@ func main() {
 	router.POST("/getchainsize", GinGetChainSize)
 	router.GET("/getdb", GinGetDb)
 	router.POST("/netpush", GinPushBlockToNet)
+	router.GET("/check", GinCheck)
 	err := router.Run(strings.Trim(ThisServe, "\""))
 	if err != nil {
 		log.Fatalln(err)
@@ -123,6 +123,9 @@ func GinAddTransaction(c *gin.Context) {
 		c.JSON(http.StatusBadRequest,
 			gin.H{"error": err.Error()})
 		return
+	}
+	if IsMining {
+		c.JSON(200, gin.H{"addTxStatus": "mining"})
 	} else {
 		transaction, errTx := AddTransaction(input)
 		if errTx != nil {
@@ -130,7 +133,7 @@ func GinAddTransaction(c *gin.Context) {
 				gin.H{"error": errTx.Error()})
 			return
 		}
-		c.JSON(200, gin.H{"AddTxStatus": transaction})
+		c.JSON(200, gin.H{"addTxStatus": transaction})
 	}
 }
 func GinGetBlocks(c *gin.Context) {
@@ -155,6 +158,14 @@ func GinGetDb(c *gin.Context) {
 		return
 	}
 	c.JSON(200, db)
+}
+func GinCheck(c *gin.Context) {
+	if IsMining {
+		c.JSON(200, gin.H{"addTxStatus": "mining"})
+	} else {
+		c.JSON(200, gin.H{"addTxStatus": "ready"})
+	}
+
 }
 func GinGetLastHash(c *gin.Context) {
 	var input *Transport.MasterHelp

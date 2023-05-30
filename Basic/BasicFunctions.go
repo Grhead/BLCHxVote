@@ -205,7 +205,130 @@ func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
 	return UserPublic, nil
 }
 
-func ChainTXBlock(receiver string, master string, num uint64) (string, error) {
+func Vote(receiver string, sender string, master string, num uint64) (string, error) {
+	db, errDb := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	if errDb != nil {
+		return "", errDb
+	}
+	addresses, err := ReadAddresses()
+	if err != nil {
+		return "", err
+	}
+	client := req.C().DevMode()
+	var lastHash Transport.LastHashHelp
+	var txStatus Transport.TransactionResponseHelp
+	var transactionToNet Transport.TransactionHelp
+	RequestData := Transport.MasterHelp{
+		Master: sender,
+	}
+	type TransactionsDb struct {
+		Id           int
+		Transactions string
+	}
+	var TransactionsArray []TransactionsDb
+	var errNode error
+
+	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
+	s1 := gocron.NewScheduler(time.UTC)
+	_, errTask := s1.Every(10).Seconds().Do(SchedulerTask, client, addresses[1])
+	if errTask != nil {
+		return "", errTask
+	}
+	s1.StartAsync()
+
+	for _, addr := range addresses {
+		//TODO get checking
+		_, errNode = client.R().SetSuccessResult(&MiningResponse).
+			Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
+		if errNode != nil {
+			if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
+				continue
+			}
+		}
+		resp, errReq := client.R().
+			SetBody(&RequestData).
+			SetSuccessResult(&lastHash).
+			Post(fmt.Sprintf("http://%s/getlasthash", strings.Trim(addr.String(), "\"")))
+		if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+			return "", errReq
+		}
+		if errReq == nil {
+			if resp.Body == nil {
+				continue
+			}
+		}
+		balance, errBalance := GetBalance(sender)
+		if errBalance != nil {
+			return "", errBalance
+		}
+		chainBalance, errConversion := strconv.Atoi(balance.Balance)
+		if errConversion != nil {
+			return "", errConversion
+		}
+		if uint64(chainBalance) < num {
+			return "", errors.New("not enough chain founds")
+		}
+		publicSender, errLoad := Blockchain.LoadToEnterAlreadyUserPublic(sender)
+		if errLoad != nil {
+			return "", errLoad
+		}
+		publicReceiver, errLoad := Blockchain.LoadToEnterAlreadyUserPublic(receiver)
+		if errLoad != nil {
+			return "", errLoad
+		}
+		tx, errNewTx := Blockchain.NewTransaction(publicSender, publicReceiver, lastHash.Hash, num)
+		if errNewTx != nil {
+			return "", errNewTx
+		}
+		transactionToNet = Transport.TransactionHelp{
+			Master: master,
+			Tx:     tx,
+		}
+	}
+	if !strings.Contains(MiningResponse.AddTxStatus, "mining") && len(TransactionsArray) >= 4 {
+		if len(TransactionsArray) >= 4 {
+			for _, addr := range addresses {
+				_, errNode = client.R().SetSuccessResult(&MiningResponse).
+					Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
+				if errNode != nil {
+					if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
+						continue
+					}
+				}
+				for i := 0; i < 4; i++ {
+					resp, errReq := client.R().
+						SetBody(DeserializeTX(&TransactionsArray[i].Transactions)).
+						SetSuccessResult(&txStatus).
+						Post(fmt.Sprintf("http://%s/addtx", strings.Trim(addr.String(), "\"")))
+					if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+						return "", errReq
+					}
+					if errReq == nil {
+						if resp.Body == nil {
+							continue
+						}
+					}
+				}
+				for _, v := range TransactionsArray {
+					fmt.Println("DELETE FROM TransactionQueue WHERE Id = $1", v.Id)
+					db.Exec("DELETE FROM TransactionQueue WHERE Id = $1", v.Id)
+				}
+				TransactionsArray = TransactionsArray[:0]
+			}
+		}
+	} else {
+		tx, errSerialize := SerializeTX(&transactionToNet)
+		if errSerialize != nil {
+			return "", errSerialize
+		}
+		rand.New(rand.NewSource(time.Now().Unix()))
+		t := rand.Intn(10000)
+		db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
+	}
+	return txStatus.TransactionStatus, nil
+}
+
+func Transfer(receiver string, master string, num uint64) (string, error) {
 	db, errDb := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if errDb != nil {
 		return "", errDb
@@ -225,10 +348,10 @@ func ChainTXBlock(receiver string, master string, num uint64) (string, error) {
 		Id           int
 		Transactions string
 	}
-
 	var TransactionsArray []TransactionsDb
 	var errNode error
 
+	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
 	s1 := gocron.NewScheduler(time.UTC)
 	_, errTask := s1.Every(10).Seconds().Do(SchedulerTask, client, addresses[1])
 	if errTask != nil {
@@ -237,14 +360,14 @@ func ChainTXBlock(receiver string, master string, num uint64) (string, error) {
 	s1.StartAsync()
 
 	for _, addr := range addresses {
-		//_, errNode = client.R().SetSuccessResult(&MiningResponse).
-		//	Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
-		//if errNode != nil {
-		//	if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
-		//		fmt.Println("aaaaaaaaaaaaa")
-		//		continue
-		//	}
-		//}
+		//TODO get checking
+		_, errNode = client.R().SetSuccessResult(&MiningResponse).
+			Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
+		if errNode != nil {
+			if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
+				continue
+			}
+		}
 		resp, errReq := client.R().
 			SetBody(&RequestData).
 			SetSuccessResult(&lastHash).
@@ -281,20 +404,16 @@ func ChainTXBlock(receiver string, master string, num uint64) (string, error) {
 			Tx:     tx,
 		}
 	}
-	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
 	if !strings.Contains(MiningResponse.AddTxStatus, "mining") && len(TransactionsArray) >= 4 {
 		if len(TransactionsArray) >= 4 {
-			log.Println("11")
 			for _, addr := range addresses {
 				_, errNode = client.R().SetSuccessResult(&MiningResponse).
 					Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
 				if errNode != nil {
 					if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
-						fmt.Println("aaaaaaaaaaaaa")
 						continue
 					}
 				}
-				log.Println("addr", addr)
 				for i := 0; i < 4; i++ {
 					log.Println("tra", i)
 					resp, errReq := client.R().
@@ -318,17 +437,14 @@ func ChainTXBlock(receiver string, master string, num uint64) (string, error) {
 			}
 		}
 	} else {
-		log.Println("=================================================================================")
 		tx, errSerialize := SerializeTX(&transactionToNet)
 		if errSerialize != nil {
 			return "", errSerialize
 		}
 		rand.New(rand.NewSource(time.Now().Unix()))
 		t := rand.Intn(10000)
-		log.Println(t)
 		db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
 	}
-
 	return txStatus.TransactionStatus, nil
 }
 

@@ -37,6 +37,8 @@ func main() {
 		fmt.Println(err)
 	}
 	fmt.Println(block)
+	//balance, _ := Basic.GetBalance("water")
+	//fmt.Println(balance)
 
 	//addresses, err := Basic.ReadAddresses()
 	//if err != nil {

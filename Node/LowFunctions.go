@@ -34,7 +34,7 @@ func goAddTransaction() {
 	goroutineBlock := BlockForTransaction
 	IsMining = true
 	Mutex.Unlock()
-	res := (goroutineBlock).Accept(BreakMining)
+	res := goroutineBlock.Accept(BreakMining)
 	Mutex.Lock()
 	IsMining = false
 	if res == nil && strings.Compare(goroutineBlock.PrevHash, BlockForTransaction.PrevHash) == 0 {

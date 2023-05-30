@@ -5,7 +5,7 @@
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/Database/NodeDb.db</jdbc-url>
+      <jdbc-url>jdbc:sqlite:$USER_HOME$/Desktop/1Desctop Node/Database/NodeDb.db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
     <data-source source="LOCAL" name="NodeDb.db [2]" uuid="d4d9312e-519a-44ef-91df-9d681a01541e">

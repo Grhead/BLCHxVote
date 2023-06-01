@@ -14,6 +14,7 @@ import (
 	"log"
 	"math/rand"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -22,6 +23,11 @@ import (
 type TransactionsDb struct {
 	Id           int
 	Transactions string
+}
+
+type ElectionsList struct {
+	ElectionSubject *Blockchain.ElectionSubjects
+	Balance         string
 }
 
 var MiningResponse Transport.CheckHelp
@@ -74,6 +80,47 @@ func CallNewCandidate(description string, affiliation string) (*Blockchain.Elect
 		return nil, err
 	}
 	return candidate, nil
+}
+
+func WinnersList(master string) ([]*ElectionsList, error) {
+	db, errDb := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	if errDb != nil {
+		return nil, errDb
+	}
+	var GetElections []*Blockchain.ElectionSubjects
+	var ResultList []*ElectionsList
+	db.Find(&GetElections).Where("VotingAffiliation = $1", master)
+	for _, v := range GetElections {
+		ElectionBalance, err := GetBalance(v.PublicKey)
+		if err != nil {
+			return nil, err
+		}
+		ElectionItem := ElectionsList{
+			ElectionSubject: v,
+			Balance:         ElectionBalance.Balance,
+		}
+		ResultList = append(ResultList, &ElectionItem)
+	}
+	return ResultList, nil
+}
+
+func SoloWinner(master string) (*ElectionsList, error) {
+	GetElections, err := WinnersList(master)
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(GetElections, func(i, j int) bool {
+		GetBalanceI, errBalanceI := strconv.Atoi(GetElections[j].Balance)
+		if errBalanceI != nil {
+			log.Fatalln(errBalanceI)
+		}
+		GetBalanceJ, errBalanceJ := strconv.Atoi(GetElections[j].Balance)
+		if errBalanceJ != nil {
+			log.Fatalln(errBalanceJ)
+		}
+		return GetBalanceI < GetBalanceJ
+	})
+	return GetElections[len(GetElections)-1], nil
 }
 
 func GetBalance(userAddress string) (*Transport.BalanceHelp, error) {
@@ -393,7 +440,6 @@ func addTransactionToNet(ch chan bool,
 			if !strings.Contains(MiningResponse.AddTxStatus, "mining") && len(TransactionsArray) >= 4 {
 				if len(TransactionsArray) >= 4 {
 					for _, addr := range addresses {
-						fmt.Println("=========================================================", addr)
 						_, errNode := client.R().SetSuccessResult(&MiningResponse).
 							Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
 						if errNode != nil {

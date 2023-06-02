@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/imroc/req/v3"
 	"github.com/valyala/fastjson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"log"
@@ -34,22 +35,19 @@ type ElectionsList struct {
 var MiningResponse Transport.CheckHelp
 var QueueEnum = make(chan bool)
 
-func SetTime(master string) (*timestamp.Timestamp, error) {
+func SetTime(master string, limit *timestamppb.Timestamp) (*timestamp.Timestamp, error) {
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
-	now, err := Blockchain.GetTime()
-	if err != nil {
-		return nil, err
-	}
+	//now := timestamppb.New(limit)
 	rand.New(rand.NewSource(time.Now().Unix()))
 	t := rand.Intn(10000)
-	errInsert := db.Exec("INSERT INTO VotingTime (Id, MasterChain, LimitTime) VALUES ($1, $2, $3)", t, master, now.Seconds)
+	errInsert := db.Exec("INSERT INTO VotingTime (Id, MasterChain, LimitTime) VALUES ($1, $2, $3)", t, master, limit.Seconds)
 	if errInsert.Error != nil {
 		return nil, errInsert.Error
 	}
-	return now, nil
+	return limit, nil
 }
 
 func CheckTime(master string) (time.Time, string, error) {
@@ -67,7 +65,7 @@ func CheckTime(master string) (time.Time, string, error) {
 	parsedTime := time.Unix(int64(i), 0)
 	return parsedTime, timeOfMaster, nil
 }
-func NewChain(initMaster string, votesCount uint64) (*Transport.CreateHelp, string, error) {
+func NewChain(initMaster string, votesCount uint64, limit string) (*Transport.CreateHelp, string, error) {
 	addresses, err := ReadAddresses()
 	if err != nil {
 		return nil, "", err
@@ -93,7 +91,7 @@ func NewChain(initMaster string, votesCount uint64) (*Transport.CreateHelp, stri
 			}
 		}
 	}
-	setTimeResult, err := SetTime(initMaster)
+	setTimeResult, err := SetTime(initMaster, limit)
 	if err != nil {
 		return nil, "", err
 	}

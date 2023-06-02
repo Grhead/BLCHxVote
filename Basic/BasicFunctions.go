@@ -33,6 +33,22 @@ type ElectionsList struct {
 var MiningResponse Transport.CheckHelp
 var QueueEnum = make(chan bool)
 
+func SetTime() string {
+	temp := ChainBlock("1")
+	srr := fastjson.GetString([]byte(temp), "TimeStamp")
+	u, _ := time.Parse(time.RFC3339, srr)
+	trim := time.Since(u).String()
+	return trim
+}
+
+func CheckTime() string {
+	temp := ChainBlock("1")
+	srr := fastjson.GetString([]byte(temp), "TimeStamp")
+	u, _ := time.Parse(time.RFC3339, srr)
+	trim := time.Since(u).String()
+	return trim
+}
+
 func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, error) {
 	var resultItems []*Blockchain.User
 	switch voter.(type) {

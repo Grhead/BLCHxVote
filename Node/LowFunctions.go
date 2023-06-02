@@ -176,9 +176,9 @@ func CompareChains(address string) error {
 			if v == nil {
 				return errors.New("block is nil")
 			}
-			serializeBlock, err := Blockchain.SerializeBlock(v)
-			if err != nil {
-				return err
+			serializeBlock, errSerialize := Blockchain.SerializeBlock(v)
+			if errSerialize != nil {
+				return errSerialize
 			}
 			block := Blockchain.Chain{
 				Id:    uuid.NewString(),
@@ -222,7 +222,8 @@ func CompareChains(address string) error {
 func NewChain(chainMaster string, count uint64) (string, error) {
 	genesis, err := Blockchain.NewChain(count, chainMaster)
 	if err != nil {
-		return "", nil
+		log.Println(err)
+		return "", err
 	}
 	return genesis.CurrHash, nil
 }

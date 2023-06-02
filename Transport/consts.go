@@ -36,3 +36,6 @@ type SizeHelp struct {
 type CheckHelp struct {
 	AddTxStatus string `form:"addTxStatus" json:"addTxStatus"`
 }
+type CreateHelp struct {
+	Status string `form:"genesisHash" json:"genesisHash"`
+}

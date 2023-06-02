@@ -92,11 +92,17 @@ func GinNewChain(c *gin.Context) {
 	} else {
 		genesisHash, errChain := NewChain(input.Master, input.Count)
 		if errChain != nil {
+			responseHash := Transport.CreateHelp{
+				Status: errChain.Error(),
+			}
 			c.JSON(http.StatusBadRequest,
-				gin.H{"error": err.Error()})
+				gin.H{"error": responseHash.Status})
 			return
 		}
-		c.JSON(200, gin.H{"GenesisHash": genesisHash})
+		responseHash := Transport.CreateHelp{
+			Status: genesisHash,
+		}
+		c.JSON(200, gin.H{"GenesisHash": responseHash.Status})
 	}
 }
 

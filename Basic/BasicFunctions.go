@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/go-co-op/gocron"
 	_ "github.com/go-co-op/gocron"
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/imroc/req/v3"
 	"github.com/valyala/fastjson"
 	"gorm.io/driver/sqlite"
@@ -33,57 +34,58 @@ type ElectionsList struct {
 var MiningResponse Transport.CheckHelp
 var QueueEnum = make(chan bool)
 
-func SetTime(master string) (string, error) {
+func SetTime(master string) (*timestamp.Timestamp, error) {
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	now, err := Blockchain.GetTime()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	rand.New(rand.NewSource(time.Now().Unix()))
 	t := rand.Intn(10000)
-	errInsert := db.Exec("INSERT INTO VotingTime (Id, MasterChain, LimitTime) VALUES $1, $2, $3", t, master, now.AsTime().String())
+	errInsert := db.Exec("INSERT INTO VotingTime (Id, MasterChain, LimitTime) VALUES ($1, $2, $3)", t, master, now.Seconds)
 	if errInsert.Error != nil {
-		return "", errInsert.Error
+		return nil, errInsert.Error
 	}
-	return now.AsTime().String(), nil
+	return now, nil
 }
 
-func CheckTime(master string) (string, error) {
+func CheckTime(master string) (time.Time, string, error) {
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
-		return "", err
+		return time.Time{}, "", err
 	}
-	now, err := Blockchain.GetTime()
+	var timeOfMaster string
+	db.Raw("SELECT LimitTime FROM VotingTime WHERE MasterChain = $1",
+		master).Scan(&timeOfMaster)
+	i, err := strconv.Atoi(timeOfMaster)
 	if err != nil {
-		return "", err
+		return time.Time{}, "", err
 	}
-	temp := ChainBlock("1")
-	srr := fastjson.GetString([]byte(temp), "TimeStamp")
-	u, _ := time.Parse(time.RFC3339, srr)
-	trim := time.Since(u).String()
-	return "", nil
+	parsedTime := time.Unix(int64(i), 0)
+	return parsedTime, timeOfMaster, nil
 }
-func NewChain(initMaster string, votesCount uint64) (string, error) {
+func NewChain(initMaster string, votesCount uint64) (*Transport.CreateHelp, string, error) {
 	addresses, err := ReadAddresses()
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 	initChain := Transport.ChainHelp{
 		Master: initMaster,
 		Count:  votesCount,
 	}
-	var hashStatus string
+
+	var creation Transport.CreateHelp
 	client := req.C().DevMode()
 	for _, addr := range addresses {
 		resp, errReq := client.R().
 			SetBody(&initChain).
-			SetSuccessResult(&hashStatus).
+			SetSuccessResult(&creation).
 			Post(fmt.Sprintf("http://%s/newchain", strings.Trim(addr.String(), "\"")))
 		if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
-			return "", errReq
+			return nil, "", errReq
 		}
 		if errReq == nil {
 			if resp.Body == nil {
@@ -91,7 +93,11 @@ func NewChain(initMaster string, votesCount uint64) (string, error) {
 			}
 		}
 	}
-	return hashStatus, nil
+	setTimeResult, err := SetTime(initMaster)
+	if err != nil {
+		return nil, "", err
+	}
+	return &creation, setTimeResult.AsTime().String(), nil
 }
 
 func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, error) {

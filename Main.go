@@ -1,6 +1,7 @@
 package main
 
 import (
+	"VOX2/Basic"
 	"fmt"
 )
 
@@ -55,6 +56,20 @@ func main() {
 	//if err != nil {
 	//	return
 	//}
+
+	//time, err := Basic.SetTime("qqw")
+	//if err != nil {
+	//	return
+	//}
+	//fmt.Println(time)
+
+	//chain, s, err := Basic.NewChain("qwerty", 100)
+	//fmt.Println(chain, " ", s, " ", err)
+	checkTime, st, err := Basic.CheckTime("qqw")
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(checkTime, st)
 }
 
 func task() {

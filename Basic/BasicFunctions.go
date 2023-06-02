@@ -33,20 +33,65 @@ type ElectionsList struct {
 var MiningResponse Transport.CheckHelp
 var QueueEnum = make(chan bool)
 
-func SetTime() string {
-	temp := ChainBlock("1")
-	srr := fastjson.GetString([]byte(temp), "TimeStamp")
-	u, _ := time.Parse(time.RFC3339, srr)
-	trim := time.Since(u).String()
-	return trim
+func SetTime(master string) (string, error) {
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	if err != nil {
+		return "", err
+	}
+	now, err := Blockchain.GetTime()
+	if err != nil {
+		return "", err
+	}
+	rand.New(rand.NewSource(time.Now().Unix()))
+	t := rand.Intn(10000)
+	errInsert := db.Exec("INSERT INTO VotingTime (Id, MasterChain, LimitTime) VALUES $1, $2, $3", t, master, now.AsTime().String())
+	if errInsert.Error != nil {
+		return "", errInsert.Error
+	}
+	return now.AsTime().String(), nil
 }
 
-func CheckTime() string {
+func CheckTime(master string) (string, error) {
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	if err != nil {
+		return "", err
+	}
+	now, err := Blockchain.GetTime()
+	if err != nil {
+		return "", err
+	}
 	temp := ChainBlock("1")
 	srr := fastjson.GetString([]byte(temp), "TimeStamp")
 	u, _ := time.Parse(time.RFC3339, srr)
 	trim := time.Since(u).String()
-	return trim
+	return "", nil
+}
+func NewChain(initMaster string, votesCount uint64) (string, error) {
+	addresses, err := ReadAddresses()
+	if err != nil {
+		return "", err
+	}
+	initChain := Transport.ChainHelp{
+		Master: initMaster,
+		Count:  votesCount,
+	}
+	var hashStatus string
+	client := req.C().DevMode()
+	for _, addr := range addresses {
+		resp, errReq := client.R().
+			SetBody(&initChain).
+			SetSuccessResult(&hashStatus).
+			Post(fmt.Sprintf("http://%s/newchain", strings.Trim(addr.String(), "\"")))
+		if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+			return "", errReq
+		}
+		if errReq == nil {
+			if resp.Body == nil {
+				continue
+			}
+		}
+	}
+	return hashStatus, nil
 }
 
 func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, error) {
@@ -80,13 +125,13 @@ func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, err
 	return resultItems, nil
 }
 
-func CallViewCandidates() ([]*Blockchain.ElectionSubjects, error) {
+func CallViewCandidates(master string) ([]*Blockchain.ElectionSubjects, error) {
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 	var Candidates []*Blockchain.ElectionSubjects
-	db.Table("ElectionSubjects").Find(&Candidates)
+	db.Table("ElectionSubjects").Find(&Candidates).Where("VotingAffiliation = $1", master)
 	return Candidates, nil
 }
 
@@ -105,7 +150,7 @@ func WinnersList(master string) ([]*ElectionsList, error) {
 	}
 	var GetElections []*Blockchain.ElectionSubjects
 	var ResultList []*ElectionsList
-	db.Find(&GetElections).Where("VotingAffiliation = $1", master)
+	db.Table("ElectionSubjects").Find(&GetElections).Where("VotingAffiliation = $1", master)
 	for _, v := range GetElections {
 		ElectionBalance, err := GetBalance(v.PublicKey)
 		if err != nil {

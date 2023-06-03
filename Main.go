@@ -1,10 +1,5 @@
 package main
 
-import (
-	"VOX2/Basic"
-	"fmt"
-)
-
 func main() {
 	//candidates, err := Basic.CallViewCandidates()
 	//var Candidates, _ = Basic.CallViewCandidates()
@@ -57,21 +52,21 @@ func main() {
 	//	return
 	//}
 
-	//time, err := Basic.SetTime("qqw")
+	//time33, err := Basic.SetTime("tte", timestamppb.New(time.Now()))
 	//if err != nil {
 	//	return
 	//}
-	//fmt.Println(time)
+	//fmt.Println(time33)
 
 	//chain, s, err := Basic.NewChain("qwerty", 100)
 	//fmt.Println(chain, " ", s, " ", err)
-	checkTime, st, err := Basic.CheckTime("qqw")
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(checkTime, st)
+	//checkTime, st, err := Basic.CheckTime("tte")
+	//if err != nil {
+	//	fmt.Println(err)
+	//}
+	//fmt.Println(checkTime, st)
 }
 
-func task() {
-	fmt.Println("I am running task.")
-}
+//func task() {
+//	fmt.Println("I am running task.")
+//}

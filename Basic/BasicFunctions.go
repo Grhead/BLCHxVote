@@ -62,10 +62,11 @@ func CheckTime(master string) (time.Time, string, error) {
 	if err != nil {
 		return time.Time{}, "", err
 	}
-	parsedTime := time.Unix(int64(i), 0)
+	parsedTime := time.Unix(int64(i), 0).UTC()
 	return parsedTime, timeOfMaster, nil
 }
-func NewChain(initMaster string, votesCount uint64, limit string) (*Transport.CreateHelp, string, error) {
+
+func NewChain(initMaster string, votesCount uint64, limit *timestamppb.Timestamp) (*Transport.CreateHelp, string, error) {
 	addresses, err := ReadAddresses()
 	if err != nil {
 		return nil, "", err
@@ -277,14 +278,22 @@ func GetFullChain() ([]*Blockchain.Block, error) {
 	return fullChain, nil
 }
 
-// AcceptNewUser TODO add time verification
 func AcceptNewUser(Pass string, salt string, PublicKey string) (string, error) {
-	//TODO add time verification
-	//t, _ := time.ParseDuration(EndTime)
-	//t1, _ := time.ParseDuration(LimitTime())
-	//if t1 > t {
-	//	return "time"
-	//}
+	master, err := Blockchain.GetVotingAffiliation(PublicKey)
+	if err != nil {
+		return "", err
+	}
+	gettingTime, err := Blockchain.GetTime()
+	if err != nil {
+		return "", err
+	}
+	checkTime, _, err := CheckTime(master)
+	if err != nil {
+		return "", err
+	}
+	if gettingTime.AsTime().After(checkTime) {
+		return "", errors.New("time expired")
+	}
 	private, err := Blockchain.RegisterGeneratePrivate(Pass, salt, PublicKey)
 	if err != nil {
 		return "", err
@@ -294,12 +303,21 @@ func AcceptNewUser(Pass string, salt string, PublicKey string) (string, error) {
 
 // AcceptLoadUser TODO add time verification
 func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
-	//TODO add time verification
-	//t, _ := time.ParseDuration(EndTime)
-	//t1, _ := time.ParseDuration(LimitTime())
-	//if t1 > t {
-	//	return "2"
-	//}
+	master, err := Blockchain.GetVotingAffiliation(PublicK)
+	if err != nil {
+		return nil, err
+	}
+	gettingTime, err := Blockchain.GetTime()
+	if err != nil {
+		return nil, err
+	}
+	checkTime, _, err := CheckTime(master)
+	if err != nil {
+		return nil, err
+	}
+	if gettingTime.AsTime().After(checkTime) {
+		return nil, errors.New("time expired")
+	}
 	UserPrivate, err := Blockchain.LoadToEnterAlreadyUserPrivate(PrivateK)
 	if err != nil {
 		return nil, err

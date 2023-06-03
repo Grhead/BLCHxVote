@@ -392,6 +392,17 @@ func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (st
 	return fmt.Sprintf("%x", hash[:]), nil
 }
 
+func GetVotingAffiliation(PublicKey string) (string, error) {
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	if err != nil {
+		return "", err
+	}
+	var checkVotingAffiliation string
+	db.Raw("SELECT VotingAffiliation FROM PublicKeySets WHERE PublicKey = $1",
+		PublicKey).Scan(&checkVotingAffiliation)
+	return checkVotingAffiliation, nil
+}
+
 // GenerateKey TODO Rewrite
 func GenerateKey() (string, error) {
 	TimeUrl := viper.GetString("TIME_URL")

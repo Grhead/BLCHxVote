@@ -20,543 +20,498 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	BLCH_Contract_AuthRegister_FullMethodName   = "/BLCH_Contract/AuthRegister"
-	BLCH_Contract_AuthLogin_FullMethodName      = "/BLCH_Contract/AuthLogin"
-	BLCH_Contract_ChainSize_FullMethodName      = "/BLCH_Contract/ChainSize"
-	BLCH_Contract_Balance_FullMethodName        = "/BLCH_Contract/Balance"
-	BLCH_Contract_ViewCandidates_FullMethodName = "/BLCH_Contract/ViewCandidates"
-	BLCH_Contract_Transfer_FullMethodName       = "/BLCH_Contract/Transfer"
-	BLCH_Contract_Vote_FullMethodName           = "/BLCH_Contract/Vote"
-	BLCH_Contract_TimeBlock_FullMethodName      = "/BLCH_Contract/TimeBlock"
-	BLCH_Contract_ChainPrint_FullMethodName     = "/BLCH_Contract/ChainPrint"
-	BLCH_Contract_ResultsWinner_FullMethodName  = "/BLCH_Contract/ResultsWinner"
-	BLCH_Contract_SoloWinner_FullMethodName     = "/BLCH_Contract/SoloWinner"
+	Contract_NewChain_FullMethodName           = "/Contract/NewChain"
+	Contract_CallCreateVoters_FullMethodName   = "/Contract/CallCreateVoters"
+	Contract_CallNewCandidate_FullMethodName   = "/Contract/CallNewCandidate"
+	Contract_CallViewCandidates_FullMethodName = "/Contract/CallViewCandidates"
+	Contract_WinnersList_FullMethodName        = "/Contract/WinnersList"
+	Contract_SoloWinner_FullMethodName         = "/Contract/SoloWinner"
+	Contract_ChainSize_FullMethodName          = "/Contract/ChainSize"
+	Contract_GetPartOfChain_FullMethodName     = "/Contract/GetPartOfChain"
+	Contract_GetFullChain_FullMethodName       = "/Contract/GetFullChain"
+	Contract_AcceptNewUser_FullMethodName      = "/Contract/AcceptNewUser"
+	Contract_AcceptLoadUser_FullMethodName     = "/Contract/AcceptLoadUser"
+	Contract_Vote_FullMethodName               = "/Contract/Vote"
 )
 
-// BLCH_ContractClient is the client API for BLCH_Contract service.
+// ContractClient is the client API for Contract service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type BLCH_ContractClient interface {
-	AuthRegister(ctx context.Context, in *RegData, opts ...grpc.CallOption) (*AuthRegResult, error)
-	AuthLogin(ctx context.Context, in *AuthData, opts ...grpc.CallOption) (*AuthRegResult, error)
-	ChainSize(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*ResponseSize, error)
-	Balance(ctx context.Context, in *Address, opts ...grpc.CallOption) (*Lanb, error)
-	ViewCandidates(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (BLCH_Contract_ViewCandidatesClient, error)
-	Transfer(ctx context.Context, in *LowDataChain, opts ...grpc.CallOption) (*IsComplited, error)
-	Vote(ctx context.Context, in *LowData, opts ...grpc.CallOption) (*IsComplitedVote, error)
-	TimeBlock(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (BLCH_Contract_TimeBlockClient, error)
-	ChainPrint(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*Chain, error)
-	ResultsWinner(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (BLCH_Contract_ResultsWinnerClient, error)
-	SoloWinner(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*CandidateList, error)
+type ContractClient interface {
+	NewChain(ctx context.Context, in *NewChainRequest, opts ...grpc.CallOption) (*NewChainResponse, error)
+	CallCreateVoters(ctx context.Context, in *CallCreateVotersRequest, opts ...grpc.CallOption) (*CallCreateVotersResponse, error)
+	CallNewCandidate(ctx context.Context, in *CallNewCandidateRequest, opts ...grpc.CallOption) (*CallNewCandidateResponse, error)
+	CallViewCandidates(ctx context.Context, in *CallNewCandidateRequest, opts ...grpc.CallOption) (*CallNewCandidateResponse, error)
+	WinnersList(ctx context.Context, in *WinnersListRequest, opts ...grpc.CallOption) (*WinnersListResponse, error)
+	SoloWinner(ctx context.Context, in *SoloWinnerRequest, opts ...grpc.CallOption) (*SoloWinnerResponse, error)
+	ChainSize(ctx context.Context, in *ChainSizeRequest, opts ...grpc.CallOption) (*ChainSizeResponse, error)
+	GetPartOfChain(ctx context.Context, in *GetPartOfChainRequest, opts ...grpc.CallOption) (*GetPartOfChainResponse, error)
+	GetFullChain(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetFullChainResponse, error)
+	AcceptNewUser(ctx context.Context, in *AcceptNewUserRequest, opts ...grpc.CallOption) (*AcceptNewUserResponse, error)
+	AcceptLoadUser(ctx context.Context, in *AcceptLoadUserRequest, opts ...grpc.CallOption) (*AcceptLoadUserResponse, error)
+	Vote(ctx context.Context, in *VoteRequest, opts ...grpc.CallOption) (*VoteResponse, error)
 }
 
-type bLCH_ContractClient struct {
+type contractClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewBLCH_ContractClient(cc grpc.ClientConnInterface) BLCH_ContractClient {
-	return &bLCH_ContractClient{cc}
+func NewContractClient(cc grpc.ClientConnInterface) ContractClient {
+	return &contractClient{cc}
 }
 
-func (c *bLCH_ContractClient) AuthRegister(ctx context.Context, in *RegData, opts ...grpc.CallOption) (*AuthRegResult, error) {
-	out := new(AuthRegResult)
-	err := c.cc.Invoke(ctx, BLCH_Contract_AuthRegister_FullMethodName, in, out, opts...)
+func (c *contractClient) NewChain(ctx context.Context, in *NewChainRequest, opts ...grpc.CallOption) (*NewChainResponse, error) {
+	out := new(NewChainResponse)
+	err := c.cc.Invoke(ctx, Contract_NewChain_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *bLCH_ContractClient) AuthLogin(ctx context.Context, in *AuthData, opts ...grpc.CallOption) (*AuthRegResult, error) {
-	out := new(AuthRegResult)
-	err := c.cc.Invoke(ctx, BLCH_Contract_AuthLogin_FullMethodName, in, out, opts...)
+func (c *contractClient) CallCreateVoters(ctx context.Context, in *CallCreateVotersRequest, opts ...grpc.CallOption) (*CallCreateVotersResponse, error) {
+	out := new(CallCreateVotersResponse)
+	err := c.cc.Invoke(ctx, Contract_CallCreateVoters_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *bLCH_ContractClient) ChainSize(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*ResponseSize, error) {
-	out := new(ResponseSize)
-	err := c.cc.Invoke(ctx, BLCH_Contract_ChainSize_FullMethodName, in, out, opts...)
+func (c *contractClient) CallNewCandidate(ctx context.Context, in *CallNewCandidateRequest, opts ...grpc.CallOption) (*CallNewCandidateResponse, error) {
+	out := new(CallNewCandidateResponse)
+	err := c.cc.Invoke(ctx, Contract_CallNewCandidate_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *bLCH_ContractClient) Balance(ctx context.Context, in *Address, opts ...grpc.CallOption) (*Lanb, error) {
-	out := new(Lanb)
-	err := c.cc.Invoke(ctx, BLCH_Contract_Balance_FullMethodName, in, out, opts...)
+func (c *contractClient) CallViewCandidates(ctx context.Context, in *CallNewCandidateRequest, opts ...grpc.CallOption) (*CallNewCandidateResponse, error) {
+	out := new(CallNewCandidateResponse)
+	err := c.cc.Invoke(ctx, Contract_CallViewCandidates_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *bLCH_ContractClient) ViewCandidates(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (BLCH_Contract_ViewCandidatesClient, error) {
-	stream, err := c.cc.NewStream(ctx, &BLCH_Contract_ServiceDesc.Streams[0], BLCH_Contract_ViewCandidates_FullMethodName, opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &bLCH_ContractViewCandidatesClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type BLCH_Contract_ViewCandidatesClient interface {
-	Recv() (*CandidateList, error)
-	grpc.ClientStream
-}
-
-type bLCH_ContractViewCandidatesClient struct {
-	grpc.ClientStream
-}
-
-func (x *bLCH_ContractViewCandidatesClient) Recv() (*CandidateList, error) {
-	m := new(CandidateList)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *bLCH_ContractClient) Transfer(ctx context.Context, in *LowDataChain, opts ...grpc.CallOption) (*IsComplited, error) {
-	out := new(IsComplited)
-	err := c.cc.Invoke(ctx, BLCH_Contract_Transfer_FullMethodName, in, out, opts...)
+func (c *contractClient) WinnersList(ctx context.Context, in *WinnersListRequest, opts ...grpc.CallOption) (*WinnersListResponse, error) {
+	out := new(WinnersListResponse)
+	err := c.cc.Invoke(ctx, Contract_WinnersList_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *bLCH_ContractClient) Vote(ctx context.Context, in *LowData, opts ...grpc.CallOption) (*IsComplitedVote, error) {
-	out := new(IsComplitedVote)
-	err := c.cc.Invoke(ctx, BLCH_Contract_Vote_FullMethodName, in, out, opts...)
+func (c *contractClient) SoloWinner(ctx context.Context, in *SoloWinnerRequest, opts ...grpc.CallOption) (*SoloWinnerResponse, error) {
+	out := new(SoloWinnerResponse)
+	err := c.cc.Invoke(ctx, Contract_SoloWinner_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *bLCH_ContractClient) TimeBlock(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (BLCH_Contract_TimeBlockClient, error) {
-	stream, err := c.cc.NewStream(ctx, &BLCH_Contract_ServiceDesc.Streams[1], BLCH_Contract_TimeBlock_FullMethodName, opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &bLCH_ContractTimeBlockClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type BLCH_Contract_TimeBlockClient interface {
-	Recv() (*TimeData, error)
-	grpc.ClientStream
-}
-
-type bLCH_ContractTimeBlockClient struct {
-	grpc.ClientStream
-}
-
-func (x *bLCH_ContractTimeBlockClient) Recv() (*TimeData, error) {
-	m := new(TimeData)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *bLCH_ContractClient) ChainPrint(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*Chain, error) {
-	out := new(Chain)
-	err := c.cc.Invoke(ctx, BLCH_Contract_ChainPrint_FullMethodName, in, out, opts...)
+func (c *contractClient) ChainSize(ctx context.Context, in *ChainSizeRequest, opts ...grpc.CallOption) (*ChainSizeResponse, error) {
+	out := new(ChainSizeResponse)
+	err := c.cc.Invoke(ctx, Contract_ChainSize_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *bLCH_ContractClient) ResultsWinner(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (BLCH_Contract_ResultsWinnerClient, error) {
-	stream, err := c.cc.NewStream(ctx, &BLCH_Contract_ServiceDesc.Streams[2], BLCH_Contract_ResultsWinner_FullMethodName, opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &bLCH_ContractResultsWinnerClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type BLCH_Contract_ResultsWinnerClient interface {
-	Recv() (*CandidateListWithBalance, error)
-	grpc.ClientStream
-}
-
-type bLCH_ContractResultsWinnerClient struct {
-	grpc.ClientStream
-}
-
-func (x *bLCH_ContractResultsWinnerClient) Recv() (*CandidateListWithBalance, error) {
-	m := new(CandidateListWithBalance)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-func (c *bLCH_ContractClient) SoloWinner(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*CandidateList, error) {
-	out := new(CandidateList)
-	err := c.cc.Invoke(ctx, BLCH_Contract_SoloWinner_FullMethodName, in, out, opts...)
+func (c *contractClient) GetPartOfChain(ctx context.Context, in *GetPartOfChainRequest, opts ...grpc.CallOption) (*GetPartOfChainResponse, error) {
+	out := new(GetPartOfChainResponse)
+	err := c.cc.Invoke(ctx, Contract_GetPartOfChain_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// BLCH_ContractServer is the server API for BLCH_Contract service.
-// All implementations must embed UnimplementedBLCH_ContractServer
+func (c *contractClient) GetFullChain(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetFullChainResponse, error) {
+	out := new(GetFullChainResponse)
+	err := c.cc.Invoke(ctx, Contract_GetFullChain_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *contractClient) AcceptNewUser(ctx context.Context, in *AcceptNewUserRequest, opts ...grpc.CallOption) (*AcceptNewUserResponse, error) {
+	out := new(AcceptNewUserResponse)
+	err := c.cc.Invoke(ctx, Contract_AcceptNewUser_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *contractClient) AcceptLoadUser(ctx context.Context, in *AcceptLoadUserRequest, opts ...grpc.CallOption) (*AcceptLoadUserResponse, error) {
+	out := new(AcceptLoadUserResponse)
+	err := c.cc.Invoke(ctx, Contract_AcceptLoadUser_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *contractClient) Vote(ctx context.Context, in *VoteRequest, opts ...grpc.CallOption) (*VoteResponse, error) {
+	out := new(VoteResponse)
+	err := c.cc.Invoke(ctx, Contract_Vote_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ContractServer is the server API for Contract service.
+// All implementations must embed UnimplementedContractServer
 // for forward compatibility
-type BLCH_ContractServer interface {
-	AuthRegister(context.Context, *RegData) (*AuthRegResult, error)
-	AuthLogin(context.Context, *AuthData) (*AuthRegResult, error)
-	ChainSize(context.Context, *empty.Empty) (*ResponseSize, error)
-	Balance(context.Context, *Address) (*Lanb, error)
-	ViewCandidates(*empty.Empty, BLCH_Contract_ViewCandidatesServer) error
-	Transfer(context.Context, *LowDataChain) (*IsComplited, error)
-	Vote(context.Context, *LowData) (*IsComplitedVote, error)
-	TimeBlock(*empty.Empty, BLCH_Contract_TimeBlockServer) error
-	ChainPrint(context.Context, *empty.Empty) (*Chain, error)
-	ResultsWinner(*empty.Empty, BLCH_Contract_ResultsWinnerServer) error
-	SoloWinner(context.Context, *empty.Empty) (*CandidateList, error)
-	mustEmbedUnimplementedBLCH_ContractServer()
+type ContractServer interface {
+	NewChain(context.Context, *NewChainRequest) (*NewChainResponse, error)
+	CallCreateVoters(context.Context, *CallCreateVotersRequest) (*CallCreateVotersResponse, error)
+	CallNewCandidate(context.Context, *CallNewCandidateRequest) (*CallNewCandidateResponse, error)
+	CallViewCandidates(context.Context, *CallNewCandidateRequest) (*CallNewCandidateResponse, error)
+	WinnersList(context.Context, *WinnersListRequest) (*WinnersListResponse, error)
+	SoloWinner(context.Context, *SoloWinnerRequest) (*SoloWinnerResponse, error)
+	ChainSize(context.Context, *ChainSizeRequest) (*ChainSizeResponse, error)
+	GetPartOfChain(context.Context, *GetPartOfChainRequest) (*GetPartOfChainResponse, error)
+	GetFullChain(context.Context, *empty.Empty) (*GetFullChainResponse, error)
+	AcceptNewUser(context.Context, *AcceptNewUserRequest) (*AcceptNewUserResponse, error)
+	AcceptLoadUser(context.Context, *AcceptLoadUserRequest) (*AcceptLoadUserResponse, error)
+	Vote(context.Context, *VoteRequest) (*VoteResponse, error)
+	mustEmbedUnimplementedContractServer()
 }
 
-// UnimplementedBLCH_ContractServer must be embedded to have forward compatible implementations.
-type UnimplementedBLCH_ContractServer struct {
+// UnimplementedContractServer must be embedded to have forward compatible implementations.
+type UnimplementedContractServer struct {
 }
 
-func (UnimplementedBLCH_ContractServer) AuthRegister(context.Context, *RegData) (*AuthRegResult, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthRegister not implemented")
+func (UnimplementedContractServer) NewChain(context.Context, *NewChainRequest) (*NewChainResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NewChain not implemented")
 }
-func (UnimplementedBLCH_ContractServer) AuthLogin(context.Context, *AuthData) (*AuthRegResult, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthLogin not implemented")
+func (UnimplementedContractServer) CallCreateVoters(context.Context, *CallCreateVotersRequest) (*CallCreateVotersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CallCreateVoters not implemented")
 }
-func (UnimplementedBLCH_ContractServer) ChainSize(context.Context, *empty.Empty) (*ResponseSize, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChainSize not implemented")
+func (UnimplementedContractServer) CallNewCandidate(context.Context, *CallNewCandidateRequest) (*CallNewCandidateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CallNewCandidate not implemented")
 }
-func (UnimplementedBLCH_ContractServer) Balance(context.Context, *Address) (*Lanb, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Balance not implemented")
+func (UnimplementedContractServer) CallViewCandidates(context.Context, *CallNewCandidateRequest) (*CallNewCandidateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CallViewCandidates not implemented")
 }
-func (UnimplementedBLCH_ContractServer) ViewCandidates(*empty.Empty, BLCH_Contract_ViewCandidatesServer) error {
-	return status.Errorf(codes.Unimplemented, "method ViewCandidates not implemented")
+func (UnimplementedContractServer) WinnersList(context.Context, *WinnersListRequest) (*WinnersListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method WinnersList not implemented")
 }
-func (UnimplementedBLCH_ContractServer) Transfer(context.Context, *LowDataChain) (*IsComplited, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Transfer not implemented")
-}
-func (UnimplementedBLCH_ContractServer) Vote(context.Context, *LowData) (*IsComplitedVote, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Vote not implemented")
-}
-func (UnimplementedBLCH_ContractServer) TimeBlock(*empty.Empty, BLCH_Contract_TimeBlockServer) error {
-	return status.Errorf(codes.Unimplemented, "method TimeBlock not implemented")
-}
-func (UnimplementedBLCH_ContractServer) ChainPrint(context.Context, *empty.Empty) (*Chain, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChainPrint not implemented")
-}
-func (UnimplementedBLCH_ContractServer) ResultsWinner(*empty.Empty, BLCH_Contract_ResultsWinnerServer) error {
-	return status.Errorf(codes.Unimplemented, "method ResultsWinner not implemented")
-}
-func (UnimplementedBLCH_ContractServer) SoloWinner(context.Context, *empty.Empty) (*CandidateList, error) {
+func (UnimplementedContractServer) SoloWinner(context.Context, *SoloWinnerRequest) (*SoloWinnerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SoloWinner not implemented")
 }
-func (UnimplementedBLCH_ContractServer) mustEmbedUnimplementedBLCH_ContractServer() {}
+func (UnimplementedContractServer) ChainSize(context.Context, *ChainSizeRequest) (*ChainSizeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChainSize not implemented")
+}
+func (UnimplementedContractServer) GetPartOfChain(context.Context, *GetPartOfChainRequest) (*GetPartOfChainResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPartOfChain not implemented")
+}
+func (UnimplementedContractServer) GetFullChain(context.Context, *empty.Empty) (*GetFullChainResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetFullChain not implemented")
+}
+func (UnimplementedContractServer) AcceptNewUser(context.Context, *AcceptNewUserRequest) (*AcceptNewUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AcceptNewUser not implemented")
+}
+func (UnimplementedContractServer) AcceptLoadUser(context.Context, *AcceptLoadUserRequest) (*AcceptLoadUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AcceptLoadUser not implemented")
+}
+func (UnimplementedContractServer) Vote(context.Context, *VoteRequest) (*VoteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Vote not implemented")
+}
+func (UnimplementedContractServer) mustEmbedUnimplementedContractServer() {}
 
-// UnsafeBLCH_ContractServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to BLCH_ContractServer will
+// UnsafeContractServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ContractServer will
 // result in compilation errors.
-type UnsafeBLCH_ContractServer interface {
-	mustEmbedUnimplementedBLCH_ContractServer()
+type UnsafeContractServer interface {
+	mustEmbedUnimplementedContractServer()
 }
 
-func RegisterBLCH_ContractServer(s grpc.ServiceRegistrar, srv BLCH_ContractServer) {
-	s.RegisterService(&BLCH_Contract_ServiceDesc, srv)
+func RegisterContractServer(s grpc.ServiceRegistrar, srv ContractServer) {
+	s.RegisterService(&Contract_ServiceDesc, srv)
 }
 
-func _BLCH_Contract_AuthRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegData)
+func _Contract_NewChain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NewChainRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BLCH_ContractServer).AuthRegister(ctx, in)
+		return srv.(ContractServer).NewChain(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: BLCH_Contract_AuthRegister_FullMethodName,
+		FullMethod: Contract_NewChain_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BLCH_ContractServer).AuthRegister(ctx, req.(*RegData))
+		return srv.(ContractServer).NewChain(ctx, req.(*NewChainRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BLCH_Contract_AuthLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthData)
+func _Contract_CallCreateVoters_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CallCreateVotersRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BLCH_ContractServer).AuthLogin(ctx, in)
+		return srv.(ContractServer).CallCreateVoters(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: BLCH_Contract_AuthLogin_FullMethodName,
+		FullMethod: Contract_CallCreateVoters_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BLCH_ContractServer).AuthLogin(ctx, req.(*AuthData))
+		return srv.(ContractServer).CallCreateVoters(ctx, req.(*CallCreateVotersRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BLCH_Contract_ChainSize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Contract_CallNewCandidate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CallNewCandidateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContractServer).CallNewCandidate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Contract_CallNewCandidate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContractServer).CallNewCandidate(ctx, req.(*CallNewCandidateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Contract_CallViewCandidates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CallNewCandidateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContractServer).CallViewCandidates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Contract_CallViewCandidates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContractServer).CallViewCandidates(ctx, req.(*CallNewCandidateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Contract_WinnersList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WinnersListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContractServer).WinnersList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Contract_WinnersList_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContractServer).WinnersList(ctx, req.(*WinnersListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Contract_SoloWinner_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SoloWinnerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContractServer).SoloWinner(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Contract_SoloWinner_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContractServer).SoloWinner(ctx, req.(*SoloWinnerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Contract_ChainSize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChainSizeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContractServer).ChainSize(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Contract_ChainSize_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContractServer).ChainSize(ctx, req.(*ChainSizeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Contract_GetPartOfChain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPartOfChainRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContractServer).GetPartOfChain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Contract_GetPartOfChain_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContractServer).GetPartOfChain(ctx, req.(*GetPartOfChainRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Contract_GetFullChain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(empty.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BLCH_ContractServer).ChainSize(ctx, in)
+		return srv.(ContractServer).GetFullChain(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: BLCH_Contract_ChainSize_FullMethodName,
+		FullMethod: Contract_GetFullChain_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BLCH_ContractServer).ChainSize(ctx, req.(*empty.Empty))
+		return srv.(ContractServer).GetFullChain(ctx, req.(*empty.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BLCH_Contract_Balance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Address)
+func _Contract_AcceptNewUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcceptNewUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BLCH_ContractServer).Balance(ctx, in)
+		return srv.(ContractServer).AcceptNewUser(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: BLCH_Contract_Balance_FullMethodName,
+		FullMethod: Contract_AcceptNewUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BLCH_ContractServer).Balance(ctx, req.(*Address))
+		return srv.(ContractServer).AcceptNewUser(ctx, req.(*AcceptNewUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BLCH_Contract_ViewCandidates_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(empty.Empty)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(BLCH_ContractServer).ViewCandidates(m, &bLCH_ContractViewCandidatesServer{stream})
-}
-
-type BLCH_Contract_ViewCandidatesServer interface {
-	Send(*CandidateList) error
-	grpc.ServerStream
-}
-
-type bLCH_ContractViewCandidatesServer struct {
-	grpc.ServerStream
-}
-
-func (x *bLCH_ContractViewCandidatesServer) Send(m *CandidateList) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _BLCH_Contract_Transfer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LowDataChain)
+func _Contract_AcceptLoadUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcceptLoadUserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BLCH_ContractServer).Transfer(ctx, in)
+		return srv.(ContractServer).AcceptLoadUser(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: BLCH_Contract_Transfer_FullMethodName,
+		FullMethod: Contract_AcceptLoadUser_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BLCH_ContractServer).Transfer(ctx, req.(*LowDataChain))
+		return srv.(ContractServer).AcceptLoadUser(ctx, req.(*AcceptLoadUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BLCH_Contract_Vote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LowData)
+func _Contract_Vote_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VoteRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BLCH_ContractServer).Vote(ctx, in)
+		return srv.(ContractServer).Vote(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: BLCH_Contract_Vote_FullMethodName,
+		FullMethod: Contract_Vote_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BLCH_ContractServer).Vote(ctx, req.(*LowData))
+		return srv.(ContractServer).Vote(ctx, req.(*VoteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BLCH_Contract_TimeBlock_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(empty.Empty)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(BLCH_ContractServer).TimeBlock(m, &bLCH_ContractTimeBlockServer{stream})
-}
-
-type BLCH_Contract_TimeBlockServer interface {
-	Send(*TimeData) error
-	grpc.ServerStream
-}
-
-type bLCH_ContractTimeBlockServer struct {
-	grpc.ServerStream
-}
-
-func (x *bLCH_ContractTimeBlockServer) Send(m *TimeData) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _BLCH_Contract_ChainPrint_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(empty.Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BLCH_ContractServer).ChainPrint(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BLCH_Contract_ChainPrint_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BLCH_ContractServer).ChainPrint(ctx, req.(*empty.Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BLCH_Contract_ResultsWinner_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(empty.Empty)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(BLCH_ContractServer).ResultsWinner(m, &bLCH_ContractResultsWinnerServer{stream})
-}
-
-type BLCH_Contract_ResultsWinnerServer interface {
-	Send(*CandidateListWithBalance) error
-	grpc.ServerStream
-}
-
-type bLCH_ContractResultsWinnerServer struct {
-	grpc.ServerStream
-}
-
-func (x *bLCH_ContractResultsWinnerServer) Send(m *CandidateListWithBalance) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _BLCH_Contract_SoloWinner_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(empty.Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BLCH_ContractServer).SoloWinner(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BLCH_Contract_SoloWinner_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BLCH_ContractServer).SoloWinner(ctx, req.(*empty.Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-// BLCH_Contract_ServiceDesc is the grpc.ServiceDesc for BLCH_Contract service.
+// Contract_ServiceDesc is the grpc.ServiceDesc for Contract service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var BLCH_Contract_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "BLCH_Contract",
-	HandlerType: (*BLCH_ContractServer)(nil),
+var Contract_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "Contract",
+	HandlerType: (*ContractServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "AuthRegister",
-			Handler:    _BLCH_Contract_AuthRegister_Handler,
+			MethodName: "NewChain",
+			Handler:    _Contract_NewChain_Handler,
 		},
 		{
-			MethodName: "AuthLogin",
-			Handler:    _BLCH_Contract_AuthLogin_Handler,
+			MethodName: "CallCreateVoters",
+			Handler:    _Contract_CallCreateVoters_Handler,
 		},
 		{
-			MethodName: "ChainSize",
-			Handler:    _BLCH_Contract_ChainSize_Handler,
+			MethodName: "CallNewCandidate",
+			Handler:    _Contract_CallNewCandidate_Handler,
 		},
 		{
-			MethodName: "Balance",
-			Handler:    _BLCH_Contract_Balance_Handler,
+			MethodName: "CallViewCandidates",
+			Handler:    _Contract_CallViewCandidates_Handler,
 		},
 		{
-			MethodName: "Transfer",
-			Handler:    _BLCH_Contract_Transfer_Handler,
-		},
-		{
-			MethodName: "Vote",
-			Handler:    _BLCH_Contract_Vote_Handler,
-		},
-		{
-			MethodName: "ChainPrint",
-			Handler:    _BLCH_Contract_ChainPrint_Handler,
+			MethodName: "WinnersList",
+			Handler:    _Contract_WinnersList_Handler,
 		},
 		{
 			MethodName: "SoloWinner",
-			Handler:    _BLCH_Contract_SoloWinner_Handler,
+			Handler:    _Contract_SoloWinner_Handler,
+		},
+		{
+			MethodName: "ChainSize",
+			Handler:    _Contract_ChainSize_Handler,
+		},
+		{
+			MethodName: "GetPartOfChain",
+			Handler:    _Contract_GetPartOfChain_Handler,
+		},
+		{
+			MethodName: "GetFullChain",
+			Handler:    _Contract_GetFullChain_Handler,
+		},
+		{
+			MethodName: "AcceptNewUser",
+			Handler:    _Contract_AcceptNewUser_Handler,
+		},
+		{
+			MethodName: "AcceptLoadUser",
+			Handler:    _Contract_AcceptLoadUser_Handler,
+		},
+		{
+			MethodName: "Vote",
+			Handler:    _Contract_Vote_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "ViewCandidates",
-			Handler:       _BLCH_Contract_ViewCandidates_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "TimeBlock",
-			Handler:       _BLCH_Contract_TimeBlock_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "ResultsWinner",
-			Handler:       _BLCH_Contract_ResultsWinner_Handler,
-			ServerStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "MainService.proto",
 }

@@ -13,12 +13,12 @@ service Contract {
   rpc CallViewCandidates(CallNewCandidateRequest) returns (CallNewCandidateResponse);
   rpc WinnersList(WinnersListRequest) returns (WinnersListResponse);
   rpc SoloWinner(SoloWinnerRequest) returns (SoloWinnerResponse);
-  rpc ChainSize() returns ();
-  rpc GetPartOfChain() returns ();
-  rpc GetFullChain() returns ();
-  rpc AcceptNewUser() returns ();
-  rpc AcceptLoadUser() returns ();
-  rpc Vote() returns ();
+  rpc ChainSize(ChainSizeRequest) returns (ChainSizeResponse);
+  rpc GetPartOfChain(GetPartOfChainRequest) returns (GetPartOfChainResponse);
+  rpc GetFullChain(google.protobuf.Empty) returns (GetFullChainResponse);
+  rpc AcceptNewUser(AcceptNewUserRequest) returns (AcceptNewUserResponse);
+  rpc AcceptLoadUser(AcceptLoadUserRequest) returns (AcceptLoadUserResponse);
+  rpc Vote(VoteRequest) returns (VoteResponse);
 }
 
 message NewChainRequest {
@@ -86,5 +86,67 @@ message SoloWinnerResponse {
   ContractElectionsList electionList = 1;
   string error = 2;
 }
-
-
+message ChainSizeRequest {
+  string master = 1;
+}
+message ChainSizeResponse {
+  string size = 1;
+  string error = 2;
+}
+message GetPartOfChainRequest {
+  string master = 1;
+}
+message GetPartOfChainResponse {
+  repeated BlockchainBlock blocks = 1;
+  string error = 2;
+}
+message BlockchainBlock {
+  string CurrHash = 1;
+  string PrevHash = 2;
+  google.protobuf.Timestamp TimeStamp = 3;
+  repeated BlockchainTransaction Transactions = 4;
+  map<string, int64> BalanceMap = 5;
+  int64 Nonce = 6;
+  int64 Difficulty = 7;
+  string ChainMaster = 8;
+}
+message BlockchainTransaction {
+  bytes RandBytes = 1;
+  string PrevBlock = 2;
+  string Sender = 3;
+  string Receiver = 4;
+  uint64 Value = 5;
+  string Signature = 6;
+  string CurrHash = 7;
+}
+message GetFullChainResponse {
+  repeated BlockchainBlock blocks = 1;
+  string error = 2;
+}
+message AcceptLoadUserRequest {
+  string publicKey = 1;
+  string privateKey = 2;
+}
+message AcceptLoadUserResponse {
+  BlockchainUser user = 1;
+  string error = 2;
+}
+message AcceptNewUserRequest {
+  string pass = 1;
+  string salt = 2;
+  string publicKey = 3;
+}
+message AcceptNewUserResponse {
+  string privateKey = 1;
+  string error = 2;
+}
+message VoteRequest {
+  string receiver = 1;
+  string sender = 2;
+  string master = 3;
+  string num = 4;
+}
+message VoteResponse {
+  string status = 1;
+  string error = 2;
+}

@@ -34,7 +34,7 @@ type ElectionsList struct {
 var MiningResponse Transport.CheckHelp
 var QueueEnum = make(chan bool)
 
-func SetTime(master string, limit *timestamppb.Timestamp) (*timestamp.Timestamp, error) {
+func setTime(master string, limit *timestamppb.Timestamp) (*timestamp.Timestamp, error) {
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func SetTime(master string, limit *timestamppb.Timestamp) (*timestamp.Timestamp,
 	return limit, nil
 }
 
-func CheckTime(master string) (time.Time, string, error) {
+func checkTime(master string) (time.Time, string, error) {
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return time.Time{}, "", err
@@ -65,10 +65,10 @@ func CheckTime(master string) (time.Time, string, error) {
 	return parsedTime, timeOfMaster, nil
 }
 
-func NewChain(initMaster string, votesCount uint64, limit *timestamppb.Timestamp) (*Transport.CreateHelp, string, error) {
+func NewChain(initMaster string, votesCount uint64, limit *timestamppb.Timestamp) (*Transport.CreateHelp, error) {
 	addresses, err := ReadAddresses()
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	initChain := Transport.ChainHelp{
 		Master: initMaster,
@@ -83,7 +83,7 @@ func NewChain(initMaster string, votesCount uint64, limit *timestamppb.Timestamp
 			SetSuccessResult(&creation).
 			Post(fmt.Sprintf("http://%s/newchain", strings.Trim(addr.String(), "\"")))
 		if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
-			return nil, "", errReq
+			return nil, errReq
 		}
 		if errReq == nil {
 			if resp.Body == nil {
@@ -91,11 +91,7 @@ func NewChain(initMaster string, votesCount uint64, limit *timestamppb.Timestamp
 			}
 		}
 	}
-	setTimeResult, err := SetTime(initMaster, limit)
-	if err != nil {
-		return nil, "", err
-	}
-	return &creation, setTimeResult.AsTime().String(), nil
+	return &creation, nil
 }
 
 func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, error) {
@@ -156,7 +152,7 @@ func WinnersList(master string) ([]*ElectionsList, error) {
 	var ResultList []*ElectionsList
 	db.Table("ElectionSubjects").Find(&GetElections).Where("VotingAffiliation = $1", master)
 	for _, v := range GetElections {
-		ElectionBalance, err := GetBalance(v.PublicKey)
+		ElectionBalance, err := getBalance(v.PublicKey)
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +184,7 @@ func SoloWinner(master string) (*ElectionsList, error) {
 	return GetElections[len(GetElections)-1], nil
 }
 
-func GetBalance(userAddress string) (*Transport.BalanceHelp, error) {
+func getBalance(userAddress string) (*Transport.BalanceHelp, error) {
 	addresses, err := ReadAddresses()
 	if err != nil {
 		return nil, err
@@ -286,11 +282,11 @@ func AcceptNewUser(Pass string, salt string, PublicKey string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	checkTime, _, err := CheckTime(master)
+	checkTimeVar, _, err := checkTime(master)
 	if err != nil {
 		return "", err
 	}
-	if gettingTime.AsTime().After(checkTime) {
+	if gettingTime.AsTime().After(checkTimeVar) {
 		return "", errors.New("time expired")
 	}
 	private, err := Blockchain.RegisterGeneratePrivate(Pass, salt, PublicKey)
@@ -310,11 +306,11 @@ func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	checkTime, _, err := CheckTime(master)
+	checkTimeVar, _, err := checkTime(master)
 	if err != nil {
 		return nil, err
 	}
-	if gettingTime.AsTime().After(checkTime) {
+	if gettingTime.AsTime().After(checkTimeVar) {
 		return nil, errors.New("time expired")
 	}
 	UserPrivate, err := Blockchain.LoadToEnterAlreadyUserPrivate(PrivateK)
@@ -328,7 +324,7 @@ func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
 	if UserPublic.PublicKey != PublicK || UserPrivate.PublicKey != PublicK || !reflect.DeepEqual(UserPrivate, UserPublic) {
 		return nil, errors.New("invalid input")
 	}
-	bal, err := GetBalance(UserPublic.Address())
+	bal, err := getBalance(UserPublic.Address())
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +355,7 @@ func Vote(receiver string, sender string, master string, num uint64) (string, er
 
 	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
 	s1 := gocron.NewScheduler(time.UTC)
-	_, errTask := s1.Every(10).Seconds().Do(SchedulerTask, client, addresses[1])
+	_, errTask := s1.Every(10).Seconds().Do(schedulerTask, client, addresses[1])
 	if errTask != nil {
 		return "", errTask
 	}
@@ -386,7 +382,7 @@ func Vote(receiver string, sender string, master string, num uint64) (string, er
 				continue
 			}
 		}
-		balance, errBalance := GetBalance(sender)
+		balance, errBalance := getBalance(sender)
 		if errBalance != nil {
 			return "", errBalance
 		}
@@ -420,7 +416,7 @@ func Vote(receiver string, sender string, master string, num uint64) (string, er
 	return txStatus.TransactionStatus, nil
 }
 
-func Transfer(receiver string, master string, num uint64) (string, error) {
+func transfer(receiver string, master string, num uint64) (string, error) {
 	db, errDb := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if errDb != nil {
 		return "", errDb
@@ -441,7 +437,7 @@ func Transfer(receiver string, master string, num uint64) (string, error) {
 
 	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
 	s1 := gocron.NewScheduler(time.UTC)
-	_, errTask := s1.Every(10).Seconds().Do(SchedulerTask, client, addresses[1])
+	_, errTask := s1.Every(10).Seconds().Do(schedulerTask, client, addresses[1])
 	if errTask != nil {
 		return "", errTask
 	}
@@ -466,7 +462,7 @@ func Transfer(receiver string, master string, num uint64) (string, error) {
 				continue
 			}
 		}
-		balance, errBalance := GetBalance(master)
+		balance, errBalance := getBalance(master)
 		if errBalance != nil {
 			return "", errBalance
 		}
@@ -495,7 +491,7 @@ func Transfer(receiver string, master string, num uint64) (string, error) {
 	return txStatus.TransactionStatus, nil
 }
 
-func SchedulerTask(client *req.Client, addresses *fastjson.Value) {
+func schedulerTask(client *req.Client, addresses *fastjson.Value) {
 	log.Println("--------------------------------------")
 	_, err := client.R().SetSuccessResult(&MiningResponse).
 		Get(fmt.Sprintf("http://%s/check", strings.Trim(addresses.String(), "\"")))

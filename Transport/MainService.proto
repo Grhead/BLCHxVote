@@ -3,72 +3,88 @@ syntax = "proto3";
 option go_package = "./";
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
 
-service BLCH_Contract {
-  rpc AuthRegister(RegData) returns (AuthRegResult);
-  rpc AuthLogin(AuthData) returns (AuthRegResult);
-  rpc ChainSize(google.protobuf.Empty) returns (ResponseSize); //размер цепи
-  rpc Balance(Address) returns (Lanb); //баланс на счете
-  rpc ViewCandidates(google.protobuf.Empty) returns (stream CandidateList); // вывод кандидатов
-  rpc Transfer(LowDataChain) returns (IsComplited); // раздача токенов
-  rpc Vote(LowData) returns (IsComplitedVote); // голосование
-  rpc TimeBlock(google.protobuf.Empty) returns (stream TimeData); //время до конца голосования
-  rpc ChainPrint(google.protobuf.Empty) returns (Chain);
-  rpc ResultsWinner(google.protobuf.Empty) returns (stream CandidateListWithBalance);
-  rpc SoloWinner(google.protobuf.Empty) returns (CandidateList);
+service Contract {
+  rpc NewChain(NewChainRequest) returns (NewChainResponse);
+  rpc CallCreateVoters(CallCreateVotersRequest) returns (CallCreateVotersResponse);
+  rpc CallNewCandidate(CallNewCandidateRequest) returns (CallNewCandidateResponse);
+  rpc CallViewCandidates(CallNewCandidateRequest) returns (CallNewCandidateResponse);
+  rpc WinnersList(WinnersListRequest) returns (WinnersListResponse);
+  rpc SoloWinner(SoloWinnerRequest) returns (SoloWinnerResponse);
+  rpc ChainSize() returns ();
+  rpc GetPartOfChain() returns ();
+  rpc GetFullChain() returns ();
+  rpc AcceptNewUser() returns ();
+  rpc AcceptLoadUser() returns ();
+  rpc Vote() returns ();
 }
 
-message CandidateListWithBalance {
-  string candidatePK = 1;
-  string candidateName = 2;
-  string balance = 3;
+message NewChainRequest {
+  string master = 1;
+  int32 votesCount = 2;
+  google.protobuf.Timestamp limitTime = 3;
 }
-message RegData{
-  string Passport = 1;
-  string PublicK = 2;
-  string Salt = 3;
+message NewChainResponse {
+  CreateHelp CreateHelpProto = 1;
+  string error = 2;
 }
-message AuthData{
-  string PublicK = 1;
-  string PrivateK = 2;
+message CreateHelp {
+  string Status = 1;
 }
-message AuthRegResult{
-  string Distortion = 1;
+message CallCreateVotersRequest {
+  google.protobuf.Any voter = 1;
+  string master = 2;
 }
-message ResponseSize {
-  string size = 1;
+message CallCreateVotersResponse {
+  repeated BlockchainUser user = 1;
+  string error = 2;
 }
-message Address {
-  string useradrr = 1;
+message BlockchainUser {
+  string Id = 1;
+  string PublicKey = 2;
+  bool IsUsed = 3;
+  string Affiliation = 4;
 }
-message Lanb {
-  string balance = 1;
+message CallViewCandidatesRequest {
+  string master = 1;
 }
-message Chain {
-  repeated string InBlock = 1;
+message CallViewCandidatesResponse {
+  repeated BlockchainElectionSubjects electionSubjects = 1;
+  string error = 2;
 }
-message CandidateList {
-  string candidatePK = 1;
-  string candidateName = 2;
+message BlockchainElectionSubjects {
+  string Id = 1;
+  string PublicKey = 2;
+  bool Description = 3;
+  string VotingAffiliation = 4;
 }
-message LowData {
-  string UserCandidate = 1;
-  uint64 num = 2;
-  string private = 3;
+message CallNewCandidateRequest {
+  string description = 1;
+  string affiliation = 2;
 }
-message LowDataChain {
-  string UserCandidate = 1;
-  uint64 num = 2;
+message CallNewCandidateResponse {
+  BlockchainElectionSubjects electionSubjects = 1;
+  string error = 2;
 }
-message IsComplited {
-  bool ic = 1;
+message WinnersListRequest {
+  string master = 1;
 }
-message IsComplitedVote {
-  string ic = 1;
+message WinnersListResponse {
+  repeated ContractElectionsList electionList = 1;
+  string error = 2;
 }
-message BlockDataGet {
-  string BlockNum = 1;
+message ContractElectionsList {
+  BlockchainElectionSubjects electionSubjects = 1;
+  string Balance = 2;
 }
-message TimeData {
-  string EndTime = 1;
+message SoloWinnerRequest {
+  string master = 1;
 }
+message SoloWinnerResponse {
+  ContractElectionsList electionList = 1;
+  string error = 2;
+}
+
+

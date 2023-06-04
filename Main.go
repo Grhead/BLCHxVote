@@ -66,7 +66,3 @@ func main() {
 	//}
 	//fmt.Println(checkTime, st)
 }
-
-//func task() {
-//	fmt.Println("I am running task.")
-//}

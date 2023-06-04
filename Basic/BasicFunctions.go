@@ -26,7 +26,6 @@ type TransactionsDb struct {
 	Id           int
 	Transactions string
 }
-
 type ElectionsList struct {
 	ElectionSubject *Blockchain.ElectionSubjects
 	Balance         string

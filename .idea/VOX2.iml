@@ -7,5 +7,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="VOX 2.0" />
     <orderEntry type="module" module-name="VOX 1.0" />
+    <orderEntry type="module" module-name="Vox2Node" />
   </component>
 </module>

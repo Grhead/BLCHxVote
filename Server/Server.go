@@ -1,6 +1,7 @@
 package Server
 
 import (
+	"VOX2/Basic"
 	. "VOX2/Transport/PBs"
 	"context"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -11,63 +12,202 @@ type GRServer struct {
 }
 
 func (s *GRServer) NewChain(ctx context.Context, request *NewChainRequest) (*NewChainResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	chain, err := Basic.NewChain(request.Master, uint64(request.VotesCount), request.LimitTime)
+	if err != nil {
+		return &NewChainResponse{
+			CreateHelpProto: nil,
+		}, err
+	}
+	return &NewChainResponse{
+		CreateHelpProto: &CreateHelp{Status: chain.Status},
+	}, nil
 }
 
 func (s *GRServer) CallCreateVoters(ctx context.Context, request *CallCreateVotersRequest) (*CallCreateVotersResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	voters, err := Basic.CallCreateVoters(request.Voter, request.Master)
+	if err != nil {
+		return &CallCreateVotersResponse{User: nil}, err
+	}
+	var usersList []*BlockchainUser
+	for _, v := range voters {
+		usersList = append(usersList, &BlockchainUser{
+			Id:          v.Id,
+			PublicKey:   v.PublicKey,
+			IsUsed:      v.IsUsed,
+			Affiliation: v.Affiliation,
+		})
+	}
+	return &CallCreateVotersResponse{User: usersList}, nil
 }
 
 func (s *GRServer) CallNewCandidate(ctx context.Context, request *CallNewCandidateRequest) (*CallNewCandidateResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	candidate, err := Basic.CallNewCandidate(request.Description, request.Affiliation)
+	if err != nil {
+		return &CallNewCandidateResponse{ElectionSubjects: nil}, err
+	}
+	return &CallNewCandidateResponse{ElectionSubjects: &BlockchainElectionSubjects{
+		Id:                candidate.Id,
+		PublicKey:         candidate.PublicKey,
+		Description:       candidate.Description,
+		VotingAffiliation: candidate.VotingAffiliation,
+	}}, nil
 }
 
-func (s *GRServer) CallViewCandidates(ctx context.Context, request *CallNewCandidateRequest) (*CallNewCandidateResponse, error) {
-	//TODO implement me
-	panic("implement me")
+func (s *GRServer) CallViewCandidates(ctx context.Context, request *CallViewCandidatesRequest) (*CallViewCandidatesResponse, error) {
+	candidates, err := Basic.CallViewCandidates(request.Master)
+	if err != nil {
+		return &CallViewCandidatesResponse{ElectionSubjects: nil}, err
+	}
+	var electionsList []*BlockchainElectionSubjects
+	for _, v := range candidates {
+		electionsList = append(electionsList, &BlockchainElectionSubjects{
+			Id:                v.Id,
+			PublicKey:         v.PublicKey,
+			Description:       v.Description,
+			VotingAffiliation: v.VotingAffiliation,
+		})
+	}
+	return &CallViewCandidatesResponse{ElectionSubjects: electionsList}, nil
 }
 
 func (s *GRServer) WinnersList(ctx context.Context, request *WinnersListRequest) (*WinnersListResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	list, err := Basic.WinnersList(request.Master)
+	if err != nil {
+		return &WinnersListResponse{ElectionList: nil}, err
+	}
+	var resultWinnerList []*ContractElectionsList
+	for _, v := range list {
+		resultWinnerList = append(resultWinnerList, &ContractElectionsList{
+			ElectionSubjects: &BlockchainElectionSubjects{
+				Id:                v.ElectionSubject.Id,
+				PublicKey:         v.ElectionSubject.PublicKey,
+				Description:       v.ElectionSubject.Description,
+				VotingAffiliation: v.ElectionSubject.VotingAffiliation,
+			},
+			Balance: v.Balance,
+		})
+	}
+	return &WinnersListResponse{ElectionList: resultWinnerList}, nil
 }
 
 func (s *GRServer) SoloWinner(ctx context.Context, request *SoloWinnerRequest) (*SoloWinnerResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	winner, err := Basic.SoloWinner(request.Master)
+	if err != nil {
+		return &SoloWinnerResponse{ElectionList: nil}, err
+	}
+	return &SoloWinnerResponse{
+		ElectionList: &ContractElectionsList{
+			ElectionSubjects: &BlockchainElectionSubjects{
+				Id:                winner.ElectionSubject.Id,
+				PublicKey:         winner.ElectionSubject.PublicKey,
+				Description:       winner.ElectionSubject.Description,
+				VotingAffiliation: winner.ElectionSubject.VotingAffiliation,
+			},
+			Balance: winner.Balance},
+	}, nil
 }
 
 func (s *GRServer) ChainSize(ctx context.Context, request *ChainSizeRequest) (*ChainSizeResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	size, err := Basic.ChainSize(request.Master)
+	if err != nil {
+		return &ChainSizeResponse{Size: ""}, err
+	}
+	return &ChainSizeResponse{Size: size}, nil
 }
 
 func (s *GRServer) GetPartOfChain(ctx context.Context, request *GetPartOfChainRequest) (*GetPartOfChainResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	blocks, err := Basic.GetPartOfChain(request.Master)
+	if err != nil {
+		return &GetPartOfChainResponse{Blocks: nil}, err
+	}
+	var blocksList []*BlockchainBlock
+	for _, v := range blocks {
+		var transactionsList []*BlockchainTransaction
+		for _, k := range v.Transactions {
+			transactionsList = append(transactionsList, &BlockchainTransaction{
+				RandBytes: k.RandBytes,
+				PrevBlock: k.PrevBlock,
+				Sender:    k.Sender,
+				Receiver:  k.Receiver,
+				Value:     k.Value,
+				Signature: k.Signature,
+				CurrHash:  k.CurrHash,
+			})
+		}
+		blocksList = append(blocksList, &BlockchainBlock{
+			CurrHash:     v.CurrHash,
+			PrevHash:     v.PrevHash,
+			TimeStamp:    v.TimeStamp,
+			Transactions: transactionsList,
+			BalanceMap:   v.BalanceMap,
+			Nonce:        int64(v.Nonce),
+			Difficulty:   int64(v.Difficulty),
+			ChainMaster:  v.ChainMaster,
+		})
+	}
+	return &GetPartOfChainResponse{Blocks: blocksList}, nil
 }
 
 func (s *GRServer) GetFullChain(ctx context.Context, e *empty.Empty) (*GetFullChainResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	chain, err := Basic.GetFullChain()
+	if err != nil {
+		return &GetFullChainResponse{Blocks: nil}, err
+	}
+	var blocksList []*BlockchainBlock
+	for _, v := range chain {
+		var transactionsList []*BlockchainTransaction
+		for _, k := range v.Transactions {
+			transactionsList = append(transactionsList, &BlockchainTransaction{
+				RandBytes: k.RandBytes,
+				PrevBlock: k.PrevBlock,
+				Sender:    k.Sender,
+				Receiver:  k.Receiver,
+				Value:     k.Value,
+				Signature: k.Signature,
+				CurrHash:  k.CurrHash,
+			})
+		}
+		blocksList = append(blocksList, &BlockchainBlock{
+			CurrHash:     v.CurrHash,
+			PrevHash:     v.PrevHash,
+			TimeStamp:    v.TimeStamp,
+			Transactions: transactionsList,
+			BalanceMap:   v.BalanceMap,
+			Nonce:        int64(v.Nonce),
+			Difficulty:   int64(v.Difficulty),
+			ChainMaster:  v.ChainMaster,
+		})
+	}
+	return &GetFullChainResponse{Blocks: blocksList}, err
 }
 
 func (s *GRServer) AcceptNewUser(ctx context.Context, request *AcceptNewUserRequest) (*AcceptNewUserResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	user, err := Basic.AcceptNewUser(request.Pass, request.Salt, request.PublicKey)
+	if err != nil {
+		return &AcceptNewUserResponse{PrivateKey: ""}, err
+	}
+	return &AcceptNewUserResponse{PrivateKey: user}, err
 }
 
 func (s *GRServer) AcceptLoadUser(ctx context.Context, request *AcceptLoadUserRequest) (*AcceptLoadUserResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	user, err := Basic.AcceptLoadUser(request.PublicKey, request.PrivateKey)
+	if err != nil {
+		return &AcceptLoadUserResponse{User: nil}, err
+	}
+	return &AcceptLoadUserResponse{User: &BlockchainUser{
+		Id:          user.Id,
+		PublicKey:   user.PublicKey,
+		IsUsed:      user.IsUsed,
+		Affiliation: user.Affiliation,
+	}}, nil
 }
 
 func (s *GRServer) Vote(ctx context.Context, request *VoteRequest) (*VoteResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	vote, err := Basic.Vote(request.Receiver, request.Sender, request.Master, uint64(request.Num))
+	if err != nil {
+		return &VoteResponse{Status: ""}, err
+	}
+	return &VoteResponse{Status: vote}, nil
 }
 
 func (s *GRServer) mustEmbedUnimplementedContractServer() {

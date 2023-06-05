@@ -38,10 +38,12 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ContractClient interface {
+	// rpc BasicAuth() returns ();
+	// rpc BasicRegister() returns ();
 	NewChain(ctx context.Context, in *NewChainRequest, opts ...grpc.CallOption) (*NewChainResponse, error)
 	CallCreateVoters(ctx context.Context, in *CallCreateVotersRequest, opts ...grpc.CallOption) (*CallCreateVotersResponse, error)
 	CallNewCandidate(ctx context.Context, in *CallNewCandidateRequest, opts ...grpc.CallOption) (*CallNewCandidateResponse, error)
-	CallViewCandidates(ctx context.Context, in *CallNewCandidateRequest, opts ...grpc.CallOption) (*CallNewCandidateResponse, error)
+	CallViewCandidates(ctx context.Context, in *CallViewCandidatesRequest, opts ...grpc.CallOption) (*CallViewCandidatesResponse, error)
 	WinnersList(ctx context.Context, in *WinnersListRequest, opts ...grpc.CallOption) (*WinnersListResponse, error)
 	SoloWinner(ctx context.Context, in *SoloWinnerRequest, opts ...grpc.CallOption) (*SoloWinnerResponse, error)
 	ChainSize(ctx context.Context, in *ChainSizeRequest, opts ...grpc.CallOption) (*ChainSizeResponse, error)
@@ -87,8 +89,8 @@ func (c *contractClient) CallNewCandidate(ctx context.Context, in *CallNewCandid
 	return out, nil
 }
 
-func (c *contractClient) CallViewCandidates(ctx context.Context, in *CallNewCandidateRequest, opts ...grpc.CallOption) (*CallNewCandidateResponse, error) {
-	out := new(CallNewCandidateResponse)
+func (c *contractClient) CallViewCandidates(ctx context.Context, in *CallViewCandidatesRequest, opts ...grpc.CallOption) (*CallViewCandidatesResponse, error) {
+	out := new(CallViewCandidatesResponse)
 	err := c.cc.Invoke(ctx, Contract_CallViewCandidates_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -172,10 +174,12 @@ func (c *contractClient) Vote(ctx context.Context, in *VoteRequest, opts ...grpc
 // All implementations must embed UnimplementedContractServer
 // for forward compatibility
 type ContractServer interface {
+	// rpc BasicAuth() returns ();
+	// rpc BasicRegister() returns ();
 	NewChain(context.Context, *NewChainRequest) (*NewChainResponse, error)
 	CallCreateVoters(context.Context, *CallCreateVotersRequest) (*CallCreateVotersResponse, error)
 	CallNewCandidate(context.Context, *CallNewCandidateRequest) (*CallNewCandidateResponse, error)
-	CallViewCandidates(context.Context, *CallNewCandidateRequest) (*CallNewCandidateResponse, error)
+	CallViewCandidates(context.Context, *CallViewCandidatesRequest) (*CallViewCandidatesResponse, error)
 	WinnersList(context.Context, *WinnersListRequest) (*WinnersListResponse, error)
 	SoloWinner(context.Context, *SoloWinnerRequest) (*SoloWinnerResponse, error)
 	ChainSize(context.Context, *ChainSizeRequest) (*ChainSizeResponse, error)
@@ -200,7 +204,7 @@ func (UnimplementedContractServer) CallCreateVoters(context.Context, *CallCreate
 func (UnimplementedContractServer) CallNewCandidate(context.Context, *CallNewCandidateRequest) (*CallNewCandidateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CallNewCandidate not implemented")
 }
-func (UnimplementedContractServer) CallViewCandidates(context.Context, *CallNewCandidateRequest) (*CallNewCandidateResponse, error) {
+func (UnimplementedContractServer) CallViewCandidates(context.Context, *CallViewCandidatesRequest) (*CallViewCandidatesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CallViewCandidates not implemented")
 }
 func (UnimplementedContractServer) WinnersList(context.Context, *WinnersListRequest) (*WinnersListResponse, error) {
@@ -295,7 +299,7 @@ func _Contract_CallNewCandidate_Handler(srv interface{}, ctx context.Context, de
 }
 
 func _Contract_CallViewCandidates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CallNewCandidateRequest)
+	in := new(CallViewCandidatesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -307,7 +311,7 @@ func _Contract_CallViewCandidates_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: Contract_CallViewCandidates_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ContractServer).CallViewCandidates(ctx, req.(*CallNewCandidateRequest))
+		return srv.(ContractServer).CallViewCandidates(ctx, req.(*CallViewCandidatesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

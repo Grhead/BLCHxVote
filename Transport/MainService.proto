@@ -7,10 +7,12 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/any.proto";
 
 service Contract {
+//  rpc BasicAuth() returns ();
+//  rpc BasicRegister() returns ();
   rpc NewChain(NewChainRequest) returns (NewChainResponse);
   rpc CallCreateVoters(CallCreateVotersRequest) returns (CallCreateVotersResponse);
   rpc CallNewCandidate(CallNewCandidateRequest) returns (CallNewCandidateResponse);
-  rpc CallViewCandidates(CallNewCandidateRequest) returns (CallNewCandidateResponse);
+  rpc CallViewCandidates(CallViewCandidatesRequest) returns (CallViewCandidatesResponse);
   rpc WinnersList(WinnersListRequest) returns (WinnersListResponse);
   rpc SoloWinner(SoloWinnerRequest) returns (SoloWinnerResponse);
   rpc ChainSize(ChainSizeRequest) returns (ChainSizeResponse);
@@ -28,7 +30,7 @@ message NewChainRequest {
 }
 message NewChainResponse {
   CreateHelp CreateHelpProto = 1;
-  string error = 2;
+  //string error = 2;
 }
 message CreateHelp {
   string Status = 1;
@@ -39,7 +41,7 @@ message CallCreateVotersRequest {
 }
 message CallCreateVotersResponse {
   repeated BlockchainUser user = 1;
-  string error = 2;
+  //string error = 2;
 }
 message BlockchainUser {
   string Id = 1;
@@ -52,12 +54,12 @@ message CallViewCandidatesRequest {
 }
 message CallViewCandidatesResponse {
   repeated BlockchainElectionSubjects electionSubjects = 1;
-  string error = 2;
+  //string error = 2;
 }
 message BlockchainElectionSubjects {
   string Id = 1;
   string PublicKey = 2;
-  bool Description = 3;
+  string Description = 3;
   string VotingAffiliation = 4;
 }
 message CallNewCandidateRequest {
@@ -66,14 +68,14 @@ message CallNewCandidateRequest {
 }
 message CallNewCandidateResponse {
   BlockchainElectionSubjects electionSubjects = 1;
-  string error = 2;
+  //string error = 2;
 }
 message WinnersListRequest {
   string master = 1;
 }
 message WinnersListResponse {
   repeated ContractElectionsList electionList = 1;
-  string error = 2;
+  //string error = 2;
 }
 message ContractElectionsList {
   BlockchainElectionSubjects electionSubjects = 1;
@@ -84,21 +86,21 @@ message SoloWinnerRequest {
 }
 message SoloWinnerResponse {
   ContractElectionsList electionList = 1;
-  string error = 2;
+  //string error = 2;
 }
 message ChainSizeRequest {
   string master = 1;
 }
 message ChainSizeResponse {
   string size = 1;
-  string error = 2;
+  //string error = 2;
 }
 message GetPartOfChainRequest {
   string master = 1;
 }
 message GetPartOfChainResponse {
   repeated BlockchainBlock blocks = 1;
-  string error = 2;
+  //string error = 2;
 }
 message BlockchainBlock {
   string CurrHash = 1;
@@ -121,7 +123,7 @@ message BlockchainTransaction {
 }
 message GetFullChainResponse {
   repeated BlockchainBlock blocks = 1;
-  string error = 2;
+  //string error = 2;
 }
 message AcceptLoadUserRequest {
   string publicKey = 1;
@@ -129,7 +131,7 @@ message AcceptLoadUserRequest {
 }
 message AcceptLoadUserResponse {
   BlockchainUser user = 1;
-  string error = 2;
+  //string error = 2;
 }
 message AcceptNewUserRequest {
   string pass = 1;
@@ -138,15 +140,15 @@ message AcceptNewUserRequest {
 }
 message AcceptNewUserResponse {
   string privateKey = 1;
-  string error = 2;
+  //string error = 2;
 }
 message VoteRequest {
   string receiver = 1;
   string sender = 2;
   string master = 3;
-  string num = 4;
+  int64 num = 4;
 }
 message VoteResponse {
   string status = 1;
-  string error = 2;
+  //string error = 2;
 }

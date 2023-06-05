@@ -25,7 +25,7 @@ type Block struct {
 	PrevHash     string                 `json:"prevHash"`
 	TimeStamp    *timestamppb.Timestamp `json:"timeStamp"`
 	Transactions []Transaction          `json:"transactions"`
-	BalanceMap   map[string]uint64      `json:"balanceMap"`
+	BalanceMap   map[string]int64       `json:"balanceMap"`
 	Nonce        uint64                 `json:"nonce"`
 	Difficulty   uint64                 `json:"difficulty"`
 	ChainMaster  string                 `json:"chainMaster"`

@@ -91,9 +91,14 @@ func NewChain(initMaster string, votesCount uint64, limit *timestamppb.Timestamp
 			}
 		}
 	}
+	_, err = setTime(initMaster, limit)
+	if err != nil {
+		return nil, err
+	}
 	return &creation, nil
 }
 
+// ADD TRANSFER func
 func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, error) {
 	var resultItems []*Blockchain.User
 	switch voter.(type) {
@@ -296,7 +301,6 @@ func AcceptNewUser(Pass string, salt string, PublicKey string) (string, error) {
 	return private, nil
 }
 
-// AcceptLoadUser TODO add time verification
 func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
 	master, err := Blockchain.GetVotingAffiliation(PublicK)
 	if err != nil {

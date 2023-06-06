@@ -141,7 +141,7 @@ func (s *GRServer) GetPartOfChain(ctx context.Context, request *GetPartOfChainRe
 			Transactions: transactionsList,
 			BalanceMap:   v.BalanceMap,
 			Nonce:        int64(v.Nonce),
-			Difficulty:   int64(v.Difficulty),
+			Difficulty:   v.Difficulty,
 			ChainMaster:  v.ChainMaster,
 		})
 	}
@@ -174,7 +174,7 @@ func (s *GRServer) GetFullChain(ctx context.Context, e *empty.Empty) (*GetFullCh
 			Transactions: transactionsList,
 			BalanceMap:   v.BalanceMap,
 			Nonce:        int64(v.Nonce),
-			Difficulty:   int64(v.Difficulty),
+			Difficulty:   v.Difficulty,
 			ChainMaster:  v.ChainMaster,
 		})
 	}
@@ -203,7 +203,7 @@ func (s *GRServer) AcceptLoadUser(ctx context.Context, request *AcceptLoadUserRe
 }
 
 func (s *GRServer) Vote(ctx context.Context, request *VoteRequest) (*VoteResponse, error) {
-	vote, err := Basic.Vote(request.Receiver, request.Sender, request.Master, uint64(request.Num))
+	vote, err := Basic.Vote(request.Receiver, request.Sender, request.Master, request.Num)
 	if err != nil {
 		return &VoteResponse{Status: ""}, err
 	}

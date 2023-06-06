@@ -39,7 +39,6 @@ func setTime(master string, limit *timestamppb.Timestamp) (*timestamp.Timestamp,
 	if err != nil {
 		return nil, err
 	}
-	//now := timestamppb.New(limit)
 	rand.New(rand.NewSource(time.Now().Unix()))
 	t := rand.Intn(10000)
 	errInsert := db.Exec("INSERT INTO VotingTime (Id, MasterChain, LimitTime) VALUES ($1, $2, $3)", t, master, limit.Seconds)
@@ -98,7 +97,7 @@ func NewChain(initMaster string, votesCount uint64, limit *timestamppb.Timestamp
 	return &creation, nil
 }
 
-// ADD TRANSFER func
+// CallCreateVoters ADD TRANSFER func
 func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, error) {
 	var resultItems []*Blockchain.User
 	switch voter.(type) {
@@ -108,9 +107,21 @@ func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, err
 			return nil, err
 		}
 		for i := 0; i < max; i++ {
+			getTime, errGetTime := Blockchain.GetTime()
+			if errGetTime != nil {
+				return nil, errGetTime
+			}
+			errDormant := Blockchain.NewDormantUser(getTime.AsTime().String() + fmt.Sprintf("%v", voter))
+			if errDormant != nil {
+				return nil, errDormant
+			}
 			item, errNewPublicKey := Blockchain.NewPublicKeyItem(master)
 			if errNewPublicKey != nil {
 				return nil, errNewPublicKey
+			}
+			_, errTransfer := transfer(item.Address(), master, 1)
+			if errTransfer != nil {
+				return nil, errTransfer
 			}
 			resultItems = append(resultItems, item)
 		}
@@ -120,6 +131,10 @@ func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, err
 			return nil, err
 		}
 		item, err := Blockchain.NewPublicKeyItem(master)
+		if err != nil {
+			return nil, err
+		}
+		_, err = transfer(item.Address(), master, 1)
 		if err != nil {
 			return nil, err
 		}
@@ -338,7 +353,7 @@ func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
 	return UserPublic, nil
 }
 
-func Vote(receiver string, sender string, master string, num uint64) (string, error) {
+func Vote(receiver string, sender string, master string, num int64) (string, error) {
 	db, errDb := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if errDb != nil {
 		return "", errDb
@@ -394,7 +409,7 @@ func Vote(receiver string, sender string, master string, num uint64) (string, er
 		if errConversion != nil {
 			return "", errConversion
 		}
-		if uint64(chainBalance) < num {
+		if int64(chainBalance) < num {
 			return "", errors.New("not enough chain founds")
 		}
 		publicSender, errLoad := Blockchain.LoadToEnterAlreadyUserPublic(sender)
@@ -420,7 +435,7 @@ func Vote(receiver string, sender string, master string, num uint64) (string, er
 	return txStatus.TransactionStatus, nil
 }
 
-func transfer(receiver string, master string, num uint64) (string, error) {
+func transfer(receiver string, master string, num int64) (string, error) {
 	db, errDb := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if errDb != nil {
 		return "", errDb
@@ -474,7 +489,7 @@ func transfer(receiver string, master string, num uint64) (string, error) {
 		if errConversion != nil {
 			return "", errConversion
 		}
-		if uint64(chainBalance) < num {
+		if int64(chainBalance) < num {
 			return "", errors.New("not enough chain founds")
 		}
 		public, errLoad := Blockchain.LoadToEnterAlreadyUserPublic(receiver)

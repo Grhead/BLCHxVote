@@ -2,7 +2,8 @@ package Basic
 
 import (
 	"VOX2/Transport"
-	"encoding/json"
+	//"encoding/json"
+	"github.com/goccy/go-json"
 	"github.com/valyala/fastjson"
 	"os"
 )

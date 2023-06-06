@@ -117,7 +117,7 @@ message BlockchainTransaction {
   string PrevBlock = 2;
   string Sender = 3;
   string Receiver = 4;
-  uint64 Value = 5;
+  int64 Value = 5;
   string Signature = 6;
   string CurrHash = 7;
 }

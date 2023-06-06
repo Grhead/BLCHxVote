@@ -456,7 +456,14 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 		}
 	}
 	QueueEnum <- true
-	go addTransactionToNet(QueueEnum, transactionToNet, TransactionsArray, db, client, addresses, txStatus)
+	tx, errSerialize := SerializeTX(&transactionToNet)
+	if errSerialize != nil {
+		log.Fatalln(errSerialize)
+	}
+	rand.New(rand.NewSource(time.Now().Unix()))
+	t := rand.Intn(10000)
+	db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
+	go addTransactionToNet(transactionToNet, TransactionsArray, db, client, addresses, txStatus)
 
 	return txStatus.TransactionStatus, nil
 }
@@ -533,8 +540,14 @@ func transfer(receiver string, master string, num int64) (string, error) {
 			Count:    num,
 		}
 	}
-	QueueEnum <- true
-	go addTransactionToNet(QueueEnum, transactionToNet, TransactionsArray, db, client, addresses, txStatus)
+	tx, errSerialize := SerializeTX(&transactionToNet)
+	if errSerialize != nil {
+		log.Fatalln(errSerialize)
+	}
+	rand.New(rand.NewSource(time.Now().Unix()))
+	t := rand.Intn(10000)
+	db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
+	go addTransactionToNet(transactionToNet, TransactionsArray, db, client, addresses, txStatus)
 	return txStatus.TransactionStatus, nil
 }
 
@@ -551,56 +564,52 @@ func schedulerTask(client *req.Client, addresses *fastjson.Value) {
 	}
 }
 
-func addTransactionToNet(ch chan bool,
+func addTransactionToNet(
 	transactionToNet Transport.TransactionHelp,
 	TransactionsArray []TransactionsDb,
 	db *gorm.DB,
 	client *req.Client,
 	addresses []*fastjson.Value,
 	txStatus Transport.TransactionResponseHelp) {
-	select {
-	case <-ch:
-		if true {
-			if !strings.Contains(MiningResponse.AddTxStatus, "mining") && len(TransactionsArray) >= 4 {
-				if len(TransactionsArray) >= 4 {
-					for _, addr := range addresses {
-						_, errNode := client.R().SetSuccessResult(&MiningResponse).
-							Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
-						if errNode != nil {
-							if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
-								continue
-							}
-						}
-						for i := 0; i < 4; i++ {
-							resp, errReq := client.R().
-								SetBody(DeserializeTX(&TransactionsArray[i].Transactions)).
-								SetSuccessResult(&txStatus).
-								Post(fmt.Sprintf("http://%s/addtx", strings.Trim(addr.String(), "\"")))
-							if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
-								log.Fatalln(errReq)
-							}
-							if errReq == nil {
-								if resp.Body == nil {
-									continue
-								}
-							}
+	if !strings.Contains(MiningResponse.AddTxStatus, "mining") && len(TransactionsArray) >= 4 {
+		log.Println("into1")
+		if len(TransactionsArray) >= 4 {
+			log.Println("into2")
+			for _, addr := range addresses {
+				_, errNode := client.R().SetSuccessResult(&MiningResponse).
+					Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
+				if errNode != nil {
+					if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
+						continue
+					}
+				}
+				for i := 0; i < 4; i++ {
+					resp, errReq := client.R().
+						SetBody(DeserializeTX(&TransactionsArray[i].Transactions)).
+						SetSuccessResult(&txStatus).
+						Post(fmt.Sprintf("http://%s/addtx", strings.Trim(addr.String(), "\"")))
+					if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+						log.Fatalln(errReq)
+					}
+					if errReq == nil {
+						if resp.Body == nil {
+							continue
 						}
 					}
 				}
-				for _, v := range TransactionsArray {
-					db.Exec("DELETE FROM TransactionQueue WHERE Id = $1", v.Id)
-				}
-				TransactionsArray = TransactionsArray[:0]
-			} else {
-				tx, errSerialize := SerializeTX(&transactionToNet)
-				if errSerialize != nil {
-					log.Fatalln(errSerialize)
-				}
-				rand.New(rand.NewSource(time.Now().Unix()))
-				t := rand.Intn(10000)
-				db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
 			}
 		}
+		for _, v := range TransactionsArray {
+			db.Exec("DELETE FROM TransactionQueue WHERE Id = $1", v.Id)
+		}
+		TransactionsArray = TransactionsArray[:0]
+	} else {
+		//tx, errSerialize := SerializeTX(&transactionToNet)
+		//if errSerialize != nil {
+		//	log.Fatalln(errSerialize)
+		//}
+		//rand.New(rand.NewSource(time.Now().Unix()))
+		//t := rand.Intn(10000)
+		//db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
 	}
-	QueueEnum <- false
 }

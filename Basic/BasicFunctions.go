@@ -5,9 +5,7 @@ import (
 	"VOX2/Transport"
 	"errors"
 	"fmt"
-	"github.com/go-co-op/gocron"
 	_ "github.com/go-co-op/gocron"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/imroc/req/v3"
 	"github.com/valyala/fastjson"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -34,37 +32,7 @@ type ElectionsList struct {
 var MiningResponse Transport.CheckHelp
 var QueueEnum = make(chan bool)
 
-func setTime(master string, limit *timestamppb.Timestamp) (*timestamp.Timestamp, error) {
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
-	if err != nil {
-		return nil, err
-	}
-	rand.New(rand.NewSource(time.Now().Unix()))
-	t := rand.Intn(10000)
-	errInsert := db.Exec("INSERT INTO VotingTime (Id, MasterChain, LimitTime) VALUES ($1, $2, $3)", t, master, limit.Seconds)
-	if errInsert.Error != nil {
-		return nil, errInsert.Error
-	}
-	return limit, nil
-}
-
-func checkTime(master string) (time.Time, string, error) {
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
-	if err != nil {
-		return time.Time{}, "", err
-	}
-	var timeOfMaster string
-	db.Raw("SELECT LimitTime FROM VotingTime WHERE MasterChain = $1",
-		master).Scan(&timeOfMaster)
-	i, err := strconv.Atoi(timeOfMaster)
-	if err != nil {
-		return time.Time{}, "", err
-	}
-	parsedTime := time.Unix(int64(i), 0).UTC()
-	return parsedTime, timeOfMaster, nil
-}
-
-func NewChain(initMaster string, votesCount uint64, limit *timestamppb.Timestamp) (*Transport.CreateHelp, error) {
+func NewChain(initMaster string, votesCount int64, limit *timestamppb.Timestamp) (*Transport.CreateHelp, error) {
 	addresses, err := ReadAddresses()
 	if err != nil {
 		return nil, err
@@ -98,13 +66,27 @@ func NewChain(initMaster string, votesCount uint64, limit *timestamppb.Timestamp
 }
 
 // CallCreateVoters ADD TRANSFER func
-func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, error) {
+func CallCreateVoters(voter string, master string) ([]*Blockchain.User, error) {
 	var resultItems []*Blockchain.User
-	switch voter.(type) {
-	case int:
-		max, err := strconv.Atoi(fmt.Sprintf("%v", voter))
+	_, err := strconv.Atoi(voter)
+	if err != nil {
+		errDormantUser := Blockchain.NewDormantUser(fmt.Sprintf("%v", voter))
+		if errDormantUser != nil {
+			return nil, errDormantUser
+		}
+		item, errPublicKeyItem := Blockchain.NewPublicKeyItem(master)
+		if errPublicKeyItem != nil {
+			return nil, errPublicKeyItem
+		}
+		_, err = transfer(item.Address(), master, 1)
 		if err != nil {
 			return nil, err
+		}
+		resultItems = append(resultItems, item)
+	} else {
+		max, errAtom := strconv.Atoi(fmt.Sprintf("%v", voter))
+		if errAtom != nil {
+			return nil, errAtom
 		}
 		for i := 0; i < max; i++ {
 			getTime, errGetTime := Blockchain.GetTime()
@@ -116,6 +98,7 @@ func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, err
 				return nil, errDormant
 			}
 			item, errNewPublicKey := Blockchain.NewPublicKeyItem(master)
+			log.Println(item)
 			if errNewPublicKey != nil {
 				return nil, errNewPublicKey
 			}
@@ -125,23 +108,49 @@ func CallCreateVoters(voter interface{}, master string) ([]*Blockchain.User, err
 			}
 			resultItems = append(resultItems, item)
 		}
-	case string:
-		err := Blockchain.NewDormantUser(fmt.Sprintf("%v", voter))
-		if err != nil {
-			return nil, err
-		}
-		item, err := Blockchain.NewPublicKeyItem(master)
-		if err != nil {
-			return nil, err
-		}
-		_, err = transfer(item.Address(), master, 1)
-		if err != nil {
-			return nil, err
-		}
-		resultItems = append(resultItems, item)
-	default:
-		return nil, errors.New("invalid type")
 	}
+	//switch voter.(type) {
+	//case int:
+	//	max, errAtom := strconv.Atoi(fmt.Sprintf("%v", voter))
+	//	if errAtom != nil {
+	//		return nil, errAtom
+	//	}
+	//	for i := 0; i < max; i++ {
+	//		getTime, errGetTime := Blockchain.GetTime()
+	//		if errGetTime != nil {
+	//			return nil, errGetTime
+	//		}
+	//		errDormant := Blockchain.NewDormantUser(getTime.AsTime().String() + fmt.Sprintf("%v", voter))
+	//		if errDormant != nil {
+	//			return nil, errDormant
+	//		}
+	//		item, errNewPublicKey := Blockchain.NewPublicKeyItem(master)
+	//		if errNewPublicKey != nil {
+	//			return nil, errNewPublicKey
+	//		}
+	//		_, errTransfer := transfer(item.Address(), master, 1)
+	//		if errTransfer != nil {
+	//			return nil, errTransfer
+	//		}
+	//		resultItems = append(resultItems, item)
+	//	}
+	//case string:
+	//	errDormantUser := Blockchain.NewDormantUser(fmt.Sprintf("%v", voter))
+	//	if errDormantUser != nil {
+	//		return nil, errDormantUser
+	//	}
+	//	item, errPublicKeyItem := Blockchain.NewPublicKeyItem(master)
+	//	if errPublicKeyItem != nil {
+	//		return nil, errPublicKeyItem
+	//	}
+	//	_, err = transfer(item.Address(), master, 1)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	resultItems = append(resultItems, item)
+	//default:
+	//	return nil, errors.New("invalid type")
+	//}
 	return resultItems, nil
 }
 
@@ -156,10 +165,25 @@ func CallViewCandidates(master string) ([]*Blockchain.ElectionSubjects, error) {
 }
 
 func CallNewCandidate(description string, affiliation string) (*Blockchain.ElectionSubjects, error) {
+	gettingTime, err := Blockchain.GetTime()
+	if err != nil {
+		return nil, err
+	}
+	log.Println(gettingTime)
+	checkTimeVar, _, err := checkTime(affiliation)
+	if err != nil {
+		return nil, err
+	}
+	log.Println(checkTimeVar)
+	if gettingTime.AsTime().After(checkTimeVar) {
+		log.Println("time expired")
+		return nil, errors.New("time expired")
+	}
 	candidate, err := Blockchain.NewCandidate(description, affiliation)
 	if err != nil {
 		return nil, err
 	}
+	log.Println(candidate)
 	return candidate, nil
 }
 
@@ -373,12 +397,12 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 	var errNode error
 
 	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
-	s1 := gocron.NewScheduler(time.UTC)
-	_, errTask := s1.Every(10).Seconds().Do(schedulerTask, client, addresses[1])
-	if errTask != nil {
-		return "", errTask
-	}
-	s1.StartAsync()
+	//s1 := gocron.NewScheduler(time.UTC)
+	//_, errTask := s1.Every(20).Seconds().Do(schedulerTask, client, addresses[1])
+	//if errTask != nil {
+	//	return "", errTask
+	//}
+	//s1.StartAsync()
 
 	for _, addr := range addresses {
 		//TODO get checking
@@ -420,17 +444,19 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 		if errLoad != nil {
 			return "", errLoad
 		}
-		tx, errNewTx := Blockchain.NewTransaction(publicSender, publicReceiver, lastHash.Hash, num)
-		if errNewTx != nil {
-			return "", errNewTx
-		}
+		//tx, errNewTx := Blockchain.NewTransaction(publicSender, publicReceiver, lastHash.Hash, num)
+		//if errNewTx != nil {
+		//	return "", errNewTx
+		//}
 		transactionToNet = Transport.TransactionHelp{
-			Master: master,
-			Tx:     tx,
+			Master:   master,
+			Receiver: publicReceiver,
+			Count:    num,
+			Sender:   publicSender,
 		}
 	}
+	QueueEnum <- true
 	go addTransactionToNet(QueueEnum, transactionToNet, TransactionsArray, db, client, addresses, txStatus)
-	time.Sleep(time.Second * 5)
 
 	return txStatus.TransactionStatus, nil
 }
@@ -445,22 +471,22 @@ func transfer(receiver string, master string, num int64) (string, error) {
 		return "", err
 	}
 	client := req.C().DevMode()
+	//s1 := gocron.NewScheduler(time.UTC)
+	//_, errTask := s1.Every(20).Seconds().Do(schedulerTask, client, addresses[1])
+	//if errTask != nil {
+	//	return "", errTask
+	//}
+	//s1.StartAsync()
 	var lastHash Transport.LastHashHelp
 	var txStatus Transport.TransactionResponseHelp
 	var transactionToNet Transport.TransactionHelp
+	var TransactionsArray []TransactionsDb
+	var errNode error
 	RequestData := Transport.MasterHelp{
 		Master: master,
 	}
-	var TransactionsArray []TransactionsDb
-	var errNode error
 
 	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
-	s1 := gocron.NewScheduler(time.UTC)
-	_, errTask := s1.Every(10).Seconds().Do(schedulerTask, client, addresses[1])
-	if errTask != nil {
-		return "", errTask
-	}
-	s1.StartAsync()
 	for _, addr := range addresses {
 		_, errNode = client.R().SetSuccessResult(&MiningResponse).
 			Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
@@ -492,26 +518,27 @@ func transfer(receiver string, master string, num int64) (string, error) {
 		if int64(chainBalance) < num {
 			return "", errors.New("not enough chain founds")
 		}
-		public, errLoad := Blockchain.LoadToEnterAlreadyUserPublic(receiver)
+		public, errLoad := Blockchain.GetUserByPublic(receiver)
+		log.Println("++++++++++++++++++++++++++++++++++", public)
 		if errLoad != nil {
 			return "", errLoad
 		}
-		tx, errNewTx := Blockchain.NewTransactionFromChain(master, public, num)
-		if errNewTx != nil {
-			return "", errNewTx
-		}
+		//tx, errNewTx := Blockchain.NewTransactionFromChain(master, public, num)
+		//if errNewTx != nil {
+		//	return "", errNewTx
+		//}
 		transactionToNet = Transport.TransactionHelp{
-			Master: master,
-			Tx:     tx,
+			Master:   master,
+			Receiver: public,
+			Count:    num,
 		}
 	}
+	QueueEnum <- true
 	go addTransactionToNet(QueueEnum, transactionToNet, TransactionsArray, db, client, addresses, txStatus)
-	time.Sleep(time.Second * 5)
 	return txStatus.TransactionStatus, nil
 }
 
 func schedulerTask(client *req.Client, addresses *fastjson.Value) {
-	log.Println("--------------------------------------")
 	_, err := client.R().SetSuccessResult(&MiningResponse).
 		Get(fmt.Sprintf("http://%s/check", strings.Trim(addresses.String(), "\"")))
 	if err != nil && !strings.Contains(err.Error(), "No connection could be made because the target machine actively refused it.") {
@@ -575,4 +602,5 @@ func addTransactionToNet(ch chan bool,
 			}
 		}
 	}
+	QueueEnum <- false
 }

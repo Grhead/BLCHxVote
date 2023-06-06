@@ -4,7 +4,7 @@ option go_package = "./";
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/any.proto";
+//import "google/protobuf/any.proto";
 
 service Contract {
 //  rpc BasicAuth() returns ();
@@ -36,7 +36,8 @@ message CreateHelp {
   string Status = 1;
 }
 message CallCreateVotersRequest {
-  google.protobuf.Any voter = 1;
+  //google.protobuf.Any voter = 1;
+  string voter = 1;
   string master = 2;
 }
 message CallCreateVotersResponse {

@@ -5,6 +5,7 @@ import (
 	. "VOX2/Transport/PBs"
 	"context"
 	"github.com/golang/protobuf/ptypes/empty"
+	"log"
 )
 
 type GRServer struct {
@@ -12,7 +13,7 @@ type GRServer struct {
 }
 
 func (s *GRServer) NewChain(ctx context.Context, request *NewChainRequest) (*NewChainResponse, error) {
-	chain, err := Basic.NewChain(request.Master, uint64(request.VotesCount), request.LimitTime)
+	chain, err := Basic.NewChain(request.Master, int64(request.VotesCount), request.LimitTime)
 	if err != nil {
 		return &NewChainResponse{
 			CreateHelpProto: nil,
@@ -34,7 +35,7 @@ func (s *GRServer) CallCreateVoters(ctx context.Context, request *CallCreateVote
 			Id:          v.Id,
 			PublicKey:   v.PublicKey,
 			IsUsed:      v.IsUsed,
-			Affiliation: v.Affiliation,
+			Affiliation: v.VotingAffiliation,
 		})
 	}
 	return &CallCreateVotersResponse{User: usersList}, nil
@@ -42,6 +43,8 @@ func (s *GRServer) CallCreateVoters(ctx context.Context, request *CallCreateVote
 
 func (s *GRServer) CallNewCandidate(ctx context.Context, request *CallNewCandidateRequest) (*CallNewCandidateResponse, error) {
 	candidate, err := Basic.CallNewCandidate(request.Description, request.Affiliation)
+	log.Println(candidate)
+	log.Println(err)
 	if err != nil {
 		return &CallNewCandidateResponse{ElectionSubjects: nil}, err
 	}
@@ -198,7 +201,7 @@ func (s *GRServer) AcceptLoadUser(ctx context.Context, request *AcceptLoadUserRe
 		Id:          user.Id,
 		PublicKey:   user.PublicKey,
 		IsUsed:      user.IsUsed,
-		Affiliation: user.Affiliation,
+		Affiliation: user.VotingAffiliation,
 	}}, nil
 }
 

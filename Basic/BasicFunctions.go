@@ -352,7 +352,6 @@ func AcceptNewUser(Pass string, salt string, PublicKey string) (string, error) {
 }
 
 func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
-	log.Println("AcceptLoadUser")
 	master, err := Blockchain.GetVotingAffiliation(PublicK)
 	if err != nil {
 		return nil, err

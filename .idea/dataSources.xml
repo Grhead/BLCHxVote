@@ -22,5 +22,12 @@
       <jdbc-url>jdbc:sqlite:$USER_HOME$/Desktop/Node-2/Database/NodeDb.db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="SessionsDb" uuid="410ea7de-4b0e-4ed0-b3e3-dd9d1e836e73">
+      <driver-ref>sqlite.xerial</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/../Vox2-Proxy/Database/SessionsDb.db</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

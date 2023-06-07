@@ -33,6 +33,7 @@ var MiningResponse Transport.CheckHelp
 var QueueEnum = make(chan bool)
 
 func NewChain(initMaster string, votesCount int64, limit *timestamppb.Timestamp) (*Transport.CreateHelp, error) {
+	log.Println("NewChain")
 	addresses, err := ReadAddresses()
 	if err != nil {
 		return nil, err
@@ -67,6 +68,7 @@ func NewChain(initMaster string, votesCount int64, limit *timestamppb.Timestamp)
 
 // CallCreateVoters ADD TRANSFER func
 func CallCreateVoters(voter string, master string) ([]*Blockchain.User, error) {
+	log.Println("CallCreateVoters")
 	var resultItems []*Blockchain.User
 	_, err := strconv.Atoi(voter)
 	if err != nil {
@@ -155,6 +157,7 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, error) {
 }
 
 func CallViewCandidates(master string) ([]*Blockchain.ElectionSubjects, error) {
+	log.Println("CallViewCandidates")
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
@@ -165,6 +168,7 @@ func CallViewCandidates(master string) ([]*Blockchain.ElectionSubjects, error) {
 }
 
 func CallNewCandidate(description string, affiliation string) (*Blockchain.ElectionSubjects, error) {
+	log.Println("CallNewCandidate")
 	gettingTime, err := Blockchain.GetTime()
 	if err != nil {
 		return nil, err
@@ -188,6 +192,7 @@ func CallNewCandidate(description string, affiliation string) (*Blockchain.Elect
 }
 
 func WinnersList(master string) ([]*ElectionsList, error) {
+	log.Println("WinnersList")
 	db, errDb := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if errDb != nil {
 		return nil, errDb
@@ -210,6 +215,7 @@ func WinnersList(master string) ([]*ElectionsList, error) {
 }
 
 func SoloWinner(master string) (*ElectionsList, error) {
+	log.Println("SoloWinner")
 	GetElections, err := WinnersList(master)
 	if err != nil {
 		return nil, err
@@ -229,6 +235,7 @@ func SoloWinner(master string) (*ElectionsList, error) {
 }
 
 func getBalance(userAddress string) (*Transport.BalanceHelp, error) {
+	log.Println("getBalance")
 	addresses, err := ReadAddresses()
 	if err != nil {
 		return nil, err
@@ -256,6 +263,7 @@ func getBalance(userAddress string) (*Transport.BalanceHelp, error) {
 }
 
 func ChainSize(master string) (string, error) {
+	log.Println("ChainSize")
 	addresses, err := ReadAddresses()
 	if err != nil {
 		return "", err
@@ -277,6 +285,7 @@ func ChainSize(master string) (string, error) {
 }
 
 func GetPartOfChain(master string) ([]*Blockchain.Block, error) {
+	log.Println("GetPartOfChain")
 	addresses, err := ReadAddresses()
 	if err != nil {
 		return nil, err
@@ -300,6 +309,7 @@ func GetPartOfChain(master string) ([]*Blockchain.Block, error) {
 }
 
 func GetFullChain() ([]*Blockchain.Block, error) {
+	log.Println("GetFullChain")
 	addresses, err := ReadAddresses()
 	if err != nil {
 		return nil, err
@@ -318,6 +328,7 @@ func GetFullChain() ([]*Blockchain.Block, error) {
 }
 
 func AcceptNewUser(Pass string, salt string, PublicKey string) (string, error) {
+	log.Println("AcceptNewUser")
 	master, err := Blockchain.GetVotingAffiliation(PublicKey)
 	if err != nil {
 		return "", err
@@ -341,6 +352,7 @@ func AcceptNewUser(Pass string, salt string, PublicKey string) (string, error) {
 }
 
 func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
+	log.Println("AcceptLoadUser")
 	master, err := Blockchain.GetVotingAffiliation(PublicK)
 	if err != nil {
 		return nil, err
@@ -378,6 +390,7 @@ func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
 }
 
 func Vote(receiver string, sender string, master string, num int64) (string, error) {
+	log.Println("Vote")
 	db, errDb := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if errDb != nil {
 		return "", errDb
@@ -469,6 +482,7 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 }
 
 func transfer(receiver string, master string, num int64) (string, error) {
+	log.Println("transfer")
 	db, errDb := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if errDb != nil {
 		return "", errDb

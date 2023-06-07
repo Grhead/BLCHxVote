@@ -8,5 +8,6 @@
     <orderEntry type="module" module-name="VOX 2.0" />
     <orderEntry type="module" module-name="VOX 1.0" />
     <orderEntry type="module" module-name="Vox2Node" />
+    <orderEntry type="module" module-name="Vox2-Proxy" />
   </component>
 </module>

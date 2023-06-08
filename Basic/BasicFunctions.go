@@ -564,18 +564,18 @@ func transfer(receiver string, master string, num int64) (string, error) {
 	return txStatus.TransactionStatus, nil
 }
 
-func schedulerTask(client *req.Client, addresses *fastjson.Value) {
-	_, err := client.R().SetSuccessResult(&MiningResponse).
-		Get(fmt.Sprintf("http://%s/check", strings.Trim(addresses.String(), "\"")))
-	if err != nil && !strings.Contains(err.Error(), "No connection could be made because the target machine actively refused it.") {
-		log.Fatalln(err)
-	}
-	if !strings.Contains(MiningResponse.AddTxStatus, "mining") {
-		QueueEnum <- false
-	} else {
-		QueueEnum <- true
-	}
-}
+//func schedulerTask(client *req.Client, addresses *fastjson.Value) {
+//	_, err := client.R().SetSuccessResult(&MiningResponse).
+//		Get(fmt.Sprintf("http://%s/check", strings.Trim(addresses.String(), "\"")))
+//	if err != nil && !strings.Contains(err.Error(), "No connection could be made because the target machine actively refused it.") {
+//		log.Fatalln(err)
+//	}
+//	if !strings.Contains(MiningResponse.AddTxStatus, "mining") {
+//		QueueEnum <- false
+//	} else {
+//		QueueEnum <- true
+//	}
+//}
 
 func addTransactionToNet(
 	transactionToNet Transport.TransactionHelp,
@@ -616,13 +616,5 @@ func addTransactionToNet(
 			db.Exec("DELETE FROM TransactionQueue WHERE Id = $1", v.Id)
 		}
 		TransactionsArray = TransactionsArray[:0]
-	} else {
-		//tx, errSerialize := SerializeTX(&transactionToNet)
-		//if errSerialize != nil {
-		//	log.Fatalln(errSerialize)
-		//}
-		//rand.New(rand.NewSource(time.Now().Unix()))
-		//t := rand.Intn(10000)
-		//db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
 	}
 }

@@ -96,10 +96,10 @@ func (s *GRServer) WinnersList(ctx context.Context, request *WinnersListRequest)
 func (s *GRServer) SoloWinner(ctx context.Context, request *SoloWinnerRequest) (*SoloWinnerResponse, error) {
 	winner, err := Basic.SoloWinner(request.Master)
 	if err != nil {
-		return &SoloWinnerResponse{ElectionList: nil}, err
+		return &SoloWinnerResponse{SoloWinnerObject: nil}, err
 	}
 	return &SoloWinnerResponse{
-		ElectionList: &ContractElectionsList{
+		SoloWinnerObject: &ContractElectionsList{
 			ElectionSubjects: &BlockchainElectionSubjects{
 				Id:                winner.ElectionSubject.Id,
 				PublicKey:         winner.ElectionSubject.PublicKey,
@@ -213,7 +213,7 @@ func (s *GRServer) Vote(ctx context.Context, request *VoteRequest) (*VoteRespons
 	return &VoteResponse{Status: vote}, nil
 }
 
-func (s *GRServer) mustEmbedUnimplementedContractServer() {
-	//TODO implement me
-	panic("implement me")
-}
+//func (s *GRServer) mustEmbedUnimplementedContractServer() {
+//	//TODO implement me
+//	panic("implement me")
+//}

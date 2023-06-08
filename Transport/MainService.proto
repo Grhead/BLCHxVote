@@ -86,7 +86,7 @@ message SoloWinnerRequest {
   string master = 1;
 }
 message SoloWinnerResponse {
-  ContractElectionsList electionList = 1;
+  ContractElectionsList soloWinnerObject = 1;
   //string error = 2;
 }
 message ChainSizeRequest {

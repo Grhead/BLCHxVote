@@ -383,7 +383,7 @@ func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (st
 	var checkIsUsed bool
 	db.Raw("SELECT isUsed FROM PublicKeySets WHERE PublicKey = $1",
 		PublicKey).Scan(&checkIsUsed)
-	if checkIsUsed == true {
+	if checkIsUsed {
 		return "", errors.New("public key is already used")
 	}
 	var checkIsCandidate string

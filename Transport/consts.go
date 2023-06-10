@@ -42,3 +42,7 @@ type CheckHelp struct {
 type CreateHelp struct {
 	Status string `form:"genesisHash" json:"genesisHash"`
 }
+type VoterHelp struct {
+	User *Blockchain.User `form:"user" json:"user"`
+	Pass string           `form:"pass" json:"pass"`
+}

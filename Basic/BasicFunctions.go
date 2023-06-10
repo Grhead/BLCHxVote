@@ -67,12 +67,16 @@ func NewChain(initMaster string, votesCount int64, limit *timestamppb.Timestamp)
 }
 
 // CallCreateVoters ADD TRANSFER func
-func CallCreateVoters(voter string, master string) ([]*Blockchain.User, error) {
+func CallCreateVoters(voter string, master string) ([]*Transport.VoterHelp, error) {
 	log.Println("CallCreateVoters")
-	var resultItems []*Blockchain.User
+	var resultItems []*Transport.VoterHelp
 	_, err := strconv.Atoi(voter)
+	getTime, errGetTime := Blockchain.GetTime()
+	if errGetTime != nil {
+		return nil, errGetTime
+	}
 	if err != nil {
-		errDormantUser := Blockchain.NewDormantUser(fmt.Sprintf("%v", voter))
+		PseudoIdentity, errDormantUser := Blockchain.NewDormantUser(fmt.Sprintf("%v", voter))
 		if errDormantUser != nil {
 			return nil, errDormantUser
 		}
@@ -84,23 +88,22 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, error) {
 		if err != nil {
 			return nil, err
 		}
-		resultItems = append(resultItems, item)
+		NewVoter := &Transport.VoterHelp{
+			User: item,
+			Pass: PseudoIdentity,
+		}
+		resultItems = append(resultItems, NewVoter)
 	} else {
 		max, errAtom := strconv.Atoi(fmt.Sprintf("%v", voter))
 		if errAtom != nil {
 			return nil, errAtom
 		}
 		for i := 0; i < max; i++ {
-			getTime, errGetTime := Blockchain.GetTime()
-			if errGetTime != nil {
-				return nil, errGetTime
-			}
-			errDormant := Blockchain.NewDormantUser(getTime.AsTime().String() + fmt.Sprintf("%v", voter))
+			PseudoIdentity, errDormant := Blockchain.NewDormantUser(fmt.Sprintf("%x", getTime.AsTime().Unix()))
 			if errDormant != nil {
 				return nil, errDormant
 			}
 			item, errNewPublicKey := Blockchain.NewPublicKeyItem(master)
-			log.Println(item)
 			if errNewPublicKey != nil {
 				return nil, errNewPublicKey
 			}
@@ -108,7 +111,11 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, error) {
 			if errTransfer != nil {
 				return nil, errTransfer
 			}
-			resultItems = append(resultItems, item)
+			NewVoter := &Transport.VoterHelp{
+				User: item,
+				Pass: PseudoIdentity,
+			}
+			resultItems = append(resultItems, NewVoter)
 		}
 	}
 	//switch voter.(type) {
@@ -408,7 +415,7 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 	var TransactionsArray []TransactionsDb
 	var errNode error
 
-	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
+	//db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
 	//s1 := gocron.NewScheduler(time.UTC)
 	//_, errTask := s1.Every(20).Seconds().Do(schedulerTask, client, addresses[1])
 	//if errTask != nil {
@@ -467,15 +474,17 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 			Sender:   publicSender,
 		}
 	}
-	QueueEnum <- true
+	//QueueEnum <- true
 	tx, errSerialize := SerializeTX(&transactionToNet)
 	if errSerialize != nil {
 		log.Fatalln(errSerialize)
 	}
+	//TODO check TEST
 	rand.New(rand.NewSource(time.Now().Unix()))
 	t := rand.Intn(10000)
 	db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
-	go addTransactionToNet(transactionToNet, TransactionsArray, db, client, addresses, txStatus)
+	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
+	addTransactionToNet(TransactionsArray, db, client, addresses, txStatus)
 
 	return txStatus.TransactionStatus, nil
 }
@@ -560,7 +569,7 @@ func transfer(receiver string, master string, num int64) (string, error) {
 	rand.New(rand.NewSource(time.Now().Unix()))
 	t := rand.Intn(10000)
 	db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
-	go addTransactionToNet(transactionToNet, TransactionsArray, db, client, addresses, txStatus)
+	addTransactionToNet(TransactionsArray, db, client, addresses, txStatus)
 	return txStatus.TransactionStatus, nil
 }
 
@@ -578,40 +587,37 @@ func transfer(receiver string, master string, num int64) (string, error) {
 //}
 
 func addTransactionToNet(
-	transactionToNet Transport.TransactionHelp,
 	TransactionsArray []TransactionsDb,
 	db *gorm.DB,
 	client *req.Client,
 	addresses []*fastjson.Value,
 	txStatus Transport.TransactionResponseHelp) {
 	if !strings.Contains(MiningResponse.AddTxStatus, "mining") && len(TransactionsArray) >= 4 {
-		log.Println("into1")
-		if len(TransactionsArray) >= 4 {
-			log.Println("into2")
-			for _, addr := range addresses {
-				_, errNode := client.R().SetSuccessResult(&MiningResponse).
-					Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
-				if errNode != nil {
-					if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
-						continue
-					}
+		//if len(TransactionsArray) >= 4 {
+		for _, addr := range addresses {
+			_, errNode := client.R().SetSuccessResult(&MiningResponse).
+				Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
+			if errNode != nil {
+				if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
+					continue
 				}
-				for i := 0; i < 4; i++ {
-					resp, errReq := client.R().
-						SetBody(DeserializeTX(&TransactionsArray[i].Transactions)).
-						SetSuccessResult(&txStatus).
-						Post(fmt.Sprintf("http://%s/addtx", strings.Trim(addr.String(), "\"")))
-					if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
-						log.Fatalln(errReq)
-					}
-					if errReq == nil {
-						if resp.Body == nil {
-							continue
-						}
+			}
+			for i := 0; i < 4; i++ {
+				resp, errReq := client.R().
+					SetBody(DeserializeTX(&TransactionsArray[i].Transactions)).
+					SetSuccessResult(&txStatus).
+					Post(fmt.Sprintf("http://%s/addtx", strings.Trim(addr.String(), "\"")))
+				if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+					log.Fatalln(errReq)
+				}
+				if errReq == nil {
+					if resp.Body == nil {
+						continue
 					}
 				}
 			}
 		}
+		//}
 		for _, v := range TransactionsArray {
 			db.Exec("DELETE FROM TransactionQueue WHERE Id = $1", v.Id)
 		}

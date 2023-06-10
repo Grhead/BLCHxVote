@@ -32,10 +32,11 @@ func (s *GRServer) CallCreateVoters(ctx context.Context, request *CallCreateVote
 	var usersList []*BlockchainUser
 	for _, v := range voters {
 		usersList = append(usersList, &BlockchainUser{
-			Id:          v.Id,
-			PublicKey:   v.PublicKey,
-			IsUsed:      v.IsUsed,
-			Affiliation: v.VotingAffiliation,
+			Id:          v.User.Id,
+			PublicKey:   v.User.PublicKey,
+			IsUsed:      v.User.IsUsed,
+			Affiliation: v.User.VotingAffiliation,
+			Pass:        v.Pass,
 		})
 	}
 	return &CallCreateVotersResponse{User: usersList}, nil

@@ -2,5 +2,10 @@
 <project version="4">
   <component name="Statistic">
     <option name="fileTypesIncluded" value="go;proto;env" />
+    <option name="excludedDirectories">
+      <list>
+        <option value="$PROJECT_DIR$/Transport/PBs" />
+      </list>
+    </option>
   </component>
 </project>

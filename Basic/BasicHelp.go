@@ -6,6 +6,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"log"
 	"math/rand"
 	"strconv"
 	"time"
@@ -30,6 +31,7 @@ func ReadAddresses() ([]*fastjson.Value, error) {
 }
 
 func setTime(master string, limit *timestamppb.Timestamp) (*timestamp.Timestamp, error) {
+	log.Println("setTime")
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
@@ -44,6 +46,7 @@ func setTime(master string, limit *timestamppb.Timestamp) (*timestamp.Timestamp,
 }
 
 func checkTime(master string) (time.Time, string, error) {
+	log.Println("checkTime")
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return time.Time{}, "", err

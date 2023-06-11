@@ -359,9 +359,17 @@ func AcceptNewUser(Pass string, salt string, PublicKey string) (string, error) {
 }
 
 func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
+	log.Println("AcceptLoadUser")
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	master, err := Blockchain.GetVotingAffiliation(PublicK)
 	if err != nil {
 		return nil, err
+	}
+	var timeOfMaster string
+	db.Raw("SELECT LimitTime FROM VotingTime WHERE MasterChain = $1",
+		master).Scan(&timeOfMaster)
+	if timeOfMaster == "" {
+		return nil, errors.New("invalid master voting")
 	}
 	gettingTime, err := Blockchain.GetTime()
 	if err != nil {

@@ -30,7 +30,8 @@ type ElectionsList struct {
 }
 
 var MiningResponse Transport.CheckHelp
-var QueueEnum = make(chan bool)
+
+//var QueueEnum = make(chan bool)
 
 func NewChain(initMaster string, votesCount int64, limit *timestamppb.Timestamp) (*Transport.CreateHelp, error) {
 	log.Println("NewChain")
@@ -50,7 +51,7 @@ func NewChain(initMaster string, votesCount int64, limit *timestamppb.Timestamp)
 			SetBody(&initChain).
 			SetSuccessResult(&creation).
 			Post(fmt.Sprintf("http://%s/newchain", strings.Trim(addr.String(), "\"")))
-		if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+		if errReq != nil && !strings.Contains(errReq.Error(), AllowedError) {
 			return nil, errReq
 		}
 		if errReq == nil {
@@ -68,6 +69,7 @@ func NewChain(initMaster string, votesCount int64, limit *timestamppb.Timestamp)
 
 // CallCreateVoters ADD TRANSFER func
 func CallCreateVoters(voter string, master string) ([]*Transport.VoterHelp, error) {
+	rand.New(rand.NewSource(time.Now().Unix()))
 	log.Println("CallCreateVoters")
 	var resultItems []*Transport.VoterHelp
 	_, err := strconv.Atoi(voter)
@@ -99,7 +101,11 @@ func CallCreateVoters(voter string, master string) ([]*Transport.VoterHelp, erro
 			return nil, errAtom
 		}
 		for i := 0; i < max; i++ {
-			PseudoIdentity, errDormant := Blockchain.NewDormantUser(fmt.Sprintf("%x", getTime.AsTime().Unix()))
+			t := rand.Intn(10000)
+			PseudoIdentity := fmt.Sprintf("%x", getTime.AsTime().Unix()) +
+				fmt.Sprintf("%x", master) +
+				fmt.Sprintf("%x", t)
+			_, errDormant := Blockchain.NewDormantUser(PseudoIdentity)
 			if errDormant != nil {
 				return nil, errDormant
 			}
@@ -118,48 +124,6 @@ func CallCreateVoters(voter string, master string) ([]*Transport.VoterHelp, erro
 			resultItems = append(resultItems, NewVoter)
 		}
 	}
-	//switch voter.(type) {
-	//case int:
-	//	max, errAtom := strconv.Atoi(fmt.Sprintf("%v", voter))
-	//	if errAtom != nil {
-	//		return nil, errAtom
-	//	}
-	//	for i := 0; i < max; i++ {
-	//		getTime, errGetTime := Blockchain.GetTime()
-	//		if errGetTime != nil {
-	//			return nil, errGetTime
-	//		}
-	//		errDormant := Blockchain.NewDormantUser(getTime.AsTime().String() + fmt.Sprintf("%v", voter))
-	//		if errDormant != nil {
-	//			return nil, errDormant
-	//		}
-	//		item, errNewPublicKey := Blockchain.NewPublicKeyItem(master)
-	//		if errNewPublicKey != nil {
-	//			return nil, errNewPublicKey
-	//		}
-	//		_, errTransfer := transfer(item.Address(), master, 1)
-	//		if errTransfer != nil {
-	//			return nil, errTransfer
-	//		}
-	//		resultItems = append(resultItems, item)
-	//	}
-	//case string:
-	//	errDormantUser := Blockchain.NewDormantUser(fmt.Sprintf("%v", voter))
-	//	if errDormantUser != nil {
-	//		return nil, errDormantUser
-	//	}
-	//	item, errPublicKeyItem := Blockchain.NewPublicKeyItem(master)
-	//	if errPublicKeyItem != nil {
-	//		return nil, errPublicKeyItem
-	//	}
-	//	_, err = transfer(item.Address(), master, 1)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	resultItems = append(resultItems, item)
-	//default:
-	//	return nil, errors.New("invalid type")
-	//}
 	return resultItems, nil
 }
 
@@ -257,7 +221,7 @@ func getBalance(userAddress string) (*Transport.BalanceHelp, error) {
 			SetBody(&userAddressStruct).
 			SetSuccessResult(&userBalance).
 			Post(fmt.Sprintf("http://%s/getbalance", strings.Trim(addr.String(), "\"")))
-		if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+		if errReq != nil && !strings.Contains(errReq.Error(), AllowedError) {
 			return nil, errReq
 		}
 		if errReq == nil {
@@ -436,7 +400,7 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 		_, errNode = client.R().SetSuccessResult(&MiningResponse).
 			Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
 		if errNode != nil {
-			if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
+			if strings.Contains(errNode.Error(), AllowedError) {
 				continue
 			}
 		}
@@ -444,7 +408,7 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 			SetBody(&RequestData).
 			SetSuccessResult(&lastHash).
 			Post(fmt.Sprintf("http://%s/getlasthash", strings.Trim(addr.String(), "\"")))
-		if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+		if errReq != nil && !strings.Contains(errReq.Error(), AllowedError) {
 			return "", errReq
 		}
 		if errReq == nil {
@@ -461,7 +425,7 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 			return "", errConversion
 		}
 		if int64(chainBalance) < num {
-			return "", errors.New("not enough chain founds")
+			return "", errors.New("not enough user founds")
 		}
 		publicSender, errLoad := Blockchain.LoadToEnterAlreadyUserPublic(sender)
 		if errLoad != nil {
@@ -492,7 +456,7 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 	t := rand.Intn(10000)
 	db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
 	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
-	addTransactionToNet(TransactionsArray, db, client, addresses, txStatus)
+	addTransactionToNet(db, client, addresses, txStatus)
 
 	return txStatus.TransactionStatus, nil
 }
@@ -517,18 +481,15 @@ func transfer(receiver string, master string, num int64) (string, error) {
 	var lastHash Transport.LastHashHelp
 	var txStatus Transport.TransactionResponseHelp
 	var transactionToNet Transport.TransactionHelp
-	var TransactionsArray []TransactionsDb
 	var errNode error
 	RequestData := Transport.MasterHelp{
 		Master: master,
 	}
-
-	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
 	for _, addr := range addresses {
 		_, errNode = client.R().SetSuccessResult(&MiningResponse).
 			Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
 		if errNode != nil {
-			if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
+			if strings.Contains(errNode.Error(), AllowedError) {
 				continue
 			}
 		}
@@ -536,7 +497,7 @@ func transfer(receiver string, master string, num int64) (string, error) {
 			SetBody(&RequestData).
 			SetSuccessResult(&lastHash).
 			Post(fmt.Sprintf("http://%s/getlasthash", strings.Trim(addr.String(), "\"")))
-		if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+		if errReq != nil && !strings.Contains(errReq.Error(), AllowedError) {
 			return "", errReq
 		}
 		if errReq == nil {
@@ -556,14 +517,9 @@ func transfer(receiver string, master string, num int64) (string, error) {
 			return "", errors.New("not enough chain founds")
 		}
 		public, errLoad := Blockchain.GetUserByPublic(receiver)
-		log.Println("++++++++++++++++++++++++++++++++++", public)
 		if errLoad != nil {
 			return "", errLoad
 		}
-		//tx, errNewTx := Blockchain.NewTransactionFromChain(master, public, num)
-		//if errNewTx != nil {
-		//	return "", errNewTx
-		//}
 		transactionToNet = Transport.TransactionHelp{
 			Master:   master,
 			Receiver: public,
@@ -577,36 +533,23 @@ func transfer(receiver string, master string, num int64) (string, error) {
 	rand.New(rand.NewSource(time.Now().Unix()))
 	t := rand.Intn(10000)
 	db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
-	addTransactionToNet(TransactionsArray, db, client, addresses, txStatus)
+	go addTransactionToNet(db, client, addresses, txStatus)
 	return txStatus.TransactionStatus, nil
 }
 
-//func schedulerTask(client *req.Client, addresses *fastjson.Value) {
-//	_, err := client.R().SetSuccessResult(&MiningResponse).
-//		Get(fmt.Sprintf("http://%s/check", strings.Trim(addresses.String(), "\"")))
-//	if err != nil && !strings.Contains(err.Error(), "No connection could be made because the target machine actively refused it.") {
-//		log.Fatalln(err)
-//	}
-//	if !strings.Contains(MiningResponse.AddTxStatus, "mining") {
-//		QueueEnum <- false
-//	} else {
-//		QueueEnum <- true
-//	}
-//}
-
 func addTransactionToNet(
-	TransactionsArray []TransactionsDb,
 	db *gorm.DB,
 	client *req.Client,
 	addresses []*fastjson.Value,
 	txStatus Transport.TransactionResponseHelp) {
+	var TransactionsArray []TransactionsDb
+	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
 	if !strings.Contains(MiningResponse.AddTxStatus, "mining") && len(TransactionsArray) >= 4 {
-		//if len(TransactionsArray) >= 4 {
 		for _, addr := range addresses {
 			_, errNode := client.R().SetSuccessResult(&MiningResponse).
 				Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
 			if errNode != nil {
-				if strings.Contains(errNode.Error(), "No connection could be made because the target machine actively refused it.") {
+				if strings.Contains(errNode.Error(), AllowedError) {
 					continue
 				}
 			}
@@ -615,7 +558,7 @@ func addTransactionToNet(
 					SetBody(DeserializeTX(&TransactionsArray[i].Transactions)).
 					SetSuccessResult(&txStatus).
 					Post(fmt.Sprintf("http://%s/addtx", strings.Trim(addr.String(), "\"")))
-				if errReq != nil && !strings.Contains(errReq.Error(), "No connection could be made because the target machine actively refused it.") {
+				if errReq != nil && !strings.Contains(errReq.Error(), AllowedError) {
 					log.Fatalln(errReq)
 				}
 				if errReq == nil {
@@ -625,10 +568,9 @@ func addTransactionToNet(
 				}
 			}
 		}
-		//}
 		for _, v := range TransactionsArray {
 			db.Exec("DELETE FROM TransactionQueue WHERE Id = $1", v.Id)
 		}
-		TransactionsArray = TransactionsArray[:0]
+		//TransactionsArray = TransactionsArray[:0]
 	}
 }

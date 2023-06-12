@@ -2,20 +2,20 @@ package Basic
 
 import (
 	"VOX2/Transport"
+	"github.com/goccy/go-json"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/valyala/fastjson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"log"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
-
-	//"encoding/json"
-	"github.com/goccy/go-json"
-	"github.com/valyala/fastjson"
-	"os"
 )
+
+const AllowedError = "No connection could be made because the target machine actively refused it."
 
 func ReadAddresses() ([]*fastjson.Value, error) {
 	file, err := os.ReadFile("LowConf/addr.json")

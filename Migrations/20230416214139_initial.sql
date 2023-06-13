@@ -35,13 +35,6 @@ CREATE TABLE IF NOT EXISTS VotingTime (
                                                 MasterChain         TEXT NOT NULL,
                                                 LimitTime           TEXT NOT NULL
 );
-
-CREATE TABLE IF NOT EXISTS BasicAuth (
-                                          Id                        INT PRIMARY KEY,
-                                          Login                     TEXT NOT NULL,
-                                          Password                  TEXT NOT NULL
-);
-
 -- +goose Down
 DROP TABLE KeyLinks;
 DROP TABLE RelationPatterns;

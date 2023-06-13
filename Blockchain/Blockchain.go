@@ -1,7 +1,9 @@
 package Blockchain
 
 import (
+	"crypto/aes"
 	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -14,6 +16,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -217,7 +220,7 @@ func AddBlock(block *Block) error {
 }
 
 // NewDormantUser same with AddPass (BLCHxVote)
-func NewDormantUser(identifier string) (string, error) {
+func NewDormantUser(identifier string, master string) (string, error) {
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return "", err
@@ -232,11 +235,85 @@ func NewDormantUser(identifier string) (string, error) {
 	if isUsed != "" {
 		return "", errors.New("identifier not allowed")
 	}
-	db.Exec("INSERT INTO RelationPatterns (Id, PersonIdentifier, PrivateKeyTemplate) VALUES ($1, $2, $3)",
+	encryptCode, err := EncryptAES([]byte(master), identifier)
+	if err != nil {
+		return "", err
+	}
+	db.Exec("INSERT INTO RelationPatterns (Id, PersonIdentifier, PrivateKeyTemplate, Master) VALUES ($1, $2, $3, $4)",
 		uuid.NewString(),
-		HashSum(identifier),
-		privateGenKey)
-	return HashSum(identifier), nil
+		encryptCode,
+		privateGenKey,
+		master)
+	return encryptCode, nil
+}
+
+func EncryptAES(key []byte, plaintext string) (string, error) {
+	length := len(key)
+	lengthOfPlaintext := len(plaintext)
+	if length == 16 {
+		c, err := aes.NewCipher(key)
+		if err != nil {
+			return "", err
+		}
+		out := make([]byte, len(plaintext))
+		c.Encrypt(out, []byte(plaintext))
+		return hex.EncodeToString(out), nil
+	} else {
+		if length < 16 {
+			for i := length; i < 16; i++ {
+				key = append(key, []byte("0")...)
+			}
+		} else {
+			key = key[:16]
+		}
+		c, err := aes.NewCipher(key)
+		if err != nil {
+			return "", err
+		}
+		if lengthOfPlaintext < len(key) {
+			for i := lengthOfPlaintext; i < 16; i++ {
+				plaintext = plaintext + "0110"
+			}
+		}
+		out := make([]byte, len(plaintext))
+		c.Encrypt(out, []byte(plaintext))
+		return hex.EncodeToString(out), nil
+	}
+}
+func DecryptAES(key []byte, plaintext string) (string, error) {
+	length := len(key)
+	if length == 16 {
+		ciphertext, _ := hex.DecodeString(plaintext)
+		c, err := aes.NewCipher(key)
+		if err != nil {
+			return "", err
+		}
+		fmt.Println(ciphertext)
+		fmt.Println(ciphertext)
+		pt := make([]byte, len(ciphertext))
+		c.Decrypt(pt, ciphertext)
+		s := string(pt[:])
+		t := strings.Replace(s, "0110", "", -1)
+		return t, nil
+	} else {
+		if length < 16 {
+			for i := length; i < 16; i++ {
+				key = append(key, []byte("0")...)
+			}
+		} else {
+			key = key[:16]
+		}
+		ciphertext, _ := hex.DecodeString(plaintext)
+		c, err := aes.NewCipher(key)
+		if err != nil {
+			return "", err
+		}
+		pt := make([]byte, len(ciphertext))
+		c.Decrypt(pt, ciphertext)
+		s := string(pt[:])
+		t := strings.Replace(s, "0110", "", -1)
+		return t, nil
+	}
 }
 
 func LoadToEnterAlreadyUserPrivate(privateKey string) (*User, error) {
@@ -421,9 +498,21 @@ func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (st
 	if checkPublicKey == "" {
 		return "", errors.New("public key is invalid")
 	}
+	var checkMaster string
+	db.Raw("SELECT VotingAffiliation FROM PublicKeySets WHERE PublicKey = $1",
+		PublicKey).Scan(&checkMaster)
+	if checkMaster == "" {
+		return "", errors.New("public key is invalid (master)")
+	}
 	var checkTemplate string
+	//PseudoIdentity := HashSum(passport)[:16]
+	encryptAES, err := EncryptAES([]byte(checkMaster), passport)
+	if err != nil {
+		return "", err
+	}
+	log.Println(encryptAES)
 	db.Raw("SELECT PrivateKeyTemplate FROM RelationPatterns WHERE PersonIdentifier = $1",
-		HashSum(passport)).Scan(&checkTemplate)
+		encryptAES).Scan(&checkTemplate)
 	if checkTemplate == "" {
 		return "", errors.New("identifier does not exist")
 	}

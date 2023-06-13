@@ -79,13 +79,14 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string
 	rand.New(rand.NewSource(time.Now().Unix()))
 	var resultItems []*Blockchain.User
 	var resultItemsPass []string
-	_, err = strconv.Atoi(voter)
+	_, errVoter := strconv.Atoi(voter)
 	getTime, errGetTime := Blockchain.GetTime()
 	if errGetTime != nil {
 		return nil, nil, errGetTime
 	}
-	if err != nil {
-		PseudoIdentity, errDormantUser := Blockchain.NewDormantUser(fmt.Sprintf("%v", voter))
+	if errVoter != nil {
+		PseudoIdentity := Blockchain.HashSum(voter)[:16]
+		_, errDormantUser := Blockchain.NewDormantUser(PseudoIdentity, master)
 		if errDormantUser != nil {
 			return nil, nil, errDormantUser
 		}
@@ -96,6 +97,10 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string
 		_, err = transfer(item.Address(), master, 1)
 		if err != nil {
 			return nil, nil, err
+		}
+		DormantUserRows, errRaw := db.Raw("SELECT PersonIdentifier FROM RelationPatterns WHERE Master = $1", master).Rows()
+		if errRaw != nil {
+			return nil, nil, errRaw
 		}
 		rows, errRows := db.Raw("SELECT * FROM PublicKeySets WHERE VotingAffiliation = $1", master).Rows()
 		defer func(rows *sql.Rows) {
@@ -113,11 +118,22 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string
 			if errScan != nil {
 				return nil, nil, errScan
 			}
-			//NewVoter := &Transport.VoterHelp{
-			//	Pass: PseudoIdentity,
-			//}
 			resultItems = append(resultItems, &tempItem)
-			resultItemsPass = append(resultItemsPass, PseudoIdentity)
+		}
+		for DormantUserRows.Next() {
+			var tempItem string
+			errScan := DormantUserRows.Scan(&tempItem)
+			if errScan != nil {
+				return nil, nil, errScan
+			}
+			aes, errDecryptAES := Blockchain.DecryptAES([]byte(master), tempItem)
+			if errDecryptAES != nil {
+				return nil, nil, errDecryptAES
+			}
+			if errScan != nil {
+				return nil, nil, errScan
+			}
+			resultItemsPass = append(resultItemsPass, aes)
 		}
 	} else {
 		max, errAtom := strconv.Atoi(fmt.Sprintf("%v", voter))
@@ -126,11 +142,10 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string
 			return nil, nil, errAtom
 		}
 		for i := 0; i < max; i++ {
-			t := rand.Intn(10000)
-			PseudoIdentity = fmt.Sprintf("%x", getTime.AsTime().Unix()) +
-				fmt.Sprintf("%x", master) +
-				fmt.Sprintf("%x", t)
-			_, errDormant := Blockchain.NewDormantUser(PseudoIdentity)
+			rand.New(rand.NewSource(time.Now().Unix()))
+			t := rand.Int63()
+			PseudoIdentity = Blockchain.HashSum(fmt.Sprintf("%x", getTime.AsTime().Unix()+t))[:16]
+			_, errDormant := Blockchain.NewDormantUser(PseudoIdentity, master)
 			if errDormant != nil {
 				return nil, nil, errDormant
 			}
@@ -143,6 +158,10 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string
 				return nil, nil, errTransfer
 			}
 		}
+		DormantUserRows, errRaw := db.Raw("SELECT PersonIdentifier FROM RelationPatterns WHERE Master = $1", master).Rows()
+		if errRaw != nil {
+			return nil, nil, errRaw
+		}
 		rows, errRows := db.Raw("SELECT * FROM PublicKeySets WHERE VotingAffiliation = $1", master).Rows()
 		defer func(rows *sql.Rows) {
 			errClose := rows.Close()
@@ -159,12 +178,29 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string
 			if errScan != nil {
 				return nil, nil, errScan
 			}
-			//NewVoter := &Transport.VoterHelp{
-			//	Pass: PseudoIdentity,
-			//}
 			resultItems = append(resultItems, &tempItem)
-			resultItemsPass = append(resultItemsPass, PseudoIdentity)
 		}
+		for DormantUserRows.Next() {
+			var tempItem string
+			errScan := DormantUserRows.Scan(&tempItem)
+			if errScan != nil {
+				return nil, nil, errScan
+			}
+			aes, errDecryptAES := Blockchain.DecryptAES([]byte(master), tempItem)
+			if errDecryptAES != nil {
+				return nil, nil, errDecryptAES
+			}
+			if errScan != nil {
+				return nil, nil, errScan
+			}
+			resultItemsPass = append(resultItemsPass, aes)
+		}
+	}
+	for _, v := range resultItems {
+		log.Println(v)
+	}
+	for _, v := range resultItemsPass {
+		log.Println(v)
 	}
 	return resultItems, resultItemsPass, nil
 }
@@ -414,6 +450,7 @@ func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
 	if bal == nil {
 		return nil, errors.New("zero balance")
 	}
+	log.Println(UserPublic)
 	return UserPublic, nil
 }
 

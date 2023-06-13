@@ -3,6 +3,7 @@ package Basic
 import (
 	"VOX2/Blockchain"
 	"VOX2/Transport"
+	"database/sql"
 	"errors"
 	"fmt"
 	_ "github.com/go-co-op/gocron"
@@ -68,63 +69,103 @@ func NewChain(initMaster string, votesCount int64, limit *timestamppb.Timestamp)
 }
 
 // CallCreateVoters ADD TRANSFER func
-func CallCreateVoters(voter string, master string) ([]*Transport.VoterHelp, error) {
-	rand.New(rand.NewSource(time.Now().Unix()))
+func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string, error) {
 	log.Println("CallCreateVoters")
-	var resultItems []*Transport.VoterHelp
-	_, err := strconv.Atoi(voter)
+	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	if err != nil {
+		return nil, nil, err
+	}
+	rand.New(rand.NewSource(time.Now().Unix()))
+	var resultItems []*Blockchain.User
+	var resultItemsPass []string
+	_, err = strconv.Atoi(voter)
 	getTime, errGetTime := Blockchain.GetTime()
 	if errGetTime != nil {
-		return nil, errGetTime
+		return nil, nil, errGetTime
 	}
 	if err != nil {
 		PseudoIdentity, errDormantUser := Blockchain.NewDormantUser(fmt.Sprintf("%v", voter))
 		if errDormantUser != nil {
-			return nil, errDormantUser
+			return nil, nil, errDormantUser
 		}
 		item, errPublicKeyItem := Blockchain.NewPublicKeyItem(master)
 		if errPublicKeyItem != nil {
-			return nil, errPublicKeyItem
+			return nil, nil, errPublicKeyItem
 		}
 		_, err = transfer(item.Address(), master, 1)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		NewVoter := &Transport.VoterHelp{
-			User: item,
-			Pass: PseudoIdentity,
+		rows, errRows := db.Raw("SELECT * FROM PublicKeySets WHERE VotingAffiliation = $1", master).Rows()
+		defer func(rows *sql.Rows) {
+			errClose := rows.Close()
+			if errClose != nil {
+				log.Fatalln(errClose)
+			}
+		}(rows)
+		if errRows != nil {
+			return nil, nil, errRows
 		}
-		resultItems = append(resultItems, NewVoter)
+		for rows.Next() {
+			var tempItem Blockchain.User
+			errScan := rows.Scan(&tempItem.Id, &tempItem.PublicKey, &tempItem.IsUsed, &tempItem.VotingAffiliation)
+			if errScan != nil {
+				return nil, nil, errScan
+			}
+			//NewVoter := &Transport.VoterHelp{
+			//	Pass: PseudoIdentity,
+			//}
+			resultItems = append(resultItems, &tempItem)
+			resultItemsPass = append(resultItemsPass, PseudoIdentity)
+		}
 	} else {
 		max, errAtom := strconv.Atoi(fmt.Sprintf("%v", voter))
+		var PseudoIdentity string
 		if errAtom != nil {
-			return nil, errAtom
+			return nil, nil, errAtom
 		}
 		for i := 0; i < max; i++ {
 			t := rand.Intn(10000)
-			PseudoIdentity := fmt.Sprintf("%x", getTime.AsTime().Unix()) +
+			PseudoIdentity = fmt.Sprintf("%x", getTime.AsTime().Unix()) +
 				fmt.Sprintf("%x", master) +
 				fmt.Sprintf("%x", t)
 			_, errDormant := Blockchain.NewDormantUser(PseudoIdentity)
 			if errDormant != nil {
-				return nil, errDormant
+				return nil, nil, errDormant
 			}
 			item, errNewPublicKey := Blockchain.NewPublicKeyItem(master)
 			if errNewPublicKey != nil {
-				return nil, errNewPublicKey
+				return nil, nil, errNewPublicKey
 			}
 			_, errTransfer := transfer(item.Address(), master, 1)
 			if errTransfer != nil {
-				return nil, errTransfer
+				return nil, nil, errTransfer
 			}
-			NewVoter := &Transport.VoterHelp{
-				User: item,
-				Pass: PseudoIdentity,
+		}
+		rows, errRows := db.Raw("SELECT * FROM PublicKeySets WHERE VotingAffiliation = $1", master).Rows()
+		defer func(rows *sql.Rows) {
+			errClose := rows.Close()
+			if errClose != nil {
+				log.Fatalln(errClose)
 			}
-			resultItems = append(resultItems, NewVoter)
+		}(rows)
+		if errRows != nil {
+			return nil, nil, errRows
+		}
+		for rows.Next() {
+			var tempItem Blockchain.User
+			errScan := rows.Scan(&tempItem.Id, &tempItem.PublicKey, &tempItem.IsUsed, &tempItem.VotingAffiliation)
+			if errScan != nil {
+				return nil, nil, errScan
+			}
+			//NewVoter := &Transport.VoterHelp{
+			//	Pass: PseudoIdentity,
+			//}
+			resultItems = append(resultItems, &tempItem)
+			resultItemsPass = append(resultItemsPass, PseudoIdentity)
 		}
 	}
-	return resultItems, nil
+	return resultItems, resultItemsPass, nil
 }
 
 func CallViewCandidates(master string) ([]*Blockchain.ElectionSubjects, error) {
@@ -387,14 +428,6 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 	var TransactionsArray []TransactionsDb
 	var errNode error
 
-	//db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
-	//s1 := gocron.NewScheduler(time.UTC)
-	//_, errTask := s1.Every(20).Seconds().Do(schedulerTask, client, addresses[1])
-	//if errTask != nil {
-	//	return "", errTask
-	//}
-	//s1.StartAsync()
-
 	for _, addr := range addresses {
 		//TODO get checking
 		_, errNode = client.R().SetSuccessResult(&MiningResponse).
@@ -431,17 +464,27 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 		if errLoad != nil {
 			return "", errLoad
 		}
-		publicReceiver, errLoad := Blockchain.LoadToEnterAlreadyUserPublic(receiver)
-		if errLoad != nil {
-			return "", errLoad
-		}
+
+		//publicReceiver, errLoad := Blockchain.LoadToEnterAlreadyUserPublic(receiver)
+		//if errLoad != nil {
+		//	return "", errLoad
+		//}
+		publicReceiver, errLoad := Blockchain.GetCandidate(receiver)
+
+		//if errLoad != nil {
+		//	return "", errLoad
+		//}
 		//tx, errNewTx := Blockchain.NewTransaction(publicSender, publicReceiver, lastHash.Hash, num)
 		//if errNewTx != nil {
 		//	return "", errNewTx
 		//}
+		publicObject := &Transport.ObjectHelp{
+			PublicKey:         publicReceiver.PublicKey,
+			VotingAffiliation: publicReceiver.VotingAffiliation,
+		}
 		transactionToNet = Transport.TransactionHelp{
 			Master:   master,
-			Receiver: publicReceiver,
+			Receiver: publicObject,
 			Count:    num,
 			Sender:   publicSender,
 		}
@@ -472,12 +515,6 @@ func transfer(receiver string, master string, num int64) (string, error) {
 		return "", err
 	}
 	client := req.C().DevMode()
-	//s1 := gocron.NewScheduler(time.UTC)
-	//_, errTask := s1.Every(20).Seconds().Do(schedulerTask, client, addresses[1])
-	//if errTask != nil {
-	//	return "", errTask
-	//}
-	//s1.StartAsync()
 	var lastHash Transport.LastHashHelp
 	var txStatus Transport.TransactionResponseHelp
 	var transactionToNet Transport.TransactionHelp
@@ -517,12 +554,16 @@ func transfer(receiver string, master string, num int64) (string, error) {
 			return "", errors.New("not enough chain founds")
 		}
 		public, errLoad := Blockchain.GetUserByPublic(receiver)
+		publicObject := &Transport.ObjectHelp{
+			PublicKey:         public.PublicKey,
+			VotingAffiliation: public.VotingAffiliation,
+		}
 		if errLoad != nil {
 			return "", errLoad
 		}
 		transactionToNet = Transport.TransactionHelp{
 			Master:   master,
-			Receiver: public,
+			Receiver: publicObject,
 			Count:    num,
 		}
 	}

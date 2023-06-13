@@ -25,21 +25,20 @@ func (s *GRServer) NewChain(ctx context.Context, request *NewChainRequest) (*New
 }
 
 func (s *GRServer) CallCreateVoters(ctx context.Context, request *CallCreateVotersRequest) (*CallCreateVotersResponse, error) {
-	voters, err := Basic.CallCreateVoters(request.Voter, request.Master)
+	voters, votersPass, err := Basic.CallCreateVoters(request.Voter, request.Master)
 	if err != nil {
 		return &CallCreateVotersResponse{User: nil}, err
 	}
 	var usersList []*BlockchainUser
 	for _, v := range voters {
 		usersList = append(usersList, &BlockchainUser{
-			Id:          v.User.Id,
-			PublicKey:   v.User.PublicKey,
-			IsUsed:      v.User.IsUsed,
-			Affiliation: v.User.VotingAffiliation,
-			Pass:        v.Pass,
+			Id:          v.Id,
+			PublicKey:   v.PublicKey,
+			IsUsed:      v.IsUsed,
+			Affiliation: v.VotingAffiliation,
 		})
 	}
-	return &CallCreateVotersResponse{User: usersList}, nil
+	return &CallCreateVotersResponse{User: usersList, Identifier: votersPass}, nil
 }
 
 func (s *GRServer) CallNewCandidate(ctx context.Context, request *CallNewCandidateRequest) (*CallNewCandidateResponse, error) {

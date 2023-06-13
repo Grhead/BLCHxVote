@@ -24,12 +24,16 @@ type BlockHelp struct {
 	Address string            `form:"address" json:"address"`
 }
 type TransactionHelp struct {
-	Master string `form:"master" json:"master"`
-	//Tx     *Blockchain.Transaction `form:"transaction" json:"transaction"`
+	Master   string           `form:"master" json:"master"`
 	Sender   *Blockchain.User `form:"sender" json:"sender"`
-	Receiver *Blockchain.User `form:"receiver" json:"receiver"`
+	Receiver *ObjectHelp      `form:"receiver" json:"receiver"`
 	Count    int64            `form:"count" json:"count"`
 }
+type ObjectHelp struct {
+	PublicKey         string `json:"publicKey" gorm:"PublicKey"`
+	VotingAffiliation string `json:"votingAffiliation" gorm:"VotingAffiliation"`
+}
+
 type BalanceHelp struct {
 	Balance string `form:"balance" json:"balance"`
 }
@@ -43,6 +47,5 @@ type CreateHelp struct {
 	Status string `form:"genesisHash" json:"genesisHash"`
 }
 type VoterHelp struct {
-	User *Blockchain.User `form:"user" json:"user"`
-	Pass string           `form:"pass" json:"pass"`
+	Pass string `form:"pass" json:"pass"`
 }

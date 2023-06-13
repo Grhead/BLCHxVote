@@ -69,7 +69,6 @@ func SerializeTX(tx *Transport.TransactionHelp) (string, error) {
 	}
 	return string(jsonData), nil
 }
-
 func DeserializeTX(data *string) *Transport.TransactionHelp {
 	var tx Transport.TransactionHelp
 	err := json.Unmarshal([]byte(*data), &tx)

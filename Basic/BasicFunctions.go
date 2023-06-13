@@ -52,6 +52,7 @@ func NewChain(initMaster string, votesCount int64, limit *timestamppb.Timestamp)
 			SetBody(&initChain).
 			SetSuccessResult(&creation).
 			Post(fmt.Sprintf("http://%s/newchain", strings.Trim(addr.String(), "\"")))
+		log.Println(errReq)
 		if errReq != nil && !strings.Contains(errReq.Error(), AllowedError) {
 			return nil, errReq
 		}
@@ -169,13 +170,14 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string
 }
 
 func CallViewCandidates(master string) ([]*Blockchain.ElectionSubjects, error) {
-	log.Println("CallViewCandidates")
+	log.Println("CallViewCandidates", " Master =", master)
 	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 	var Candidates []*Blockchain.ElectionSubjects
-	db.Table("ElectionSubjects").Find(&Candidates).Where("VotingAffiliation = $1", master)
+	db.Table("ElectionSubjects").Where("VotingAffiliation = $1", master).Find(&Candidates)
+	fmt.Println(Candidates)
 	return Candidates, nil
 }
 
@@ -194,6 +196,13 @@ func CallNewCandidate(description string, affiliation string) (*Blockchain.Elect
 	if gettingTime.AsTime().After(checkTimeVar) {
 		log.Println("time expired")
 		return nil, errors.New("time expired")
+	}
+	list, err := CallViewCandidates(affiliation)
+	for _, v := range list {
+		log.Println("::::", v)
+		if description == v.Description {
+			return nil, errors.New("election object already exist")
+		}
 	}
 	candidate, err := Blockchain.NewCandidate(description, affiliation)
 	if err != nil {

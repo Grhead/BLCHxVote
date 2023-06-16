@@ -8,6 +8,7 @@ import (
 	"fmt"
 	_ "github.com/go-co-op/gocron"
 	"github.com/imroc/req/v3"
+	"github.com/spf13/viper"
 	"github.com/valyala/fastjson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/driver/sqlite"
@@ -24,10 +25,20 @@ import (
 type TransactionsDb struct {
 	Id           int
 	Transactions string
+	Master       string
 }
 type ElectionsList struct {
 	ElectionSubject *Blockchain.ElectionSubjects
 	Balance         string
+}
+
+func init() {
+	viper.SetConfigFile("./LowConf/config.env")
+	err := viper.ReadInConfig()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }
 
 var MiningResponse Transport.CheckHelp
@@ -72,7 +83,8 @@ func NewChain(initMaster string, votesCount int64, limit *timestamppb.Timestamp)
 // CallCreateVoters ADD TRANSFER func
 func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string, error) {
 	log.Println("CallCreateVoters")
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -84,20 +96,34 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string
 	if errGetTime != nil {
 		return nil, nil, errGetTime
 	}
+	checkTimeVar, _, err := checkTime(master)
+	if err != nil {
+		return nil, nil, err
+	}
+	log.Println(getTime.AsTime())
+	log.Println(checkTimeVar)
+	if getTime.AsTime().After(checkTimeVar) {
+		log.Println("time expired")
+		return nil, nil, errors.New("time expired")
+	}
 	if errVoter != nil {
 		PseudoIdentity := Blockchain.HashSum(voter)[:16]
 		_, errDormantUser := Blockchain.NewDormantUser(PseudoIdentity, master)
 		if errDormantUser != nil {
 			return nil, nil, errDormantUser
 		}
-		item, errPublicKeyItem := Blockchain.NewPublicKeyItem(master)
+		_, errPublicKeyItem := Blockchain.NewPublicKeyItem(master)
+		//item, errPublicKeyItem := Blockchain.NewPublicKeyItem(master)
 		if errPublicKeyItem != nil {
 			return nil, nil, errPublicKeyItem
 		}
-		_, err = transfer(item.Address(), master, 1)
-		if err != nil {
-			return nil, nil, err
+		if errPublicKeyItem != nil {
+			return nil, nil, errPublicKeyItem
 		}
+		//_, err = transfer(item.Address(), master, 1)
+		//if err != nil {
+		//	return nil, nil, err
+		//}
 		DormantUserRows, errRaw := db.Raw("SELECT PersonIdentifier FROM RelationPatterns WHERE Master = $1", master).Rows()
 		if errRaw != nil {
 			return nil, nil, errRaw
@@ -149,14 +175,15 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string
 			if errDormant != nil {
 				return nil, nil, errDormant
 			}
-			item, errNewPublicKey := Blockchain.NewPublicKeyItem(master)
+			//item, errNewPublicKey := Blockchain.NewPublicKeyItem(master)
+			_, errNewPublicKey := Blockchain.NewPublicKeyItem(master)
 			if errNewPublicKey != nil {
 				return nil, nil, errNewPublicKey
 			}
-			_, errTransfer := transfer(item.Address(), master, 1)
-			if errTransfer != nil {
-				return nil, nil, errTransfer
-			}
+			//_, errTransfer := transfer(item.Address(), master, 1)
+			//if errTransfer != nil {
+			//	return nil, nil, errTransfer
+			//}
 		}
 		DormantUserRows, errRaw := db.Raw("SELECT PersonIdentifier FROM RelationPatterns WHERE Master = $1", master).Rows()
 		if errRaw != nil {
@@ -196,18 +223,13 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string
 			resultItemsPass = append(resultItemsPass, aes)
 		}
 	}
-	for _, v := range resultItems {
-		log.Println(v)
-	}
-	for _, v := range resultItemsPass {
-		log.Println(v)
-	}
 	return resultItems, resultItemsPass, nil
 }
 
 func CallViewCandidates(master string) ([]*Blockchain.ElectionSubjects, error) {
 	log.Println("CallViewCandidates", " Master =", master)
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -250,13 +272,15 @@ func CallNewCandidate(description string, affiliation string) (*Blockchain.Elect
 
 func WinnersList(master string) ([]*ElectionsList, error) {
 	log.Println("WinnersList")
-	db, errDb := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, errDb := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if errDb != nil {
 		return nil, errDb
 	}
 	var GetElections []*Blockchain.ElectionSubjects
 	var ResultList []*ElectionsList
-	db.Table("ElectionSubjects").Find(&GetElections).Where("VotingAffiliation = $1", master)
+	db.Table("ElectionSubjects").Where("VotingAffiliation = $1", master).Find(&GetElections)
+	log.Println(GetElections)
 	for _, v := range GetElections {
 		ElectionBalance, err := getBalance(v.PublicKey)
 		if err != nil {
@@ -405,12 +429,17 @@ func AcceptNewUser(Pass string, salt string, PublicKey string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	_, errTransfer := transfer(PublicKey, master, 1)
+	if errTransfer != nil {
+		return "", errTransfer
+	}
 	return private, nil
 }
 
 func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
 	log.Println("AcceptLoadUser")
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	master, err := Blockchain.GetVotingAffiliation(PublicK)
 	if err != nil {
 		return nil, err
@@ -447,7 +476,7 @@ func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	if bal == nil {
+	if bal.Balance == "" {
 		return nil, errors.New("zero balance")
 	}
 	log.Println(UserPublic)
@@ -456,7 +485,8 @@ func AcceptLoadUser(PublicK string, PrivateK string) (*Blockchain.User, error) {
 
 func Vote(receiver string, sender string, master string, num int64) (string, error) {
 	log.Println("Vote")
-	db, errDb := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, errDb := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if errDb != nil {
 		return "", errDb
 	}
@@ -471,7 +501,6 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 	RequestData := Transport.MasterHelp{
 		Master: sender,
 	}
-	var TransactionsArray []TransactionsDb
 	var errNode error
 
 	for _, addr := range addresses {
@@ -543,16 +572,17 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 	//TODO check TEST
 	rand.New(rand.NewSource(time.Now().Unix()))
 	t := rand.Intn(10000)
-	db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
-	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
-	addTransactionToNet(db, client, addresses, txStatus)
+	db.Exec("INSERT INTO TransactionQueue (Id, Transactions, Master) VALUES ($1, $2, $3)", t, tx, master)
+	//db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
+	go addTransactionToNet(db, client, addresses, txStatus, master)
 
 	return txStatus.TransactionStatus, nil
 }
 
 func transfer(receiver string, master string, num int64) (string, error) {
 	log.Println("transfer")
-	db, errDb := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, errDb := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if errDb != nil {
 		return "", errDb
 	}
@@ -619,8 +649,8 @@ func transfer(receiver string, master string, num int64) (string, error) {
 	}
 	rand.New(rand.NewSource(time.Now().Unix()))
 	t := rand.Intn(10000)
-	db.Exec("INSERT INTO TransactionQueue (Id, Transactions) VALUES ($1, $2)", t, tx)
-	go addTransactionToNet(db, client, addresses, txStatus)
+	db.Exec("INSERT INTO TransactionQueue (Id, Transactions, Master) VALUES ($1, $2, $3)", t, tx, master)
+	go addTransactionToNet(db, client, addresses, txStatus, master)
 	return txStatus.TransactionStatus, nil
 }
 
@@ -628,9 +658,10 @@ func addTransactionToNet(
 	db *gorm.DB,
 	client *req.Client,
 	addresses []*fastjson.Value,
-	txStatus Transport.TransactionResponseHelp) {
+	txStatus Transport.TransactionResponseHelp,
+	master string) {
 	var TransactionsArray []TransactionsDb
-	db.Raw("SELECT Id, Transactions FROM TransactionQueue ORDER BY Id DESC LIMIT 4").Scan(&TransactionsArray)
+	db.Raw("SELECT Id, Transactions, Master FROM TransactionQueue WHERE Master = $1 ORDER BY Id DESC LIMIT 4", master).Scan(&TransactionsArray)
 	if !strings.Contains(MiningResponse.AddTxStatus, "mining") && len(TransactionsArray) >= 4 {
 		for _, addr := range addresses {
 			_, errNode := client.R().SetSuccessResult(&MiningResponse).

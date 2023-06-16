@@ -19,9 +19,7 @@ import (
 	"strings"
 )
 
-const (
-	TxsLimit = 4
-)
+const TxsLimit = 4
 
 func init() {
 	viper.SetConfigFile("./LowConf/config.env")
@@ -176,7 +174,7 @@ func GetBlock(master string) (map[string]int64, error) {
 	if err != nil {
 		return nil, err
 	}
-	var maping = make(map[string]int64)
+	var mapping = make(map[string]int64)
 	var chain []*Chain
 	var blocks []*Block
 	db.Table("Chains").Find(&chain)
@@ -192,11 +190,11 @@ func GetBlock(master string) (map[string]int64, error) {
 	})
 	for _, v := range blocks {
 		if v.ChainMaster == master {
-			maping = v.BalanceMap
+			mapping = v.BalanceMap
 			break
 		}
 	}
-	return maping, nil
+	return mapping, nil
 }
 
 func AddBlock(block *Block) error {
@@ -221,7 +219,8 @@ func AddBlock(block *Block) error {
 
 // NewDormantUser same with AddPass (BLCHxVote)
 func NewDormantUser(identifier string, master string) (string, error) {
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return "", err
 	}
@@ -317,7 +316,8 @@ func DecryptAES(key []byte, plaintext string) (string, error) {
 }
 
 func LoadToEnterAlreadyUserPrivate(privateKey string) (*User, error) {
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +335,8 @@ func LoadToEnterAlreadyUserPrivate(privateKey string) (*User, error) {
 }
 
 func LoadToEnterAlreadyUserPublic(publicKey string) (*User, error) {
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -350,7 +351,8 @@ func LoadToEnterAlreadyUserPublic(publicKey string) (*User, error) {
 }
 
 func GetUserByPublic(publicKey string) (*User, error) {
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +384,8 @@ func GetUserByPublic(publicKey string) (*User, error) {
 
 // NewPublicKeyItem Same with NewUser(BLCHxVote)
 func NewPublicKeyItem(affiliation string) (*User, error) {
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -405,7 +408,8 @@ func NewPublicKeyItem(affiliation string) (*User, error) {
 }
 
 func NewCandidate(description string, affiliation string) (*ElectionSubjects, error) {
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -427,8 +431,9 @@ func NewCandidate(description string, affiliation string) (*ElectionSubjects, er
 	}, nil
 }
 func GetCandidate(PublicKey string) (*ElectionSubjects, error) {
+	DbConf := viper.GetString("DCS")
 	var checkIsCandidate *ElectionSubjects
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -488,7 +493,8 @@ func Balance(moneyMan string) (int64, error) {
 }
 
 func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (string, error) {
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return "", err
 	}
@@ -541,7 +547,8 @@ func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (st
 }
 
 func GetVotingAffiliation(PublicKey string) (string, error) {
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return "", err
 	}

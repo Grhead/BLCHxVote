@@ -4,6 +4,7 @@ import (
 	"VOX2/Transport"
 	"github.com/goccy/go-json"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/spf13/viper"
 	"github.com/valyala/fastjson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"gorm.io/driver/sqlite"
@@ -32,11 +33,12 @@ func ReadAddresses() ([]*fastjson.Value, error) {
 
 func setTime(master string, limit *timestamppb.Timestamp) (*timestamp.Timestamp, error) {
 	log.Println("setTime")
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
-	rand.New(rand.NewSource(time.Now().Unix()))
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 	t := rand.Intn(10000)
 	errInsert := db.Exec("INSERT INTO VotingTime (Id, MasterChain, LimitTime) VALUES ($1, $2, $3)", t, master, limit.Seconds)
 	if errInsert.Error != nil {
@@ -47,7 +49,8 @@ func setTime(master string, limit *timestamppb.Timestamp) (*timestamp.Timestamp,
 
 func checkTime(master string) (time.Time, string, error) {
 	log.Println("checkTime")
-	db, err := gorm.Open(sqlite.Open("Database/ContractDB.db"), &gorm.Config{})
+	DbConf := viper.GetString("DCS")
+	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return time.Time{}, "", err
 	}

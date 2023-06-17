@@ -26,12 +26,12 @@ CREATE TABLE IF NOT EXISTS ElectionSubjects (
 );
 
 CREATE TABLE IF NOT EXISTS TransactionQueue (
-                                                Id                  INT PRIMARY KEY,
+                                                Id                  INT PRIMARY KEY AUTO_INCREMENT,
                                                 Transactions        TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS VotingTime (
-                                                Id                  INT PRIMARY KEY,
+                                                Id                  INT PRIMARY KEY AUTO_INCREMENT,
                                                 MasterChain         TEXT NOT NULL,
                                                 LimitTime           TEXT NOT NULL
 );

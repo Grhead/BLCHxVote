@@ -21,6 +21,7 @@ service Contract {
   rpc AcceptNewUser(AcceptNewUserRequest) returns (AcceptNewUserResponse);
   rpc AcceptLoadUser(AcceptLoadUserRequest) returns (AcceptLoadUserResponse);
   rpc Vote(VoteRequest) returns (VoteResponse);
+  rpc ViewEffectivity (ViewEffectivityRequest) returns (ViewEffectivityResponse);
 }
 
 message NewChainRequest {
@@ -154,4 +155,10 @@ message VoteRequest {
 message VoteResponse {
   string status = 1;
   //string error = 2;
+}
+message ViewEffectivityRequest {
+  string master = 1;
+}
+message ViewEffectivityResponse {
+  int64 count = 1;
 }

@@ -12,16 +12,17 @@ require (
 	github.com/valyala/fastjson v1.6.4
 	google.golang.org/grpc v1.54.0
 	google.golang.org/protobuf v1.28.1
+	gorm.io/driver/mysql v1.5.1
 	gorm.io/driver/sqlite v1.4.4
-	gorm.io/gorm v1.25.0
+	gorm.io/gorm v1.25.1
 )
 
 require (
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
+	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/pprof v0.0.0-20230426061923-93006964c1fc // indirect
-	github.com/hanson/aes v0.0.0-20211130135935-f00fdb2b639f // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

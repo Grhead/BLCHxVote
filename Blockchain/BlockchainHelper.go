@@ -7,6 +7,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"gorm.io/driver/mysql"
+
 	//"encoding/json"
 	"github.com/goccy/go-json"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -14,7 +16,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/valyala/fastjson"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"io"
 	"log"
@@ -88,11 +89,11 @@ func GetTime() (*timestamp.Timestamp, error) {
 
 func ImportToDB(PrivateKey string, PublicKey string) error {
 	DbConf := viper.GetString("DCS")
-	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return err
 	}
-	db.Exec("INSERT INTO KeyLinks (Id, PublicKey, PrivateKey) VALUES ($1, $2, $3)",
+	db.Exec("INSERT INTO KeyLinks (Id, PublicKey, PrivateKey) VALUES (?, ?, ?)",
 		uuid.NewString(),
 		PublicKey,
 		PrivateKey)

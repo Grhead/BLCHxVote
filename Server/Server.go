@@ -213,6 +213,14 @@ func (s *GRServer) Vote(ctx context.Context, request *VoteRequest) (*VoteRespons
 	return &VoteResponse{Status: vote}, nil
 }
 
+func (s *GRServer) ViewEffectivity(ctx context.Context, request *ViewEffectivityRequest) (*ViewEffectivityResponse, error) {
+	count, err := Basic.ViewEffectivity(request.Master)
+	if err != nil {
+		return &ViewEffectivityResponse{Count: 0}, err
+	}
+	return &ViewEffectivityResponse{Count: int64(count)}, nil
+}
+
 //func (s *GRServer) mustEmbedUnimplementedContractServer() {
 //	//TODO implement me
 //	panic("implement me")

@@ -32,6 +32,7 @@ const (
 	Contract_AcceptNewUser_FullMethodName      = "/Contract/AcceptNewUser"
 	Contract_AcceptLoadUser_FullMethodName     = "/Contract/AcceptLoadUser"
 	Contract_Vote_FullMethodName               = "/Contract/Vote"
+	Contract_ViewEffectivity_FullMethodName    = "/Contract/ViewEffectivity"
 )
 
 // ContractClient is the client API for Contract service.
@@ -52,6 +53,7 @@ type ContractClient interface {
 	AcceptNewUser(ctx context.Context, in *AcceptNewUserRequest, opts ...grpc.CallOption) (*AcceptNewUserResponse, error)
 	AcceptLoadUser(ctx context.Context, in *AcceptLoadUserRequest, opts ...grpc.CallOption) (*AcceptLoadUserResponse, error)
 	Vote(ctx context.Context, in *VoteRequest, opts ...grpc.CallOption) (*VoteResponse, error)
+	ViewEffectivity(ctx context.Context, in *ViewEffectivityRequest, opts ...grpc.CallOption) (*ViewEffectivityResponse, error)
 }
 
 type contractClient struct {
@@ -170,6 +172,15 @@ func (c *contractClient) Vote(ctx context.Context, in *VoteRequest, opts ...grpc
 	return out, nil
 }
 
+func (c *contractClient) ViewEffectivity(ctx context.Context, in *ViewEffectivityRequest, opts ...grpc.CallOption) (*ViewEffectivityResponse, error) {
+	out := new(ViewEffectivityResponse)
+	err := c.cc.Invoke(ctx, Contract_ViewEffectivity_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ContractServer is the server API for Contract service.
 // All implementations must embed UnimplementedContractServer
 // for forward compatibility
@@ -188,6 +199,7 @@ type ContractServer interface {
 	AcceptNewUser(context.Context, *AcceptNewUserRequest) (*AcceptNewUserResponse, error)
 	AcceptLoadUser(context.Context, *AcceptLoadUserRequest) (*AcceptLoadUserResponse, error)
 	Vote(context.Context, *VoteRequest) (*VoteResponse, error)
+	ViewEffectivity(context.Context, *ViewEffectivityRequest) (*ViewEffectivityResponse, error)
 	mustEmbedUnimplementedContractServer()
 }
 
@@ -230,6 +242,9 @@ func (UnimplementedContractServer) AcceptLoadUser(context.Context, *AcceptLoadUs
 }
 func (UnimplementedContractServer) Vote(context.Context, *VoteRequest) (*VoteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Vote not implemented")
+}
+func (UnimplementedContractServer) ViewEffectivity(context.Context, *ViewEffectivityRequest) (*ViewEffectivityResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ViewEffectivity not implemented")
 }
 func (UnimplementedContractServer) mustEmbedUnimplementedContractServer() {}
 
@@ -460,6 +475,24 @@ func _Contract_Vote_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Contract_ViewEffectivity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ViewEffectivityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContractServer).ViewEffectivity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Contract_ViewEffectivity_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContractServer).ViewEffectivity(ctx, req.(*ViewEffectivityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Contract_ServiceDesc is the grpc.ServiceDesc for Contract service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -514,6 +547,10 @@ var Contract_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Vote",
 			Handler:    _Contract_Vote_Handler,
+		},
+		{
+			MethodName: "ViewEffectivity",
+			Handler:    _Contract_ViewEffectivity_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

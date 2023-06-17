@@ -7,10 +7,9 @@ import (
 	"github.com/spf13/viper"
 	"github.com/valyala/fastjson"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
-	"math/rand"
 	"os"
 	"strconv"
 	"time"
@@ -34,13 +33,11 @@ func ReadAddresses() ([]*fastjson.Value, error) {
 func setTime(master string, limit *timestamppb.Timestamp) (*timestamp.Timestamp, error) {
 	log.Println("setTime")
 	DbConf := viper.GetString("DCS")
-	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
-	rand.New(rand.NewSource(time.Now().UnixNano()))
-	t := rand.Intn(10000)
-	errInsert := db.Exec("INSERT INTO VotingTime (Id, MasterChain, LimitTime) VALUES ($1, $2, $3)", t, master, limit.Seconds)
+	errInsert := db.Exec("INSERT INTO VotingTime (MasterChain, LimitTime) VALUES (?, ?)", master, limit.Seconds)
 	if errInsert.Error != nil {
 		return nil, errInsert.Error
 	}
@@ -50,12 +47,12 @@ func setTime(master string, limit *timestamppb.Timestamp) (*timestamp.Timestamp,
 func checkTime(master string) (time.Time, string, error) {
 	log.Println("checkTime")
 	DbConf := viper.GetString("DCS")
-	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return time.Time{}, "", err
 	}
 	var timeOfMaster string
-	db.Raw("SELECT LimitTime FROM VotingTime WHERE MasterChain = $1",
+	db.Raw("SELECT LimitTime FROM VotingTime WHERE MasterChain = ?",
 		master).Scan(&timeOfMaster)
 	i, err := strconv.Atoi(timeOfMaster)
 	if err != nil {

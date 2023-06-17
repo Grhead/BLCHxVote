@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"github.com/valyala/fastjson"
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"io"
@@ -220,7 +221,7 @@ func AddBlock(block *Block) error {
 // NewDormantUser same with AddPass (BLCHxVote)
 func NewDormantUser(identifier string, master string) (string, error) {
 	DbConf := viper.GetString("DCS")
-	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return "", err
 	}
@@ -229,7 +230,7 @@ func NewDormantUser(identifier string, master string) (string, error) {
 		return "", err
 	}
 	var isUsed string
-	db.Raw("SELECT Id FROM RelationPatterns WHERE PersonIdentifier = $1",
+	db.Raw("SELECT Id FROM RelationPatterns WHERE PersonIdentifier = ?",
 		identifier).Scan(&isUsed)
 	if isUsed != "" {
 		return "", errors.New("identifier not allowed")
@@ -238,7 +239,7 @@ func NewDormantUser(identifier string, master string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	db.Exec("INSERT INTO RelationPatterns (Id, PersonIdentifier, PrivateKeyTemplate, Master) VALUES ($1, $2, $3, $4)",
+	db.Exec("INSERT INTO RelationPatterns (Id, PersonIdentifier, PrivateKeyTemplate, Master) VALUES (?, ?, ?, ?)",
 		uuid.NewString(),
 		encryptCode,
 		privateGenKey,
@@ -317,26 +318,26 @@ func DecryptAES(key []byte, plaintext string) (string, error) {
 
 func LoadToEnterAlreadyUserPrivate(privateKey string) (*User, error) {
 	DbConf := viper.GetString("DCS")
-	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 	var publicKey string
 	var LoadedUser *User
-	db.Raw("SELECT PublicKey FROM KeyLinks WHERE PrivateKey = $1",
+	db.Raw("SELECT PublicKey FROM KeyLinks WHERE PrivateKey = ?",
 		privateKey).Scan(&publicKey)
 	errWhere := db.Table("KeyLinks").Where("PublicKey = ?", publicKey).First(&LoadedUser)
 	if errWhere.Error != nil {
 		return nil, errWhere.Error
 	}
-	db.Raw("SELECT * FROM PublicKeySets WHERE PublicKey = $1",
+	db.Raw("SELECT * FROM PublicKeySets WHERE PublicKey = ?",
 		publicKey).Scan(&LoadedUser)
 	return LoadedUser, nil
 }
 
 func LoadToEnterAlreadyUserPublic(publicKey string) (*User, error) {
 	DbConf := viper.GetString("DCS")
-	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -345,20 +346,20 @@ func LoadToEnterAlreadyUserPublic(publicKey string) (*User, error) {
 	if errWhere.Error != nil {
 		return nil, errWhere.Error
 	}
-	db.Raw("SELECT * FROM PublicKeySets WHERE PublicKey = $1",
+	db.Raw("SELECT * FROM PublicKeySets WHERE PublicKey = ?",
 		publicKey).Scan(&LoadedUser)
 	return LoadedUser, nil
 }
 
 func GetUserByPublic(publicKey string) (*User, error) {
 	DbConf := viper.GetString("DCS")
-	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 	var LoadedUser *User
 	//var affiliation string
-	db.Raw("SELECT * FROM PublicKeySets WHERE PublicKey = $1",
+	db.Raw("SELECT * FROM PublicKeySets WHERE PublicKey = ?",
 		publicKey).Scan(&LoadedUser)
 	//LoadedUser.Affiliation = affiliation
 	//LoadedUser.PublicKey = publicKey
@@ -374,7 +375,7 @@ func GetUserByPublic(publicKey string) (*User, error) {
 		return "", err
 	}
 	var privateKeyTemplate string
-	db.Raw("SELECT PrivateKeyTemplate FROM RelationPatterns WHERE PersonIdentifier = $1",
+	db.Raw("SELECT PrivateKeyTemplate FROM RelationPatterns WHERE PersonIdentifier = ?",
 		SetHash(identifier)).Scan(&privateKeyTemplate)
 	if privateKeyTemplate == "" {
 		return "", errors.New("identifier does not exist")
@@ -385,7 +386,7 @@ func GetUserByPublic(publicKey string) (*User, error) {
 // NewPublicKeyItem Same with NewUser(BLCHxVote)
 func NewPublicKeyItem(affiliation string) (*User, error) {
 	DbConf := viper.GetString("DCS")
-	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -394,7 +395,7 @@ func NewPublicKeyItem(affiliation string) (*User, error) {
 		return nil, err
 	}
 	tempUUID := uuid.New()
-	db.Exec("INSERT INTO PublicKeySets (Id, PublicKey, IsUsed, VotingAffiliation) VALUES ($1, $2, $3, $4)",
+	db.Exec("INSERT INTO PublicKeySets (Id, PublicKey, IsUsed, VotingAffiliation) VALUES (?, ?, ?, ?)",
 		tempUUID,
 		tempKey,
 		false,
@@ -409,7 +410,7 @@ func NewPublicKeyItem(affiliation string) (*User, error) {
 
 func NewCandidate(description string, affiliation string) (*ElectionSubjects, error) {
 	DbConf := viper.GetString("DCS")
-	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -418,7 +419,7 @@ func NewCandidate(description string, affiliation string) (*ElectionSubjects, er
 	if errKeyGen != nil {
 		return nil, errKeyGen
 	}
-	db.Exec("INSERT INTO ElectionSubjects (Id, PublicKey,Description, VotingAffiliation) VALUES ($1, $2, $3, $4)",
+	db.Exec("INSERT INTO ElectionSubjects (Id, PublicKey,Description, VotingAffiliation) VALUES (?, ?, ?, ?)",
 		tempUUID,
 		tempKey,
 		description,
@@ -433,11 +434,11 @@ func NewCandidate(description string, affiliation string) (*ElectionSubjects, er
 func GetCandidate(PublicKey string) (*ElectionSubjects, error) {
 	DbConf := viper.GetString("DCS")
 	var checkIsCandidate *ElectionSubjects
-	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
-	db.Raw("SELECT * FROM ElectionSubjects WHERE PublicKey = $1",
+	db.Raw("SELECT * FROM ElectionSubjects WHERE PublicKey = ?",
 		PublicKey).Scan(&checkIsCandidate)
 	if checkIsCandidate != nil {
 		return &ElectionSubjects{
@@ -494,18 +495,18 @@ func Balance(moneyMan string) (int64, error) {
 
 func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (string, error) {
 	DbConf := viper.GetString("DCS")
-	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return "", err
 	}
 	var checkPublicKey string
-	db.Raw("SELECT Id FROM PublicKeySets WHERE PublicKey = $1",
+	db.Raw("SELECT Id FROM PublicKeySets WHERE PublicKey = ?",
 		PublicKey).Scan(&checkPublicKey)
 	if checkPublicKey == "" {
 		return "", errors.New("public key is invalid")
 	}
 	var checkMaster string
-	db.Raw("SELECT VotingAffiliation FROM PublicKeySets WHERE PublicKey = $1",
+	db.Raw("SELECT VotingAffiliation FROM PublicKeySets WHERE PublicKey = ?",
 		PublicKey).Scan(&checkMaster)
 	if checkMaster == "" {
 		return "", errors.New("public key is invalid (master)")
@@ -517,24 +518,24 @@ func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (st
 		return "", err
 	}
 	log.Println(encryptAES)
-	db.Raw("SELECT PrivateKeyTemplate FROM RelationPatterns WHERE PersonIdentifier = $1",
+	db.Raw("SELECT PrivateKeyTemplate FROM RelationPatterns WHERE PersonIdentifier = ?",
 		encryptAES).Scan(&checkTemplate)
 	if checkTemplate == "" {
 		return "", errors.New("identifier does not exist")
 	}
 	var checkIsUsed bool
-	db.Raw("SELECT isUsed FROM PublicKeySets WHERE PublicKey = $1",
+	db.Raw("SELECT isUsed FROM PublicKeySets WHERE PublicKey = ?",
 		PublicKey).Scan(&checkIsUsed)
 	if checkIsUsed {
 		return "", errors.New("public key is already used")
 	}
 	var checkIsCandidate string
-	db.Raw("SELECT Id FROM ElectionSubjects WHERE PublicKey = $1",
+	db.Raw("SELECT Id FROM ElectionSubjects WHERE PublicKey = ?",
 		PublicKey).Scan(&checkIsCandidate)
 	if checkIsCandidate != "" {
 		return "", errors.New("public key is not allowed")
 	}
-	errExec := db.Exec("UPDATE PublicKeySets SET isUsed = 1 WHERE PublicKey = $1", PublicKey)
+	errExec := db.Exec("UPDATE PublicKeySets SET isUsed = 1 WHERE PublicKey = ?", PublicKey)
 	if errExec.Error != nil {
 		return "", errExec.Error
 	}
@@ -548,12 +549,12 @@ func RegisterGeneratePrivate(passport string, salt string, PublicKey string) (st
 
 func GetVotingAffiliation(PublicKey string) (string, error) {
 	DbConf := viper.GetString("DCS")
-	db, err := gorm.Open(sqlite.Open(DbConf), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(DbConf), &gorm.Config{})
 	if err != nil {
 		return "", err
 	}
 	var checkVotingAffiliation string
-	db.Raw("SELECT VotingAffiliation FROM PublicKeySets WHERE PublicKey = $1",
+	db.Raw("SELECT VotingAffiliation FROM PublicKeySets WHERE PublicKey = ?",
 		PublicKey).Scan(&checkVotingAffiliation)
 	return checkVotingAffiliation, nil
 }
@@ -612,9 +613,9 @@ func GetFullDb() ([]*Block, error) {
 	var resultMasterBlocks []*Block
 	db.Find(&blocks)
 	for _, v := range blocks {
-		desBlock, err := DeserializeBlock(v.Block)
-		if err != nil {
-			return nil, err
+		desBlock, errDeserialize := DeserializeBlock(v.Block)
+		if errDeserialize != nil {
+			return nil, errDeserialize
 		}
 		resultMasterBlocks = append(resultMasterBlocks, desBlock)
 	}

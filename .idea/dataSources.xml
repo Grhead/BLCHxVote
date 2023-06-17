@@ -36,5 +36,12 @@
       <jdbc-url>jdbc:sqlite:$USER_HOME$/Desktop/Vox2-Proxy/Database/AuthDb.db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
+    <data-source source="LOCAL" name="@62.113.105.221" uuid="fcf43f87-b433-469d-b550-d78197bfd2ee">
+      <driver-ref>mariadb</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.mariadb.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mariadb://62.113.105.221:3306</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

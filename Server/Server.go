@@ -220,8 +220,3 @@ func (s *GRServer) ViewEffectivity(ctx context.Context, request *ViewEffectivity
 	}
 	return &ViewEffectivityResponse{Count: int64(count)}, nil
 }
-
-//func (s *GRServer) mustEmbedUnimplementedContractServer() {
-//	//TODO implement me
-//	panic("implement me")
-//}

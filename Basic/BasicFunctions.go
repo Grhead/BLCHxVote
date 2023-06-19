@@ -43,8 +43,6 @@ func init() {
 
 var MiningResponse Transport.CheckHelp
 
-//var QueueEnum = make(chan bool)
-
 func NewChain(initMaster string, votesCount int64, limit *timestamppb.Timestamp) (*Transport.CreateHelp, error) {
 	log.Println("NewChain")
 	addresses, err := ReadAddresses()
@@ -79,7 +77,6 @@ func NewChain(initMaster string, votesCount int64, limit *timestamppb.Timestamp)
 	return &creation, nil
 }
 
-// CallCreateVoters ADD TRANSFER func
 func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string, error) {
 	log.Println("CallCreateVoters")
 	DbConf := viper.GetString("DCS")
@@ -110,17 +107,12 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string
 			return nil, nil, errDormantUser
 		}
 		_, errPublicKeyItem := Blockchain.NewPublicKeyItem(master)
-		//item, errPublicKeyItem := Blockchain.NewPublicKeyItem(master)
 		if errPublicKeyItem != nil {
 			return nil, nil, errPublicKeyItem
 		}
 		if errPublicKeyItem != nil {
 			return nil, nil, errPublicKeyItem
 		}
-		//_, err = transfer(item.Address(), master, 1)
-		//if err != nil {
-		//	return nil, nil, err
-		//}
 		DormantUserRows, errRaw := db.Raw("SELECT PersonIdentifier FROM RelationPatterns WHERE Master = ?", master).Rows()
 		if errRaw != nil {
 			return nil, nil, errRaw
@@ -172,15 +164,10 @@ func CallCreateVoters(voter string, master string) ([]*Blockchain.User, []string
 			if errDormant != nil {
 				return nil, nil, errDormant
 			}
-			//item, errNewPublicKey := Blockchain.NewPublicKeyItem(master)
 			_, errNewPublicKey := Blockchain.NewPublicKeyItem(master)
 			if errNewPublicKey != nil {
 				return nil, nil, errNewPublicKey
 			}
-			//_, errTransfer := transfer(item.Address(), master, 1)
-			//if errTransfer != nil {
-			//	return nil, nil, errTransfer
-			//}
 		}
 		DormantUserRows, errRaw := db.Raw("SELECT PersonIdentifier FROM RelationPatterns WHERE Master = ?", master).Rows()
 		if errRaw != nil {
@@ -314,12 +301,9 @@ func WinnersList(master string) ([]*ElectionsList, error) {
 	var GetElections []*Blockchain.ElectionSubjects
 	var ResultList []*ElectionsList
 	db.Table("ElectionSubjects").Where("VotingAffiliation = ?", master).Find(&GetElections)
-	log.Println(GetElections)
-	log.Println(len(GetElections))
 	if len(GetElections) < 1 {
 		return nil, errors.New("empty list")
 	}
-	log.Println(GetElections)
 	for _, v := range GetElections {
 		ElectionBalance, err := getBalance(v.PublicKey)
 		if err != nil {
@@ -541,9 +525,7 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 		Master: sender,
 	}
 	var errNode error
-
 	for _, addr := range addresses {
-		//TODO get checking
 		_, errNode = client.R().SetSuccessResult(&MiningResponse).
 			Get(fmt.Sprintf("http://%s/check", strings.Trim(addr.String(), "\"")))
 		if errNode != nil {
@@ -578,20 +560,7 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 		if errLoad != nil {
 			return "", errLoad
 		}
-
-		//publicReceiver, errLoad := Blockchain.LoadToEnterAlreadyUserPublic(receiver)
-		//if errLoad != nil {
-		//	return "", errLoad
-		//}
 		publicReceiver, errLoad := Blockchain.GetCandidate(receiver)
-
-		//if errLoad != nil {
-		//	return "", errLoad
-		//}
-		//tx, errNewTx := Blockchain.NewTransaction(publicSender, publicReceiver, lastHash.Hash, num)
-		//if errNewTx != nil {
-		//	return "", errNewTx
-		//}
 		publicObject := &Transport.ObjectHelp{
 			PublicKey:         publicReceiver.PublicKey,
 			VotingAffiliation: publicReceiver.VotingAffiliation,
@@ -603,16 +572,12 @@ func Vote(receiver string, sender string, master string, num int64) (string, err
 			Sender:   publicSender,
 		}
 	}
-	//QueueEnum <- true
 	tx, errSerialize := SerializeTX(&transactionToNet)
 	if errSerialize != nil {
 		log.Fatalln(errSerialize)
 	}
-	//TODO check TEST
-	//rand.New(rand.NewSource(time.Now().Unix()))
-	//t := rand.Intn(10000)
 	db.Exec("INSERT INTO TransactionQueue (Transactions, Master) VALUES (?, ?)", tx, master)
-	go addTransactionToNet(db, client, addresses, txStatus, master)
+	addTransactionToNet(db, client, addresses, txStatus, master)
 
 	return txStatus.TransactionStatus, nil
 }
@@ -686,7 +651,8 @@ func transfer(receiver string, master string, num int64) (string, error) {
 		log.Fatalln(errSerialize)
 	}
 	db.Exec("INSERT INTO TransactionQueue (Transactions, Master) VALUES (?, ?)", tx, master)
-	go addTransactionToNet(db, client, addresses, txStatus, master)
+	log.Println(tx, master)
+	addTransactionToNet(db, client, addresses, txStatus, master)
 	return txStatus.TransactionStatus, nil
 }
 
@@ -725,6 +691,5 @@ func addTransactionToNet(
 		for _, v := range TransactionsArray {
 			db.Exec("DELETE FROM TransactionQueue WHERE Id = ?", v.Id)
 		}
-		//TransactionsArray = TransactionsArray[:0]
 	}
 }

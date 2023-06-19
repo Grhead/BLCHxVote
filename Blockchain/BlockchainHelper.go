@@ -27,7 +27,6 @@ import (
 	"time"
 )
 
-// SerializeBlock TODO Rewrite
 func SerializeBlock(block *Block) (string, error) {
 	jsonData, err := json.MarshalIndent(*block, "", "\t")
 	if err != nil {
@@ -36,7 +35,6 @@ func SerializeBlock(block *Block) (string, error) {
 	return string(jsonData), nil
 }
 
-// DeserializeBlock TODO Rewrite
 func DeserializeBlock(data string) (*Block, error) {
 	var block Block
 	err := json.Unmarshal([]byte(data), &block)
@@ -58,7 +56,6 @@ func GetTime() (*timestamp.Timestamp, error) {
 		}(resp.Body)
 		return timestamppb.New(time.Time{}), err
 	}
-	//TODO what is log fatal
 	defer func(Body io.ReadCloser) {
 		errReadCloser := Body.Close()
 		if errReadCloser != nil {
@@ -81,11 +78,6 @@ func GetTime() (*timestamp.Timestamp, error) {
 	return timestamppb.New(parsedTime), nil
 
 }
-
-//func SetHash(data string) string {
-//	hash := sha256.Sum256([]byte(data))
-//	return string(hash[:])
-//}
 
 func ImportToDB(PrivateKey string, PublicKey string) error {
 	DbConf := viper.GetString("DCS")
